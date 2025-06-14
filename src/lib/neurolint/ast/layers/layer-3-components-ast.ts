@@ -123,7 +123,7 @@ function fixAccessibilityAttributesAST(ast: t.File): void {
           }
         }
         
-        // Add aria-label to buttons
+        // Add aria-label to buttons without existing aria attributes
         if (tagName === 'button') {
           const hasAriaLabel = openingElement.attributes.some(attr =>
             t.isJSXAttribute(attr) && 

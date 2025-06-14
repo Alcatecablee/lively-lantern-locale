@@ -28,15 +28,21 @@ function addSSRGuardsAST(ast: t.File): void {
         node.object.name === 'localStorage' &&
         t.isIdentifier(node.property)
       ) {
-        // Wrap localStorage calls with typeof window check
-        const typeofCheck = t.binaryExpression(
-          '!==',
-          t.unaryExpression('typeof', t.identifier('window')),
-          t.stringLiteral('undefined')
-        );
-        
-        const guardedAccess = t.logicalExpression('&&', typeofCheck, node);
-        path.replaceWith(guardedAccess);
+        // Only wrap if not already wrapped
+        if (
+          !t.isLogicalExpression(path.parent) ||
+          !t.isBinaryExpression((path.parent as t.LogicalExpression).left)
+        ) {
+          // Wrap localStorage calls with typeof window check
+          const typeofCheck = t.binaryExpression(
+            '!==',
+            t.unaryExpression('typeof', t.identifier('window')),
+            t.stringLiteral('undefined')
+          );
+          
+          const guardedAccess = t.logicalExpression('&&', typeofCheck, node);
+          path.replaceWith(guardedAccess);
+        }
       }
     }
   });
@@ -45,6 +51,7 @@ function addSSRGuardsAST(ast: t.File): void {
 function addMountedStatesAST(ast: t.File): void {
   let hasLocalStorage = false;
   let hasUseState = false;
+  let hasMountedState = false;
   
   // Check if component uses localStorage and useState
   traverse(ast, {
@@ -60,10 +67,20 @@ function addMountedStatesAST(ast: t.File): void {
       if (t.isIdentifier(path.node.callee) && path.node.callee.name === 'useState') {
         hasUseState = true;
       }
+    },
+    VariableDeclarator(path) {
+      if (
+        t.isArrayPattern(path.node.id) &&
+        path.node.id.elements.length >= 1 &&
+        t.isIdentifier(path.node.id.elements[0]) &&
+        path.node.id.elements[0].name === 'mounted'
+      ) {
+        hasMountedState = true;
+      }
     }
   });
   
-  if (hasLocalStorage && hasUseState) {
+  if (hasLocalStorage && hasUseState && !hasMountedState) {
     // Add mounted state and useEffect
     traverse(ast, {
       FunctionDeclaration(path) {
@@ -96,6 +113,7 @@ function addMountedStatesAST(ast: t.File): void {
         );
         
         body.unshift(mountedState, mountEffect);
+        path.stop();
       }
     });
   }

@@ -98,8 +98,6 @@ export async function NeuroLintEnhancedOrchestrator(
         executionTime,
         changeCount,
         improvements,
-        contractResults: astResult.contractResults,
-        performanceImpact: astResult.performanceImpact,
       });
       
       current = next;

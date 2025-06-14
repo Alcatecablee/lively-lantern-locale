@@ -16,12 +16,18 @@ function addSSRGuards(code: string): string {
   // Fix localStorage access with proper guards
   fixed = fixed.replace(
     /localStorage\.getItem\(/g,
-    'typeof window !== "undefined" && localStorage.getItem('
+    'typeof window !== "undefined" ? localStorage.getItem('
   );
   
   fixed = fixed.replace(
     /localStorage\.setItem\(/g,
-    'typeof window !== "undefined" && localStorage.setItem('
+    'typeof window !== "undefined" ? localStorage.setItem('
+  );
+  
+  // Close the conditional expressions properly
+  fixed = fixed.replace(
+    /(typeof window !== "undefined" \? localStorage\.(?:get|set)Item\([^)]+\))/g,
+    '$1 : null'
   );
   
   return fixed;

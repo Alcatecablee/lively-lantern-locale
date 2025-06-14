@@ -7,6 +7,8 @@ export async function transform(code: string): Promise<string> {
   transformed = fixMissingKeyProps(transformed);
   transformed = fixAccessibilityAttributes(transformed);
   transformed = fixComponentPropTypes(transformed);
+  transformed = addUseClientDirective(transformed);
+  transformed = convertVarToConst(transformed);
   
   return transformed;
 }
@@ -46,7 +48,7 @@ function fixMissingKeyProps(code: string): string {
     (match, item, index, component, props) => {
       if (props.includes('key=')) return match;
       
-      const keyValue = index ? `{${index}}` : `{${item}.id || ${item}.name || Math.random()}`;
+      const keyValue = index ? `{${index}}` : `{${item}.id || Math.random()}`;
       const hasClosingTag = match.includes(`</${component}>`);
       
       if (hasClosingTag) {
@@ -113,4 +115,27 @@ function fixComponentPropTypes(code: string): string {
   }
   
   return code;
+}
+
+function addUseClientDirective(code: string): string {
+  const needsUseClient = 
+    code.includes('useState') ||
+    code.includes('useEffect') ||
+    code.includes('localStorage') ||
+    code.includes('window.') ||
+    code.includes('document.') ||
+    code.includes('onClick') ||
+    code.includes('onChange') ||
+    code.includes('onSubmit');
+  
+  if (needsUseClient && !code.includes("'use client'") && !code.includes('"use client"')) {
+    return "'use client';\n\n" + code;
+  }
+  
+  return code;
+}
+
+function convertVarToConst(code: string): string {
+  // Convert var declarations to const (simple cases)
+  return code.replace(/\bvar\s+(\w+)\s*=\s*([^;]+);/g, 'const $1 = $2;');
 }

@@ -39,7 +39,8 @@ export const TEST_CASES: TestCase[] = [
       'Added use client directive',
       'Added missing key props',
       'Optimized console statements',
-      'Added missing imports'
+      'Added missing imports',
+      'Converted var to const'
     ]
   },
   
@@ -133,7 +134,8 @@ function EntityTest() {
 }`,
     expectedFixes: [
       'Added use client directive',
-      'Added missing imports'
+      'Added missing imports',
+      'Optimized console statements'
     ]
   }
 ];
@@ -155,7 +157,7 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
     'Added SSR guards': transformedCode.includes('typeof window !== "undefined"'),
     'Added accessibility attributes': transformedCode.includes('aria-label') || transformedCode.includes('alt=""'),
     'Added TypeScript interfaces': transformedCode.includes('interface') && transformedCode.includes('Props'),
-    'Added missing imports': transformedCode.includes('import {') && transformedCode.includes('} from'),
+    'Added missing imports': transformedCode.includes('import {') && (transformedCode.includes('useState') || transformedCode.includes('useEffect')),
     'Converted var to const': !transformedCode.includes('var ') && transformedCode.includes('const ')
   };
 

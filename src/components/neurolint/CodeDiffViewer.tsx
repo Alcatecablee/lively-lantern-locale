@@ -1,4 +1,3 @@
-
 import React, { useRef } from "react";
 import DiffViewer from "react-diff-viewer";
 import { Button } from "@/components/ui/button";
@@ -76,7 +75,10 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
 }
 
 // Simple syntax highlighter (basic)
-function highlighted(str: string) {
+function highlighted(str: string | undefined) {
+  if (typeof str !== "string") {
+    return <span />;
+  }
   // rudimentary: keywords in JS/TS colored, strings/nums bolded
   // Could swap with 'prism-react-renderer' for real syntax
   const keywords = [

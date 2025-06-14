@@ -1,4 +1,3 @@
-
 export interface TestCase {
   name: string;
   description: string;
@@ -165,7 +164,23 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
     'Added accessibility attributes': transformedCode.includes('aria-label') || transformedCode.includes('alt=""'),
     'Added TypeScript interfaces': transformedCode.includes('interface') && transformedCode.includes('Props'),
     'Added missing imports': transformedCode.includes('import {') && (transformedCode.includes('useState') || transformedCode.includes('useEffect')),
-    'Converted var to const': !transformedCode.includes('var ') && transformedCode.includes('const ')
+    'Converted var to const': !transformedCode.includes('var ') && transformedCode.includes('const '),
+    'Removed duplicate functions': (function() {
+      // Check if we had duplicates in the original and now have only one
+      const originalInput = testCase.input;
+      const functionMatches = transformedCode.match(/function\s+\w+\s*\([^)]*\)\s*\{/g) || [];
+      const originalFunctionMatches = originalInput.match(/function\s+\w+\s*\([^)]*\)\s*\{/g) || [];
+      
+      // For the specific test case, check if we reduced from 2 'add' functions to 1
+      if (testCase.name === "Duplicate Functions") {
+        const addFunctionsInOriginal = (originalInput.match(/function\s+add\s*\(/g) || []).length;
+        const addFunctionsInTransformed = (transformedCode.match(/function\s+add\s*\(/g) || []).length;
+        return addFunctionsInOriginal > 1 && addFunctionsInTransformed === 1;
+      }
+      
+      // General case: check if we have fewer function declarations than before
+      return originalFunctionMatches.length > functionMatches.length;
+    })()
   };
 
   testCase.expectedFixes.forEach(expectedFix => {

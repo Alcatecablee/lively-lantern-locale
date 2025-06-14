@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, XCircle, Clock, Code, Brain } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Code, Brain, Shield, Zap } from 'lucide-react';
 import { TestResult } from '@/lib/neurolint/testSuite';
 
 interface TestResultCardProps {
@@ -33,12 +33,10 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
               <Clock className="w-3 h-3 mr-1" />
               {result.executionTime}ms
             </Badge>
-            {result.semanticAnalysis && (
-              <Badge variant="outline" className="text-purple-600">
-                <Brain className="w-3 h-3 mr-1" />
-                Semantic
-              </Badge>
-            )}
+            <Badge variant="outline" className="text-purple-600">
+              <Zap className="w-3 h-3 mr-1" />
+              AST
+            </Badge>
           </div>
         </CardTitle>
       </CardHeader>
@@ -133,19 +131,47 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
               <div className="space-y-2">
                 <h4 className="font-medium">Layer Results</h4>
                 {result.layers.map((layer, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 bg-muted rounded">
-                    <span className="text-sm">{layer.name}</span>
-                    <div className="flex items-center gap-2">
-                      {layer.success ? (
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-red-500" />
-                      )}
-                      <Badge variant="outline">{layer.executionTime}ms</Badge>
-                      {layer.changeCount !== undefined && (
-                        <Badge variant="secondary">{layer.changeCount} changes</Badge>
-                      )}
+                  <div key={i} className="p-3 bg-muted rounded space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">{layer.name}</span>
+                      <div className="flex items-center gap-2">
+                        {layer.success ? (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <Badge variant="outline">{layer.executionTime}ms</Badge>
+                        {layer.changeCount !== undefined && (
+                          <Badge variant="secondary">{layer.changeCount} changes</Badge>
+                        )}
+                      </div>
                     </div>
+                    
+                    {layer.contractResults && (
+                      <div className="text-xs space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-3 h-3" />
+                          <span>Contract Validation:</span>
+                          <Badge variant={layer.contractResults.preconditions.passed && layer.contractResults.postconditions.passed ? "default" : "destructive"} className="text-xs">
+                            {layer.contractResults.preconditions.passed && layer.contractResults.postconditions.passed ? "Passed" : "Failed"}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {layer.performanceImpact && (
+                      <div className="text-xs">
+                        <Badge variant={layer.performanceImpact.impact === 'low' ? "default" : layer.performanceImpact.impact === 'medium' ? "secondary" : "destructive"} className="text-xs">
+                          {layer.performanceImpact.impact} impact
+                        </Badge>
+                      </div>
+                    )}
+                    
+                    {layer.improvements && layer.improvements.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Improvements: {layer.improvements.join(', ')}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -177,8 +203,11 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
           {result.semanticAnalysis && (
             <TabsContent value="semantic">
               <div className="space-y-2">
-                <h4 className="font-medium">Semantic Analysis</h4>
-                <div className="grid grid-cols-2 gap-4">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Brain className="w-4 h-4" />
+                  Semantic Analysis
+                </h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <strong>Complexity Change:</strong> {result.semanticAnalysis.complexityChange}
                   </div>

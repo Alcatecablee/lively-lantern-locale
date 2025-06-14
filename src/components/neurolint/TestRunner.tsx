@@ -97,7 +97,7 @@ export function TestRunner() {
             <Zap className="w-5 h-5 text-purple-500" />
             Enhanced NeuroLint Test Suite
             <Badge variant="outline" className="ml-auto">
-              Phase {enableSemanticAnalysis ? '3' : enableConflictDetection ? '2' : '1'}
+              AST-Only Mode
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -119,7 +119,7 @@ export function TestRunner() {
                 className="flex items-center gap-2"
               >
                 <PlayCircle className="w-4 h-4" />
-                {isRunning ? 'Running Enhanced Tests...' : 'Run All Tests'}
+                {isRunning ? 'Running AST Tests...' : 'Run All Tests'}
               </Button>
               
               {results.length > 0 && (

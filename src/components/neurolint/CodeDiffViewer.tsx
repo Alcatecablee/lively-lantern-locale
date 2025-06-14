@@ -1,4 +1,3 @@
-
 import React, { useRef } from "react";
 import DiffViewer from "react-diff-viewer";
 import { Button } from "@/components/ui/button";
@@ -75,8 +74,6 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
             borderRadius: "0 0 12px 12px",
           },
           contentText: { fontFamily: "JetBrains Mono, monospace", fontSize: 13, color: "#d6e3ff" },
-          addedBackground: { background: "#23394d66" },
-          removedBackground: { background: "#3A2D31cc" },
           gutter: { background: "rgba(30,34,48,0.93)", color: "#565b7c" },
         }}
       />
@@ -101,4 +98,3 @@ function highlighted(str: string | undefined) {
     .replace(new RegExp("\\b(" + keywords.join("|") + ")\\b", "g"), '<span style="color:#76ffd7;">$1</span>');
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
-

@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlayCircle, CheckCircle, XCircle, Clock, Code, Zap, Settings } from 'lucide-react';
-import { NeuroLintOrchestrator } from '@/lib/neurolint/orchestrator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { PlayCircle, CheckCircle, XCircle, Clock, Code, Zap, Settings, Shield, Brain } from 'lucide-react';
+import { NeuroLintEnhancedOrchestrator } from '@/lib/neurolint/orchestrator-enhanced';
 import { TEST_CASES, validateTestResult, TestResult } from '@/lib/neurolint/testSuite';
 
 export function TestRunner() {
@@ -17,7 +19,11 @@ export function TestRunner() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [currentTest, setCurrentTest] = useState<string>('');
   const [progress, setProgress] = useState(0);
+  
+  // Configuration options
   const [useAST, setUseAST] = useState(true);
+  const [enableConflictDetection, setEnableConflictDetection] = useState(true);
+  const [enableSemanticAnalysis, setEnableSemanticAnalysis] = useState(true);
 
   const runAllTests = async () => {
     setIsRunning(true);
@@ -34,17 +40,31 @@ export function TestRunner() {
       const startTime = Date.now();
       
       try {
-        const { transformed } = await NeuroLintOrchestrator(testCase.input, undefined, useAST);
-        const validation = validateTestResult(testCase, transformed);
+        // Use the enhanced orchestrator with all robustness features
+        const result = await NeuroLintEnhancedOrchestrator(
+          testCase.input, 
+          undefined, 
+          useAST,
+          enableConflictDetection,
+          enableSemanticAnalysis
+        );
+        
+        const validation = validateTestResult(testCase, result.transformed);
         const executionTime = Date.now() - startTime;
 
         testResults.push({
           testCase,
-          transformedCode: transformed,
+          transformedCode: result.transformed,
           passed: validation.passed,
           detectedFixes: validation.detectedFixes,
           missingFixes: validation.missingFixes,
-          executionTime
+          executionTime,
+          // Enhanced result data
+          layers: result.layers,
+          conflicts: result.conflicts,
+          changeAnalysis: result.changeAnalysis,
+          semanticAnalysis: result.semanticAnalysis,
+          validationReport: result.validationReport
         });
       } catch (error) {
         const executionTime = Date.now() - startTime;
@@ -54,7 +74,8 @@ export function TestRunner() {
           passed: false,
           detectedFixes: [],
           missingFixes: testCase.expectedFixes,
-          executionTime
+          executionTime,
+          error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
 
@@ -76,50 +97,81 @@ export function TestRunner() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-purple-500" />
-            NeuroLint Test Suite
+            Enhanced NeuroLint Test Suite
             <Badge variant="outline" className="ml-auto">
-              {useAST ? 'AST-based' : 'Regex-based'}
+              Phase {enableSemanticAnalysis ? '3' : enableConflictDetection ? '2' : '1'}
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <Button 
-              onClick={runAllTests} 
-              disabled={isRunning}
-              className="flex items-center gap-2"
-            >
-              <PlayCircle className="w-4 h-4" />
-              {isRunning ? 'Running Tests...' : 'Run All Tests'}
-            </Button>
-            
-            <Button
-              variant="outline"
-              onClick={() => setUseAST(!useAST)}
-              className="flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              {useAST ? 'Switch to Regex' : 'Switch to AST'}
-            </Button>
-            
-            {results.length > 0 && (
-              <div className="flex items-center gap-4">
-                <Badge variant={passRate === 100 ? "default" : passRate > 50 ? "secondary" : "destructive"}>
-                  {passedTests}/{totalTests} Passed ({passRate.toFixed(1)}%)
-                </Badge>
+          <div className="space-y-4">
+            {/* Configuration Controls */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="ast-mode"
+                  checked={useAST}
+                  onCheckedChange={setUseAST}
+                />
+                <Label htmlFor="ast-mode" className="text-sm">
+                  AST-based transforms
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="conflict-detection"
+                  checked={enableConflictDetection}
+                  onCheckedChange={setEnableConflictDetection}
+                />
+                <Label htmlFor="conflict-detection" className="text-sm flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  Conflict Detection
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="semantic-analysis"
+                  checked={enableSemanticAnalysis}
+                  onCheckedChange={setEnableSemanticAnalysis}
+                />
+                <Label htmlFor="semantic-analysis" className="text-sm flex items-center gap-1">
+                  <Brain className="w-3 h-3" />
+                  Semantic Analysis
+                </Label>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={runAllTests} 
+                disabled={isRunning}
+                className="flex items-center gap-2"
+              >
+                <PlayCircle className="w-4 h-4" />
+                {isRunning ? 'Running Enhanced Tests...' : 'Run All Tests'}
+              </Button>
+              
+              {results.length > 0 && (
+                <div className="flex items-center gap-4">
+                  <Badge variant={passRate === 100 ? "default" : passRate > 50 ? "secondary" : "destructive"}>
+                    {passedTests}/{totalTests} Passed ({passRate.toFixed(1)}%)
+                  </Badge>
+                </div>
+              )}
+            </div>
+
+            {isRunning && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  Running: {currentTest}
+                </div>
+                <Progress value={progress} className="w-full" />
               </div>
             )}
           </div>
-
-          {isRunning && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                Running: {currentTest}
-              </div>
-              <Progress value={progress} className="w-full" />
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -143,6 +195,12 @@ export function TestRunner() {
                       <Clock className="w-3 h-3 mr-1" />
                       {result.executionTime}ms
                     </Badge>
+                    {result.semanticAnalysis && (
+                      <Badge variant="outline" className="text-purple-600">
+                        <Brain className="w-3 h-3 mr-1" />
+                        Semantic
+                      </Badge>
+                    )}
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -155,6 +213,9 @@ export function TestRunner() {
                   <TabsList>
                     <TabsTrigger value="results">Results</TabsTrigger>
                     <TabsTrigger value="code">Code Diff</TabsTrigger>
+                    {result.layers && <TabsTrigger value="layers">Layers</TabsTrigger>}
+                    {result.conflicts && <TabsTrigger value="conflicts">Conflicts</TabsTrigger>}
+                    {result.semanticAnalysis && <TabsTrigger value="semantic">Semantic</TabsTrigger>}
                   </TabsList>
                   
                   <TabsContent value="results" className="space-y-3">
@@ -191,6 +252,15 @@ export function TestRunner() {
                         </div>
                       </div>
                     )}
+
+                    {result.error && (
+                      <div>
+                        <h4 className="font-medium text-red-700 mb-2">Error</h4>
+                        <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                          {result.error}
+                        </div>
+                      </div>
+                    )}
                   </TabsContent>
                   
                   <TabsContent value="code">
@@ -219,6 +289,75 @@ export function TestRunner() {
                       </div>
                     </div>
                   </TabsContent>
+
+                  {result.layers && (
+                    <TabsContent value="layers">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Layer Results</h4>
+                        {result.layers.map((layer, i) => (
+                          <div key={i} className="flex items-center justify-between p-2 bg-muted rounded">
+                            <span className="text-sm">{layer.name}</span>
+                            <div className="flex items-center gap-2">
+                              {layer.success ? (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-red-500" />
+                              )}
+                              <Badge variant="outline">{layer.executionTime}ms</Badge>
+                              {layer.changeCount !== undefined && (
+                                <Badge variant="secondary">{layer.changeCount} changes</Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  )}
+
+                  {result.conflicts && (
+                    <TabsContent value="conflicts">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Conflict Analysis</h4>
+                        {result.conflicts.hasConflicts ? (
+                          <div className="space-y-2">
+                            <Badge variant="destructive">
+                              {result.conflicts.conflicts.length} conflicts detected
+                            </Badge>
+                            {result.conflicts.conflicts.map((conflict: any, i: number) => (
+                              <div key={i} className="p-2 bg-red-50 rounded text-sm">
+                                <strong>{conflict.severity}:</strong> {conflict.description}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <Badge variant="default">No conflicts detected</Badge>
+                        )}
+                      </div>
+                    </TabsContent>
+                  )}
+
+                  {result.semanticAnalysis && (
+                    <TabsContent value="semantic">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Semantic Analysis</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <strong>Complexity Change:</strong> {result.semanticAnalysis.complexityChange}
+                          </div>
+                          <div>
+                            <strong>Risk Factors Added:</strong> {result.semanticAnalysis.riskFactorsAdded.length}
+                          </div>
+                        </div>
+                        {result.validationReport && (
+                          <div className="mt-2">
+                            <Badge variant={result.validationReport.passed ? "default" : "destructive"}>
+                              Validation Score: {result.validationReport.score}/100
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  )}
                 </Tabs>
               </CardContent>
             </Card>

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PlayCircle, CheckCircle, XCircle, Clock, Code, Zap } from 'lucide-react';
+import { PlayCircle, CheckCircle, XCircle, Clock, Code, Zap, Settings } from 'lucide-react';
 import { NeuroLintOrchestrator } from '@/lib/neurolint/orchestrator';
 import { TEST_CASES, validateTestResult, TestResult } from '@/lib/neurolint/testSuite';
 
@@ -17,6 +17,7 @@ export function TestRunner() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [currentTest, setCurrentTest] = useState<string>('');
   const [progress, setProgress] = useState(0);
+  const [useAST, setUseAST] = useState(true);
 
   const runAllTests = async () => {
     setIsRunning(true);
@@ -33,7 +34,7 @@ export function TestRunner() {
       const startTime = Date.now();
       
       try {
-        const { transformed } = await NeuroLintOrchestrator(testCase.input);
+        const { transformed } = await NeuroLintOrchestrator(testCase.input, undefined, useAST);
         const validation = validateTestResult(testCase, transformed);
         const executionTime = Date.now() - startTime;
 
@@ -76,6 +77,9 @@ export function TestRunner() {
           <CardTitle className="flex items-center gap-2">
             <Zap className="w-5 h-5 text-purple-500" />
             NeuroLint Test Suite
+            <Badge variant="outline" className="ml-auto">
+              {useAST ? 'AST-based' : 'Regex-based'}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -87,6 +91,15 @@ export function TestRunner() {
             >
               <PlayCircle className="w-4 h-4" />
               {isRunning ? 'Running Tests...' : 'Run All Tests'}
+            </Button>
+            
+            <Button
+              variant="outline"
+              onClick={() => setUseAST(!useAST)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="w-4 h-4" />
+              {useAST ? 'Switch to Regex' : 'Switch to AST'}
             </Button>
             
             {results.length > 0 && (

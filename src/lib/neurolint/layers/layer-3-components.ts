@@ -7,8 +7,8 @@ export async function transform(code: string): Promise<string> {
   transformed = fixMissingKeyProps(transformed);
   transformed = fixAccessibilityAttributes(transformed);
   transformed = fixComponentPropTypes(transformed);
-  transformed = addUseClientDirective(transformed);
   transformed = convertVarToConst(transformed);
+  transformed = addUseClientDirective(transformed);
   
   return transformed;
 }
@@ -44,23 +44,16 @@ function addMissingImports(code: string): string {
 function fixMissingKeyProps(code: string): string {
   // Fix map operations without keys - more robust pattern
   return code.replace(
-    /\.map\(\s*\(?\s*(\w+)(?:\s*,\s*(\w+))?\s*\)?\s*=>\s*\(\s*<(\w+)([^>]*?)(?:>[\s\S]*?<\/\3>|\/?>)/g,
-    (match, item, index, component, props) => {
+    /(\w+)\.map\(\s*\(?\s*(\w+)(?:\s*,\s*(\w+))?\s*\)?\s*=>\s*\(\s*<(\w+)([^>]*?)(?:\s*\/?>|>[^<]*<\/\4>)/g,
+    (match, arrayName, item, index, component, props) => {
       if (props.includes('key=')) return match;
       
-      const keyValue = index ? `{${index}}` : `{${item}.id || Math.random()}`;
-      const hasClosingTag = match.includes(`</${component}>`);
+      const keyValue = index ? `{${index}}` : `{${item}.id || ${item}.name || Math.random()}`;
       
-      if (hasClosingTag) {
-        return match.replace(
-          `<${component}${props}>`,
-          `<${component} key=${keyValue}${props}>`
-        );
+      if (match.includes('/>')) {
+        return match.replace(`<${component}${props}`, `<${component} key=${keyValue}${props}`);
       } else {
-        return match.replace(
-          `<${component}${props}`,
-          `<${component} key=${keyValue}${props}`
-        );
+        return match.replace(`<${component}${props}>`, `<${component} key=${keyValue}${props}>`);
       }
     }
   );
@@ -80,12 +73,11 @@ function fixAccessibilityAttributes(code: string): string {
     }
   );
   
-  // Add aria-label to buttons without accessible text - but preserve existing onClick
+  // Add aria-label to buttons without accessible text
   fixed = fixed.replace(
     /<button([^>]*?)>/g,
     (match, attributes) => {
       if (!attributes.includes('aria-label') && !attributes.includes('aria-labelledby')) {
-        // Don't modify the onClick handler, just add aria-label
         return `<button${attributes} aria-label="Button">`;
       }
       return match;
@@ -117,6 +109,11 @@ function fixComponentPropTypes(code: string): string {
   return code;
 }
 
+function convertVarToConst(code: string): string {
+  // Convert var declarations to const (simple cases)
+  return code.replace(/\bvar\s+(\w+)\s*=\s*([^;]+);/g, 'const $1 = $2;');
+}
+
 function addUseClientDirective(code: string): string {
   const needsUseClient = 
     code.includes('useState') ||
@@ -133,9 +130,4 @@ function addUseClientDirective(code: string): string {
   }
   
   return code;
-}
-
-function convertVarToConst(code: string): string {
-  // Convert var declarations to const (simple cases)
-  return code.replace(/\bvar\s+(\w+)\s*=\s*([^;]+);/g, 'const $1 = $2;');
 }

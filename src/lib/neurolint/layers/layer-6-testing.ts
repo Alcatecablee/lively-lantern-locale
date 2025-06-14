@@ -12,15 +12,16 @@ export async function transform(code: string): Promise<string> {
 }
 
 function removeDuplicateFunctions(code: string): string {
-  const functionPattern = /function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*\}/g;
+  const functionPattern = /function\s+(\w+)\s*\([^)]*\)\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
   const functions = new Map<string, string>();
   const functionNames = new Set<string>();
   
   let result = code;
   let match;
+  const regex = new RegExp(functionPattern.source, 'g');
   
   // Find all function declarations
-  while ((match = functionPattern.exec(code)) !== null) {
+  while ((match = regex.exec(code)) !== null) {
     const [fullMatch, functionName] = match;
     
     if (functionNames.has(functionName)) {

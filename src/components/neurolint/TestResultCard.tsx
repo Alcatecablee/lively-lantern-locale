@@ -49,7 +49,7 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
           <TabsList>
             <TabsTrigger value="results">Results</TabsTrigger>
             <TabsTrigger value="code">Code Diff</TabsTrigger>
-            {result.layers && <TabsTrigger value="layers">Layers</TabsTrigger>}
+            {result.layers && <TabsTrigger value="layers">AST Layers</TabsTrigger>}
             {result.conflicts && <TabsTrigger value="conflicts">Conflicts</TabsTrigger>}
             {result.semanticAnalysis && <TabsTrigger value="semantic">Semantic</TabsTrigger>}
           </TabsList>
@@ -91,7 +91,7 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
 
             {result.error && (
               <div>
-                <h4 className="font-medium text-red-700 mb-2">Error</h4>
+                <h4 className="font-medium text-red-700 mb-2">AST Error</h4>
                 <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
                   {result.error}
                 </div>
@@ -115,7 +115,7 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
               <div>
                 <h4 className="font-medium mb-2 flex items-center gap-2">
                   <Code className="w-4 h-4" />
-                  Transformed
+                  AST Transformed
                 </h4>
                 <ScrollArea className="h-64 rounded border bg-muted p-3">
                   <pre className="text-xs">
@@ -129,7 +129,10 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
           {result.layers && (
             <TabsContent value="layers">
               <div className="space-y-2">
-                <h4 className="font-medium">Layer Results</h4>
+                <h4 className="font-medium flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-purple-500" />
+                  AST Layer Results
+                </h4>
                 {result.layers.map((layer, i) => (
                   <div key={i} className="p-3 bg-muted rounded space-y-2">
                     <div className="flex items-center justify-between">
@@ -144,6 +147,10 @@ export function TestResultCard({ result, index }: TestResultCardProps) {
                         {layer.changeCount !== undefined && (
                           <Badge variant="secondary">{layer.changeCount} changes</Badge>
                         )}
+                        <Badge variant="outline" className="text-purple-600 text-xs">
+                          <Zap className="w-2 h-2 mr-1" />
+                          AST
+                        </Badge>
                       </div>
                     </div>
                     

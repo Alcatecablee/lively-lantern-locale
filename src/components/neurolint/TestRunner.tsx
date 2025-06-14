@@ -18,8 +18,7 @@ export function TestRunner() {
   const [currentTest, setCurrentTest] = useState<string>('');
   const [progress, setProgress] = useState(0);
   
-  // Configuration options
-  const [useAST, setUseAST] = useState(true);
+  // Configuration options (AST is always enabled, others are for enhanced features)
   const [enableConflictDetection, setEnableConflictDetection] = useState(true);
   const [enableSemanticAnalysis, setEnableSemanticAnalysis] = useState(true);
 
@@ -38,11 +37,11 @@ export function TestRunner() {
       const startTime = Date.now();
       
       try {
-        // Use the enhanced orchestrator with all robustness features
+        // Use the AST-only enhanced orchestrator
         const result = await NeuroLintEnhancedOrchestrator(
           testCase.input, 
           undefined, 
-          useAST,
+          true, // Always use AST
           enableConflictDetection,
           enableSemanticAnalysis
         );
@@ -97,15 +96,13 @@ export function TestRunner() {
             <Zap className="w-5 h-5 text-purple-500" />
             Enhanced NeuroLint Test Suite
             <Badge variant="outline" className="ml-auto">
-              AST-Only Mode
+              Full AST Mode
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <TestConfiguration
-              useAST={useAST}
-              setUseAST={setUseAST}
               enableConflictDetection={enableConflictDetection}
               setEnableConflictDetection={setEnableConflictDetection}
               enableSemanticAnalysis={enableSemanticAnalysis}

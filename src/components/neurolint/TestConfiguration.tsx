@@ -4,11 +4,9 @@
 import React from 'react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Shield, Brain } from 'lucide-react';
+import { Shield, Brain, Zap } from 'lucide-react';
 
 interface TestConfigurationProps {
-  useAST: boolean;
-  setUseAST: (value: boolean) => void;
   enableConflictDetection: boolean;
   setEnableConflictDetection: (value: boolean) => void;
   enableSemanticAnalysis: boolean;
@@ -16,8 +14,6 @@ interface TestConfigurationProps {
 }
 
 export function TestConfiguration({
-  useAST,
-  setUseAST,
   enableConflictDetection,
   setEnableConflictDetection,
   enableSemanticAnalysis,
@@ -26,13 +22,9 @@ export function TestConfiguration({
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
       <div className="flex items-center space-x-2">
-        <Switch
-          id="ast-mode"
-          checked={useAST}
-          onCheckedChange={setUseAST}
-        />
-        <Label htmlFor="ast-mode" className="text-sm">
-          AST-based transforms
+        <Zap className="w-4 h-4 text-purple-500" />
+        <Label className="text-sm font-medium">
+          AST Transformations (Always Active)
         </Label>
       </div>
       

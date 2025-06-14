@@ -1,4 +1,3 @@
-
 import * as layer1 from "./layers/layer-1-config";
 import * as layer2 from "./layers/layer-2-entities";
 import * as layer3 from "./layers/layer-3-components";
@@ -92,18 +91,18 @@ export async function NeuroLintEnhancedOrchestrator(
             console.log(`AST transformation successful for ${layer.name}`);
           } else {
             console.log(`AST transformation returned no changes for ${layer.name}, trying regex`);
-            next = await layer.fn(current, filePath);
+            next = await layer.fn(current);
             transformationMethod = 'regex-fallback';
           }
         } catch (astError) {
           console.warn(`AST transform failed for ${layer.name}, using regex:`, astError);
-          next = await layer.fn(current, filePath);
+          next = await layer.fn(current);
           transformationMethod = 'regex-fallback';
         }
       } else {
         // Use regex-based transform
         console.log(`Using regex transformation for ${layer.name}`);
-        next = await layer.fn(current, filePath);
+        next = await layer.fn(current);
       }
       
       const executionTime = Date.now() - startTime;

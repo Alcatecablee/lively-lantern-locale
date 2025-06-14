@@ -144,7 +144,7 @@ export class ASTUtils {
     } else if (reactImport) {
       // Add missing hooks to existing import
       const existingHooks = reactImport.specifiers
-        .filter(t.isImportSpecifier)
+        .filter((spec): spec is t.ImportSpecifier => t.isImportSpecifier(spec))
         .map(spec => t.isIdentifier(spec.imported) ? spec.imported.name : '');
       
       const missingHooks = hooks.filter(hook => !existingHooks.includes(hook));

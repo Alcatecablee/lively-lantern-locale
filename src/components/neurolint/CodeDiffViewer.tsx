@@ -1,3 +1,4 @@
+
 import React, { useRef } from "react";
 import DiffViewer from "react-diff-viewer";
 import { Button } from "@/components/ui/button";
@@ -17,15 +18,18 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
 
   if (!original && !loading)
     return (
-      <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-muted-foreground border rounded-lg bg-white/60">
+      <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-muted-foreground border border-[#292939] rounded-lg bg-[#191B22]/90 shadow-cursor-glass">
         <FileText className="mb-2 opacity-40" />
-        <div>No file selected.<br /><span className="text-xs text-muted-foreground">Choose or drop a file to begin diffing!</span></div>
+        <div>
+          No file selected.<br />
+          <span className="text-xs text-muted-foreground">Choose or drop a file to begin diffing!</span>
+        </div>
       </div>
     );
 
   if (loading)
     return (
-      <div className="h-full min-h-[300px] flex items-center justify-center animate-pulse text-muted-foreground border rounded-lg bg-white/60">
+      <div className="h-full min-h-[300px] flex items-center justify-center animate-pulse text-muted-foreground border border-[#292939] rounded-lg bg-[#191B22]/90 shadow-cursor-glass">
         <FilePlus className="mr-2 animate-bounce" />
         <span>Processing...</span>
       </div>
@@ -41,16 +45,16 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
   };
 
   return (
-    <div className="min-h-[300px] border rounded-lg bg-white/70 p-0 overflow-auto max-h-[60vh] shadow group transition-all">
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-white/80 backdrop-blur rounded-t-lg">
+    <div className="min-h-[300px] bg-[#16171c]/90 border border-[#292939] rounded-lg py-2 px-0 overflow-auto max-h-[60vh] shadow-cursor-glass group transition-all font-mono backdrop-blur-xl">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[#232339] bg-[#1a1c22]/95 rounded-t-lg backdrop-blur font-sans">
         <div className="flex gap-2 items-center">
-          <FileText className="w-4 h-4" />
-          <span className="text-sm font-semibold text-muted-foreground">Code Diff</span>
+          <FileText className="w-4 h-4 text-primary" />
+          <span className="text-sm font-semibold text-white">Code Diff</span>
         </div>
         <Button
           size="icon"
           variant="ghost"
-          className="hover:bg-muted"
+          className="hover:bg-accent/30 text-muted-foreground"
           aria-label="Copy code diff"
           onClick={handleCopy}
         >
@@ -63,11 +67,17 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
         splitView={true}
         hideLineNumbers={false}
         showDiffOnly={false}
-        useDarkTheme={false}
+        useDarkTheme={true}
         renderContent={highlighted}
         styles={{
-          contentText: { fontFamily: "Menlo, Monaco, monospace", fontSize: 13 },
-          // Removed 'removedLine' and 'addedLine' as they're not valid keys
+          diffContainer: {
+            background: "rgba(22, 23, 28, 0.94)",
+            borderRadius: "0 0 12px 12px",
+          },
+          contentText: { fontFamily: "JetBrains Mono, monospace", fontSize: 13, color: "#d6e3ff" },
+          addedBackground: { background: "#23394d66" },
+          removedBackground: { background: "#3A2D31cc" },
+          gutter: { background: "rgba(30,34,48,0.93)", color: "#565b7c" },
         }}
       />
     </div>
@@ -80,15 +90,15 @@ function highlighted(str: string | undefined) {
     return <span />;
   }
   // rudimentary: keywords in JS/TS colored, strings/nums bolded
-  // Could swap with 'prism-react-renderer' for real syntax
   const keywords = [
     "const", "let", "var", "export", "import", "function", "async", "await",
     "return", "if", "else", "for", "while", "switch", "case", "default", "new",
     "class", "extends", "super", "try", "catch", "typeof", "in", "instanceof", "this",
   ];
   let html = str
-    .replace(/(".*?"|'.*?'|`.*?`)/g, m => `<span style="color:#999;">${m}</span>`)
-    .replace(/\b\d+(\.\d+)?\b/g, '<span style="color:#a67;">$&</span>')
-    .replace(new RegExp("\\b(" + keywords.join("|") + ")\\b", "g"), '<span style="color:#076;">$1</span>');
+    .replace(/(".*?"|'.*?'|`.*?`)/g, m => `<span style="color:#9bfaff;">${m}</span>`)
+    .replace(/\b\d+(\.\d+)?\b/g, '<span style="color:#ffc587;">$&</span>')
+    .replace(new RegExp("\\b(" + keywords.join("|") + ")\\b", "g"), '<span style="color:#76ffd7;">$1</span>');
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
+

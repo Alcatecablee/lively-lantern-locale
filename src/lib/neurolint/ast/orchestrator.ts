@@ -6,6 +6,7 @@ export interface ASTTransformResult {
   success: boolean;
   code: string;
   error?: string;
+  usedFallback?: boolean;
 }
 
 export async function transformWithAST(code: string, layerName: string): Promise<ASTTransformResult> {
@@ -20,15 +21,33 @@ export async function transformWithAST(code: string, layerName: string): Promise
         transformed = await transformHydrationAST(code);
         break;
       default:
-        return { success: false, code, error: `Unknown layer: ${layerName}` };
+        return { 
+          success: false, 
+          code, 
+          error: `Unknown layer: ${layerName}`,
+          usedFallback: false 
+        };
     }
     
-    return { success: true, code: transformed };
+    // Validate the transformed code is different and valid
+    if (transformed === code) {
+      console.log(`AST transform for ${layerName} made no changes`);
+    }
+    
+    return { 
+      success: true, 
+      code: transformed,
+      usedFallback: false
+    };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`AST transform failed for ${layerName}:`, errorMessage);
+    
     return { 
       success: false, 
       code, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: errorMessage,
+      usedFallback: true
     };
   }
 }

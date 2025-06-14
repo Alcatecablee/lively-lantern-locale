@@ -1,3 +1,4 @@
+
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
@@ -11,40 +12,69 @@ export async function transform(code: string): Promise<string> {
 }
 
 function removeDuplicateFunctions(code: string): string {
-  // More robust duplicate function removal that properly tracks and removes duplicates
-  const functionPattern = /function\s+(\w+)\s*\([^)]*\)\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
-  const seenFunctions = new Map<string, number>();
-  let result = code;
-  let match;
-  const matches = [];
+  // More robust duplicate function removal
+  const lines = code.split('\n');
+  const seenFunctions = new Map<string, { signature: string; firstIndex: number }>();
+  const linesToRemove = new Set<number>();
   
-  // Reset regex
-  functionPattern.lastIndex = 0;
-  
-  // Collect all function matches with their positions
-  while ((match = functionPattern.exec(code)) !== null) {
-    matches.push({
-      fullMatch: match[0],
-      functionName: match[1],
-      startIndex: match.index,
-      endIndex: match.index + match[0].length
-    });
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Match function declarations
+    const functionMatch = line.match(/^\s*function\s+(\w+)\s*\([^)]*\)\s*\{?/);
+    if (functionMatch) {
+      const functionName = functionMatch[1];
+      
+      // Get the function signature (name + parameters)
+      const fullSignature = functionMatch[0];
+      
+      if (seenFunctions.has(functionName)) {
+        const existing = seenFunctions.get(functionName)!;
+        
+        // If signatures match exactly, this is a duplicate
+        if (existing.signature === fullSignature) {
+          // Mark this function for removal
+          let startIndex = i;
+          let braceCount = 0;
+          let foundOpenBrace = false;
+          
+          // Find the complete function block
+          for (let j = i; j < lines.length; j++) {
+            const currentLine = lines[j];
+            
+            // Count braces to find function end
+            for (const char of currentLine) {
+              if (char === '{') {
+                braceCount++;
+                foundOpenBrace = true;
+              } else if (char === '}') {
+                braceCount--;
+              }
+            }
+            
+            linesToRemove.add(j);
+            
+            // If we've closed all braces, we've found the end
+            if (foundOpenBrace && braceCount === 0) {
+              break;
+            }
+          }
+        }
+      } else {
+        // First occurrence of this function
+        seenFunctions.set(functionName, {
+          signature: fullSignature,
+          firstIndex: i
+        });
+      }
+    }
   }
   
-  // Process matches in reverse order to avoid index shifting issues
-  matches.reverse().forEach(matchInfo => {
-    const { fullMatch, functionName, startIndex, endIndex } = matchInfo;
-    
-    if (seenFunctions.has(functionName)) {
-      // This is a duplicate - remove it
-      result = result.substring(0, startIndex) + result.substring(endIndex);
-    } else {
-      // First occurrence - keep it
-      seenFunctions.set(functionName, 1);
-    }
-  });
+  // Remove the duplicate lines
+  const filteredLines = lines.filter((_, index) => !linesToRemove.has(index));
   
-  // Clean up any extra whitespace left behind
+  // Clean up extra whitespace
+  let result = filteredLines.join('\n');
   result = result.replace(/\n\s*\n\s*\n+/g, '\n\n');
   
   return result;

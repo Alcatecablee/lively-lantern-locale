@@ -1,3 +1,4 @@
+
 export interface TestCase {
   name: string;
   description: string;
@@ -140,7 +141,8 @@ function EntityTest() {
     expectedFixes: [
       'Added use client directive',
       'Added missing imports',
-      'Optimized console statements'
+      'Optimized console statements',
+      'Removed duplicate functions'
     ]
   }
 ];

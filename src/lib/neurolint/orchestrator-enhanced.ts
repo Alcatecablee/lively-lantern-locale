@@ -1,45 +1,32 @@
-import * as layer1 from "./layers/layer-1-config";
-import * as layer2 from "./layers/layer-2-entities";
-import * as layer3 from "./layers/layer-3-components";
-import * as layer4 from "./layers/layer-4-hydration";
-import * as layer5 from "./layers/layer-5-nextjs";
-import * as layer6 from "./layers/layer-6-testing";
 import { transformWithAST } from "./ast/orchestrator";
 import { NeuroLintLayerResult } from "./types";
 
-// Simplified enhanced orchestrator that focuses on working transformations
+// AST-only enhanced orchestrator
 const layers = [
   {
-    fn: layer2.transform,
     name: "HTML Entity & Pattern Cleanup",
     description: "Fixes HTML entity corruption, cleans imports, and standardizes patterns.",
-    astSupported: false,
+    astLayerName: "layer-2-entities",
   },
   {
-    fn: layer3.transform,
-    name: "Component Enhancement",
+    name: "Component Enhancement", 
     description: "Adds missing props, imports, accessibility attributes, and component interfaces.",
-    astSupported: true,
     astLayerName: "layer-3-components",
   },
   {
-    fn: layer4.transform,
     name: "Hydration & SSR Protection",
     description: "Adds SSR guards, fixes hydration mismatches, and protects client-only APIs.",
-    astSupported: true,
     astLayerName: "layer-4-hydration",
   },
   {
-    fn: layer5.transform,
     name: "Next.js App Router Optimization",
     description: "Fixes 'use client' placement, import corruption, and App Router patterns.",
-    astSupported: false,
+    astLayerName: "layer-5-nextjs",
   },
   {
-    fn: layer6.transform,
     name: "Testing & Validation Enhancement",
     description: "Adds error boundaries, prop validation, loading states, and performance optimizations.",
-    astSupported: false,
+    astLayerName: "layer-6-testing",
   },
 ];
 
@@ -61,7 +48,7 @@ export async function NeuroLintEnhancedOrchestrator(
   let current = code;
   const results: NeuroLintLayerResult[] = [];
   
-  console.log('Starting NeuroLint Enhanced Orchestrator with:', {
+  console.log('Starting NeuroLint Enhanced Orchestrator (AST-only) with:', {
     useAST,
     enableConflictDetection,
     enableSemanticAnalysis,
@@ -73,41 +60,28 @@ export async function NeuroLintEnhancedOrchestrator(
     const previous = current;
     
     try {
-      console.log(`Processing layer: ${layer.name}`);
+      console.log(`Processing layer: ${layer.name} (AST-only)`);
       
       let next = current;
-      let usedAST = false;
-      let transformationMethod = 'regex';
+      let transformationMethod = 'AST';
       
-      // Try AST transform first if supported and enabled
-      if (useAST && layer.astSupported && layer.astLayerName) {
-        console.log(`Attempting AST transformation for ${layer.name}`);
-        try {
-          const astResult = await transformWithAST(current, layer.astLayerName);
-          if (astResult.success && astResult.code !== current) {
-            next = astResult.code;
-            usedAST = true;
-            transformationMethod = 'AST';
-            console.log(`AST transformation successful for ${layer.name}`);
-          } else {
-            console.log(`AST transformation returned no changes for ${layer.name}, trying regex`);
-            next = await layer.fn(current);
-            transformationMethod = 'regex-fallback';
-          }
-        } catch (astError) {
-          console.warn(`AST transform failed for ${layer.name}, using regex:`, astError);
-          next = await layer.fn(current);
-          transformationMethod = 'regex-fallback';
-        }
+      // Use AST transformation only
+      console.log(`Using AST transformation for ${layer.name}`);
+      const astResult = await transformWithAST(current, layer.astLayerName);
+      
+      if (astResult.success) {
+        next = astResult.code;
+        console.log(`AST transformation successful for ${layer.name}`);
       } else {
-        // Use regex-based transform
-        console.log(`Using regex transformation for ${layer.name}`);
-        next = await layer.fn(current);
+        console.error(`AST transformation failed for ${layer.name}:`, astResult.error);
+        // Don't fallback to regex - keep original code if AST fails
+        next = current;
+        transformationMethod = 'AST-failed';
       }
       
       const executionTime = Date.now() - startTime;
       const changeCount = calculateChanges(previous, next);
-      const improvements = detectImprovements(previous, next, usedAST);
+      const improvements = detectImprovements(previous, next, true);
       
       console.log(`Layer ${layer.name} completed:`, {
         changeCount,
@@ -120,10 +94,12 @@ export async function NeuroLintEnhancedOrchestrator(
         name: layer.name,
         description: `${layer.description} | Method: ${transformationMethod}`,
         code: next,
-        success: true,
+        success: astResult.success,
         executionTime,
         changeCount,
         improvements,
+        contractResults: astResult.contractResults,
+        performanceImpact: astResult.performanceImpact,
       });
       
       current = next;
@@ -145,7 +121,7 @@ export async function NeuroLintEnhancedOrchestrator(
     }
   }
   
-  console.log('NeuroLint Enhanced Orchestrator completed:', {
+  console.log('NeuroLint Enhanced Orchestrator (AST-only) completed:', {
     totalLayers: results.length,
     successfulLayers: results.filter(r => r.success).length,
     finalLength: current.length

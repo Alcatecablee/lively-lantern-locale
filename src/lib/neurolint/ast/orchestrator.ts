@@ -1,6 +1,9 @@
 
+import { transformAST as transformEntitiesAST } from './layers/layer-2-entities-ast';
 import { transformAST as transformComponentsAST } from './layers/layer-3-components-ast';
 import { transformAST as transformHydrationAST } from './layers/layer-4-hydration-ast';
+import { transformAST as transformNextJSAST } from './layers/layer-5-nextjs-ast';
+import { transformAST as transformTestingAST } from './layers/layer-6-testing-ast';
 import { ContractOrchestrator, ContractedTransformResult } from '../contracts/ContractOrchestrator';
 
 export interface ASTTransformResult {
@@ -28,11 +31,20 @@ export async function transformWithAST(code: string, layerName: string): Promise
       let transformed = code;
       
       switch (layerName) {
+        case 'layer-2-entities':
+          transformed = await transformEntitiesAST(code);
+          break;
         case 'layer-3-components':
           transformed = await transformComponentsAST(code);
           break;
         case 'layer-4-hydration':
           transformed = await transformHydrationAST(code);
+          break;
+        case 'layer-5-nextjs':
+          transformed = await transformNextJSAST(code);
+          break;
+        case 'layer-6-testing':
+          transformed = await transformTestingAST(code);
           break;
         default:
           return { success: false, code, error: `Unknown layer: ${layerName}` };
@@ -52,6 +64,13 @@ export async function transformWithAST(code: string, layerName: string): Promise
   let result: ContractedTransformResult;
   
   switch (layerName) {
+    case 'layer-2-entities':
+      result = await contractOrchestrator.transformWithContract(
+        code,
+        contract,
+        transformEntitiesAST
+      );
+      break;
     case 'layer-3-components':
       result = await contractOrchestrator.transformWithContract(
         code,
@@ -64,6 +83,20 @@ export async function transformWithAST(code: string, layerName: string): Promise
         code,
         contract,
         transformHydrationAST
+      );
+      break;
+    case 'layer-5-nextjs':
+      result = await contractOrchestrator.transformWithContract(
+        code,
+        contract,
+        transformNextJSAST
+      );
+      break;
+    case 'layer-6-testing':
+      result = await contractOrchestrator.transformWithContract(
+        code,
+        contract,
+        transformTestingAST
       );
       break;
     default:

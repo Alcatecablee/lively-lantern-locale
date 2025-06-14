@@ -9,8 +9,11 @@ import { NeuroLintLayerResult } from "./types";
 import { ConflictDetector } from "./conflicts/ConflictDetector";
 import { RollbackManager } from "./rollback/RollbackManager";
 import { ChangeTracker } from "./conflicts/ChangeTracker";
+import { SemanticAnalyzer } from "./semantic/SemanticAnalyzer";
+import { AdvancedValidation } from "./semantic/AdvancedValidation";
+import { IntelligentResolver } from "./semantic/IntelligentResolver";
 
-// Enhanced orchestrator with Phase 2 capabilities
+// Enhanced orchestrator with Phase 2 and Phase 3 capabilities
 const layers = [
   {
     fn: layer1.transform,
@@ -56,13 +59,16 @@ export async function NeuroLintEnhancedOrchestrator(
   code: string, 
   filePath?: string, 
   useAST: boolean = true,
-  enableConflictDetection: boolean = true
+  enableConflictDetection: boolean = true,
+  enableSemanticAnalysis: boolean = true
 ): Promise<{
   transformed: string;
   layers: NeuroLintLayerResult[];
   conflicts?: any;
   rollbackInfo?: any;
   changeAnalysis?: any;
+  semanticAnalysis?: any;
+  validationReport?: any;
 }> {
   let current = code;
   const results: NeuroLintLayerResult[] = [];
@@ -71,6 +77,17 @@ export async function NeuroLintEnhancedOrchestrator(
   const conflictDetector = new ConflictDetector();
   const rollbackManager = new RollbackManager();
   const changeTracker = new ChangeTracker();
+  
+  // Phase 3 components
+  const semanticAnalyzer = new SemanticAnalyzer();
+  const advancedValidation = new AdvancedValidation();
+  const intelligentResolver = new IntelligentResolver();
+  
+  // Initial semantic analysis
+  let originalSemanticContext;
+  if (enableSemanticAnalysis) {
+    originalSemanticContext = semanticAnalyzer.analyzeCodeSemantics(code);
+  }
   
   // Initial snapshot
   rollbackManager.captureSnapshot('initial', code, 'initial', { changeCount: 0, transformationTime: 0 });
@@ -82,9 +99,13 @@ export async function NeuroLintEnhancedOrchestrator(
       let next = current;
       let usedAST = false;
       let contractInfo = '';
+      let semanticInfo = '';
       
-      // Capture pre-transformation snapshot
-      const preTransformFingerprint = `${layer.name}-pre-${Date.now()}`;
+      // Capture pre-transformation semantic state
+      let preTransformContext;
+      if (enableSemanticAnalysis) {
+        preTransformContext = semanticAnalyzer.analyzeCodeSemantics(current);
+      }
       
       // Try AST transform first if supported and enabled
       if (useAST && layer.astSupported && layer.astLayerName) {
@@ -135,6 +156,76 @@ export async function NeuroLintEnhancedOrchestrator(
         next = await layer.fn(current, filePath);
       }
       
+      // Phase 3: Advanced semantic analysis and validation
+      if (enableSemanticAnalysis && previous !== next) {
+        const postTransformContext = semanticAnalyzer.analyzeCodeSemantics(next);
+        
+        // Advanced validation with semantic context
+        const validationResult = advancedValidation.validateWithSemanticContext(
+          next, 
+          preTransformContext, 
+          layer.name
+        );
+        
+        semanticInfo = `Validation Score: ${validationResult.score}/100`;
+        
+        if (!validationResult.passed) {
+          const criticalIssues = validationResult.issues.filter(i => 
+            i.severity === 'critical' || i.severity === 'error'
+          );
+          
+          if (criticalIssues.length > 0) {
+            console.warn(`Critical validation issues in ${layer.name}:`, criticalIssues);
+            
+            // Detect semantic conflicts
+            const semanticConflicts = semanticAnalyzer.detectSemanticConflicts(
+              preTransformContext!, 
+              postTransformContext, 
+              layer.name
+            );
+            
+            if (semanticConflicts.length > 0) {
+              // Attempt intelligent conflict resolution
+              const resolutionResult = intelligentResolver.resolveConflicts(
+                previous, 
+                next, 
+                semanticConflicts, 
+                layer.name
+              );
+              
+              if (resolutionResult.success && resolutionResult.resolvedCode) {
+                next = resolutionResult.resolvedCode;
+                semanticInfo += ` | Conflicts resolved: ${resolutionResult.appliedFixes.join(', ')}`;
+                
+                if (resolutionResult.warnings.length > 0) {
+                  semanticInfo += ` | Warnings: ${resolutionResult.warnings.length}`;
+                }
+              } else {
+                // Fall back to rollback if resolution failed
+                const rollbackStrategy = rollbackManager.determineRollbackStrategy(
+                  semanticConflicts.map(c => ({ severity: c.severity, description: c.description })), 
+                  layer.name
+                );
+                
+                const rollbackResult = rollbackManager.executeRollback(rollbackStrategy);
+                if (rollbackResult.success) {
+                  next = rollbackResult.code;
+                  semanticInfo += ` | Semantic rollback: ${rollbackResult.reason}`;
+                }
+              }
+            }
+          }
+        } else {
+          // Check for auto-fixable improvements
+          if (validationResult.autoFixes.length > 0) {
+            const highConfidenceFixes = validationResult.autoFixes.filter(f => f.confidence === 'high');
+            if (highConfidenceFixes.length > 0) {
+              semanticInfo += ` | Auto-fixes available: ${highConfidenceFixes.length}`;
+            }
+          }
+        }
+      }
+      
       // Phase 2: Track changes and detect conflicts
       if (enableConflictDetection && previous !== next) {
         const changeReport = changeTracker.trackLayerChanges(layer.name, previous, next);
@@ -169,12 +260,24 @@ export async function NeuroLintEnhancedOrchestrator(
         layer.name, 
         next, 
         postTransformFingerprint, 
-        { changeCount, transformationTime: executionTime, contractResults: contractInfo }
+        { 
+          changeCount, 
+          transformationTime: executionTime, 
+          contractResults: contractInfo,
+          semanticAnalysis: semanticInfo
+        }
       );
+      
+      // Enhanced description with semantic info
+      const enhancedDescription = [
+        layer.description,
+        contractInfo && `Contract: ${contractInfo}`,
+        semanticInfo && `Semantic: ${semanticInfo}`
+      ].filter(Boolean).join(' | ');
       
       results.push({
         name: layer.name,
-        description: layer.description + (contractInfo ? ` | ${contractInfo}` : ''),
+        description: enhancedDescription,
         code: next,
         success: true,
         executionTime,
@@ -211,7 +314,7 @@ export async function NeuroLintEnhancedOrchestrator(
     }
   }
   
-  // Generate final analysis
+  // Generate comprehensive analysis
   const changeAnalysis = enableConflictDetection ? changeTracker.generateChangeAnalysis() : undefined;
   const conflicts = enableConflictDetection ? changeTracker.checkForConflicts() : undefined;
   const rollbackInfo = {
@@ -219,12 +322,39 @@ export async function NeuroLintEnhancedOrchestrator(
     availableStrategies: ['single_layer', 'cascade', 'selective', 'complete']
   };
   
+  // Phase 3: Final semantic analysis
+  let semanticAnalysis;
+  let validationReport;
+  if (enableSemanticAnalysis) {
+    const finalContext = semanticAnalyzer.analyzeCodeSemantics(current);
+    const finalValidation = advancedValidation.validateWithSemanticContext(
+      current, 
+      originalSemanticContext
+    );
+    
+    semanticAnalysis = {
+      originalContext: originalSemanticContext,
+      finalContext,
+      complexityChange: finalContext.complexity - (originalSemanticContext?.complexity || 0),
+      riskFactorsAdded: finalContext.riskFactors.filter(rf => 
+        !originalSemanticContext?.riskFactors.includes(rf)
+      ),
+      riskFactorsRemoved: originalSemanticContext?.riskFactors.filter(rf => 
+        !finalContext.riskFactors.includes(rf)
+      ) || []
+    };
+    
+    validationReport = finalValidation;
+  }
+  
   return { 
     transformed: current, 
     layers: results,
     conflicts,
     rollbackInfo,
-    changeAnalysis
+    changeAnalysis,
+    semanticAnalysis,
+    validationReport
   };
 }
 

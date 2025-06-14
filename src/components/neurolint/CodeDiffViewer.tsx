@@ -1,7 +1,7 @@
+
 import React, { useRef } from "react";
-import DiffViewer from "react-diff-viewer";
 import { Button } from "@/components/ui/button";
-import { FileText, FilePlus, Copy as CopyIcon } from "lucide-react";
+import { FileText, FilePlus, Copy as CopyIcon, ArrowRight } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { copyToClipboard } from "@/lib/neurolint/clipboard";
 
@@ -34,49 +34,89 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
       </div>
     );
 
-  const handleCopy = async () => {
-    const diffText = `--- Original ---\n${original}\n\n--- Transformed ---\n${transformed}`;
-    await copyToClipboard(diffText);
+  const handleCopyOriginal = async () => {
+    await copyToClipboard(original);
     toast({
-      title: "Diff copied!",
-      description: "The code diff is now in your clipboard.",
+      title: "Original code copied!",
+      description: "The original code is now in your clipboard.",
+    });
+  };
+
+  const handleCopyTransformed = async () => {
+    await copyToClipboard(transformed);
+    toast({
+      title: "Transformed code copied!",
+      description: "The transformed code is now in your clipboard.",
     });
   };
 
   return (
-    <div className="min-h-[300px] bg-[#16171c]/90 border border-[#292939] rounded-lg py-2 px-0 overflow-auto max-h-[60vh] shadow-cursor-glass group transition-all font-mono backdrop-blur-xl">
+    <div className="min-h-[300px] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden max-h-[60vh] shadow-cursor-glass group transition-all font-mono backdrop-blur-xl">
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#232339] bg-[#1a1c22]/95 rounded-t-lg backdrop-blur font-sans">
         <div className="flex gap-2 items-center">
           <FileText className="w-4 h-4 text-primary" />
-          <span className="text-sm font-semibold text-white">Code Diff</span>
+          <span className="text-sm font-semibold text-white">Code Comparison</span>
         </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="hover:bg-accent/30 text-muted-foreground"
-          aria-label="Copy code diff"
-          onClick={handleCopy}
-        >
-          <CopyIcon className="w-4 h-4" />
-        </Button>
       </div>
-      <DiffViewer
-        oldValue={original}
-        newValue={transformed}
-        splitView={true}
-        hideLineNumbers={false}
-        showDiffOnly={false}
-        useDarkTheme={true}
-        renderContent={highlighted}
-        styles={{
-          diffContainer: {
-            background: "rgba(22, 23, 28, 0.94)",
-            borderRadius: "0 0 12px 12px",
-          },
-          contentText: { fontFamily: "JetBrains Mono, monospace", fontSize: 13, color: "#d6e3ff" },
-          gutter: { background: "rgba(30,34,48,0.93)", color: "#565b7c" },
-        }}
-      />
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
+        {/* Original Code Panel */}
+        <div className="border-r border-[#232339] lg:border-r border-b lg:border-b-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-[#2a1f1f] border-b border-[#3a2f2f]">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+              <span className="text-sm font-medium text-red-200">Original</span>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="hover:bg-red-500/20 text-red-300 h-6 w-6"
+              aria-label="Copy original code"
+              onClick={handleCopyOriginal}
+            >
+              <CopyIcon className="w-3 h-3" />
+            </Button>
+          </div>
+          <div className="p-4 overflow-auto max-h-[50vh] bg-[#1a1416]">
+            <pre className="text-sm text-red-100 whitespace-pre-wrap">
+              <code>{highlighted(original)}</code>
+            </pre>
+          </div>
+        </div>
+
+        {/* Transformed Code Panel */}
+        <div>
+          <div className="flex items-center justify-between px-4 py-2 bg-[#1f2a1f] border-b border-[#2f3a2f]">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-sm font-medium text-green-200">Transformed</span>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="hover:bg-green-500/20 text-green-300 h-6 w-6"
+              aria-label="Copy transformed code"
+              onClick={handleCopyTransformed}
+            >
+              <CopyIcon className="w-3 h-3" />
+            </Button>
+          </div>
+          <div className="p-4 overflow-auto max-h-[50vh] bg-[#141a14]">
+            <pre className="text-sm text-green-100 whitespace-pre-wrap">
+              <code>{highlighted(transformed)}</code>
+            </pre>
+          </div>
+        </div>
+      </div>
+
+      {/* Transformation Arrow (Desktop Only) */}
+      <div className="hidden lg:flex absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+        <div className="bg-purple-500/90 rounded-full p-2 shadow-lg backdrop-blur">
+          <ArrowRight className="w-4 h-4 text-white" />
+        </div>
+      </div>
     </div>
   );
 }

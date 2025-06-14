@@ -1,4 +1,3 @@
-
 export interface TestCase {
   name: string;
   description: string;
@@ -14,6 +13,12 @@ export interface TestResult {
   detectedFixes: string[];
   missingFixes: string[];
   executionTime: number;
+  error?: string;
+  layers?: any[];
+  conflicts?: any;
+  changeAnalysis?: any;
+  semanticAnalysis?: any;
+  validationReport?: any;
 }
 
 export const TEST_CASES: TestCase[] = [

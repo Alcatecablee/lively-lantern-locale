@@ -24,6 +24,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-2-entities',
       success: true,
+      code: transformedCode,
       originalSize: currentCode.length,
       transformedSize: transformedCode.length,
       executionTime: 0
@@ -33,6 +34,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-2-entities',
       success: false,
+      code: currentCode,
       error: error instanceof Error ? error.message : 'Unknown error',
       originalSize: currentCode.length,
       transformedSize: currentCode.length,
@@ -46,6 +48,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-3-components',
       success: true,
+      code: transformedCode,
       originalSize: currentCode.length,
       transformedSize: transformedCode.length,
       executionTime: 0
@@ -55,6 +58,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-3-components',
       success: false,
+      code: currentCode,
       error: error instanceof Error ? error.message : 'Unknown error',
       originalSize: currentCode.length,
       transformedSize: currentCode.length,
@@ -68,6 +72,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-4-hydration',
       success: true,
+      code: transformedCode,
       originalSize: currentCode.length,
       transformedSize: transformedCode.length,
       executionTime: 0
@@ -77,6 +82,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-4-hydration',
       success: false,
+      code: currentCode,
       error: error instanceof Error ? error.message : 'Unknown error',
       originalSize: currentCode.length,
       transformedSize: currentCode.length,
@@ -90,6 +96,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-6-testing',
       success: true,
+      code: transformedCode,
       originalSize: currentCode.length,
       transformedSize: transformedCode.length,
       executionTime: 0
@@ -99,6 +106,7 @@ export async function NeuroLintOrchestrator(
     layers.push({
       name: 'layer-6-testing',
       success: false,
+      code: currentCode,
       error: error instanceof Error ? error.message : 'Unknown error',
       originalSize: currentCode.length,
       transformedSize: currentCode.length,

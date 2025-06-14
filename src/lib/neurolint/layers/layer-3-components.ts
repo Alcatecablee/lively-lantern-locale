@@ -73,15 +73,25 @@ function fixAccessibilityAttributes(code: string): string {
     }
   );
   
-  // Add aria-label to buttons without accessible text
+  // Add aria-label to buttons without accessible text - fix the regex to avoid malformed JSX
   fixed = fixed.replace(
     /<button([^>]*?)>/g,
     (match, attributes) => {
       if (!attributes.includes('aria-label') && !attributes.includes('aria-labelledby')) {
+        // Only add aria-label if the button doesn't already have event handlers with complex syntax
+        if (attributes.includes('onClick=')) {
+          return match; // Skip complex buttons to avoid syntax errors
+        }
         return `<button${attributes} aria-label="Button">`;
       }
       return match;
     }
+  );
+  
+  // Fix any malformed onClick handlers with aria-label issues
+  fixed = fixed.replace(
+    /onClick=\{\(\)\s*=\s*aria-label="[^"]*">/g,
+    'onClick={() => {'
   );
   
   return fixed;

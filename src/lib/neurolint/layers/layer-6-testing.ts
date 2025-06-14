@@ -12,26 +12,27 @@ export async function transform(code: string): Promise<string> {
 }
 
 function removeDuplicateFunctions(code: string): string {
-  const functionPattern = /function\s+(\w+)\s*\([^)]*\)\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
-  const functions = new Map<string, string>();
-  const functionNames = new Set<string>();
+  // More robust duplicate function removal
+  const functionMatches = code.match(/function\s+\w+\s*\([^)]*\)\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g) || [];
+  const seenFunctions = new Map<string, string>();
   
   let result = code;
-  let match;
-  const regex = new RegExp(functionPattern.source, 'g');
   
-  // Find all function declarations
-  while ((match = regex.exec(code)) !== null) {
-    const [fullMatch, functionName] = match;
-    
-    if (functionNames.has(functionName)) {
-      // Remove duplicate function
-      result = result.replace(fullMatch, '');
-    } else {
-      functionNames.add(functionName);
-      functions.set(functionName, fullMatch);
+  functionMatches.forEach(fullMatch => {
+    const nameMatch = fullMatch.match(/function\s+(\w+)/);
+    if (nameMatch) {
+      const functionName = nameMatch[1];
+      
+      if (seenFunctions.has(functionName)) {
+        // Remove this duplicate
+        result = result.replace(fullMatch, '');
+        // Clean up any extra whitespace left behind
+        result = result.replace(/\n\s*\n\s*\n/g, '\n\n');
+      } else {
+        seenFunctions.set(functionName, fullMatch);
+      }
     }
-  }
+  });
   
   return result;
 }

@@ -1,12 +1,12 @@
 
+
 import { transform as transformEntities } from './layers/layer-2-entities';
 import { transform as transformComponents } from './layers/layer-3-components';
 import { transform as transformHydration } from './layers/layer-4-hydration';
 import { transform as transformTesting } from './layers/layer-6-testing';
 import { NeuroLintLayerResult } from './types';
 
-// Keep the original orchestrator as the default export for backward compatibility
-// But now it uses the enhanced orchestrator under the hood
+// Enhanced orchestrator with better error handling and validation
 export async function NeuroLintOrchestrator(
   code: string, 
   filePath?: string, 
@@ -15,6 +15,25 @@ export async function NeuroLintOrchestrator(
   transformed: string;
   layers: NeuroLintLayerResult[];
 }> {
+  // Try to use enhanced orchestrator if available
+  try {
+    const { NeuroLintEnhancedOrchestrator } = await import('./orchestrator-enhanced');
+    const result = await NeuroLintEnhancedOrchestrator(
+      code, 
+      filePath, 
+      useAST, 
+      true, // enableConflictDetection
+      true  // enableSemanticAnalysis
+    );
+    return {
+      transformed: result.transformed,
+      layers: result.layers
+    };
+  } catch (error) {
+    console.warn('Enhanced orchestrator not available, using basic version:', error);
+    // Fall back to basic orchestrator
+  }
+
   const layers: NeuroLintLayerResult[] = [];
   let currentCode = code;
 
@@ -123,3 +142,4 @@ export async function NeuroLintOrchestrator(
 // Export the enhanced version for users who want Phase 2 features
 export { NeuroLintEnhancedOrchestrator } from './orchestrator-enhanced';
 export type { NeuroLintLayerResult };
+

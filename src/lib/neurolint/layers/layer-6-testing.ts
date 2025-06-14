@@ -1,4 +1,3 @@
-
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
@@ -12,27 +11,41 @@ export async function transform(code: string): Promise<string> {
 }
 
 function removeDuplicateFunctions(code: string): string {
-  // More robust duplicate function removal
-  const functionMatches = code.match(/function\s+\w+\s*\([^)]*\)\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g) || [];
-  const seenFunctions = new Map<string, string>();
-  
+  // More robust duplicate function removal that properly tracks and removes duplicates
+  const functionPattern = /function\s+(\w+)\s*\([^)]*\)\s*\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g;
+  const seenFunctions = new Map<string, number>();
   let result = code;
+  let match;
+  const matches = [];
   
-  functionMatches.forEach(fullMatch => {
-    const nameMatch = fullMatch.match(/function\s+(\w+)/);
-    if (nameMatch) {
-      const functionName = nameMatch[1];
-      
-      if (seenFunctions.has(functionName)) {
-        // Remove this duplicate
-        result = result.replace(fullMatch, '');
-        // Clean up any extra whitespace left behind
-        result = result.replace(/\n\s*\n\s*\n/g, '\n\n');
-      } else {
-        seenFunctions.set(functionName, fullMatch);
-      }
+  // Reset regex
+  functionPattern.lastIndex = 0;
+  
+  // Collect all function matches with their positions
+  while ((match = functionPattern.exec(code)) !== null) {
+    matches.push({
+      fullMatch: match[0],
+      functionName: match[1],
+      startIndex: match.index,
+      endIndex: match.index + match[0].length
+    });
+  }
+  
+  // Process matches in reverse order to avoid index shifting issues
+  matches.reverse().forEach(matchInfo => {
+    const { fullMatch, functionName, startIndex, endIndex } = matchInfo;
+    
+    if (seenFunctions.has(functionName)) {
+      // This is a duplicate - remove it
+      result = result.substring(0, startIndex) + result.substring(endIndex);
+    } else {
+      // First occurrence - keep it
+      seenFunctions.set(functionName, 1);
     }
   });
+  
+  // Clean up any extra whitespace left behind
+  result = result.replace(/\n\s*\n\s*\n+/g, '\n\n');
   
   return result;
 }

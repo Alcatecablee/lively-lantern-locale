@@ -4,7 +4,6 @@ export async function transform(code: string): Promise<string> {
   
   // Fix HTML entity corruption - this is the main purpose of this layer
   transformed = fixHTMLEntities(transformed);
-  transformed = addUseClientDirective(transformed);
   
   return transformed;
 }
@@ -20,22 +19,4 @@ function fixHTMLEntities(code: string): string {
   fixed = fixed.replace(/&gt;/g, '>');
   
   return fixed;
-}
-
-function addUseClientDirective(code: string): string {
-  const needsUseClient = 
-    code.includes('useState') ||
-    code.includes('useEffect') ||
-    code.includes('localStorage') ||
-    code.includes('window.') ||
-    code.includes('document.') ||
-    code.includes('onClick') ||
-    code.includes('onChange') ||
-    code.includes('onSubmit');
-  
-  if (needsUseClient && !code.includes("'use client'") && !code.includes('"use client"')) {
-    return "'use client';\n\n" + code;
-  }
-  
-  return code;
 }

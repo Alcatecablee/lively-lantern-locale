@@ -6,7 +6,7 @@ export async function transform(code: string): Promise<string> {
   transformed = removeDuplicateFunctions(transformed);
   transformed = optimizeConsoleStatements(transformed);
   transformed = addErrorBoundaries(transformed);
-  transformed = addUseClientDirective(transformed);
+  transformed = ensureUseClientDirective(transformed);
   
   return transformed;
 }
@@ -97,7 +97,12 @@ function addErrorBoundaries(code: string): string {
   return code;
 }
 
-function addUseClientDirective(code: string): string {
+function ensureUseClientDirective(code: string): string {
+  // Only add if absolutely necessary and not already present
+  if (code.includes("'use client'") || code.includes('"use client"')) {
+    return code;
+  }
+
   const needsUseClient = 
     code.includes('useState') ||
     code.includes('useEffect') ||
@@ -108,8 +113,12 @@ function addUseClientDirective(code: string): string {
     code.includes('onChange') ||
     code.includes('onSubmit');
   
-  if (needsUseClient && !code.includes("'use client'") && !code.includes('"use client"')) {
-    return "'use client';\n\n" + code;
+  if (needsUseClient) {
+    // Check if there's already a 'use client' somewhere in the code
+    const hasExistingDirective = /^['"]use client['"];?\s*$/m.test(code);
+    if (!hasExistingDirective) {
+      return "'use client';\n\n" + code;
+    }
   }
   
   return code;

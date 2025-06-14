@@ -2,48 +2,13 @@
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // Apply Next.js specific fixes
-  transformed = fixUseClientDirectives(transformed);
+  // Apply Next.js specific fixes - avoid duplicating work from other layers
   transformed = fixCorruptedImports(transformed);
-  transformed = addMissingUseClient(transformed);
   transformed = fixImportOrder(transformed);
   transformed = fixAppRouterPatterns(transformed);
+  transformed = addUseClientIfNeeded(transformed);
   
   return transformed;
-}
-
-function fixUseClientDirectives(code: string): string {
-  const lines = code.split('\n');
-  const useClientIndices = [];
-  
-  // Find all 'use client' directives
-  lines.forEach((line, index) => {
-    if (line.trim() === "'use client';" || line.trim() === '"use client";') {
-      useClientIndices.push(index);
-    }
-  });
-  
-  if (useClientIndices.length === 0) return code;
-  
-  // Remove all 'use client' directives
-  const filteredLines = lines.filter(line => 
-    line.trim() !== "'use client';" && line.trim() !== '"use client";'
-  );
-  
-  // Find the first non-comment, non-empty line
-  let insertIndex = 0;
-  for (let i = 0; i < filteredLines.length; i++) {
-    const line = filteredLines[i].trim();
-    if (line && !line.startsWith('//') && !line.startsWith('/*')) {
-      insertIndex = i;
-      break;
-    }
-  }
-  
-  // Insert 'use client' at the top
-  filteredLines.splice(insertIndex, 0, "'use client';", '');
-  
-  return filteredLines.join('\n');
 }
 
 function fixCorruptedImports(code: string): string {
@@ -84,14 +49,23 @@ function fixCorruptedImports(code: string): string {
   return cleanedLines.join('\n');
 }
 
-function addMissingUseClient(code: string): string {
-  const hasHooks = /use(State|Effect|Router|Context|Reducer|Callback|Memo|Ref|ImperativeHandle|LayoutEffect|DebugValue)/.test(code);
-  const hasUseClient = code.includes("'use client'") || code.includes('"use client"');
-  const isComponent = code.includes('export default function') || code.includes('export function');
-  const hasEventHandlers = /on[A-Z]\w+=/g.test(code);
-  const hasBrowserAPIs = code.includes('localStorage') || code.includes('window.') || code.includes('document.');
+function addUseClientIfNeeded(code: string): string {
+  // Only add 'use client' if not already present and actually needed
+  if (code.includes("'use client'") || code.includes('"use client"')) {
+    return code;
+  }
+
+  const needsUseClient = 
+    code.includes('useState') ||
+    code.includes('useEffect') ||
+    code.includes('localStorage') ||
+    code.includes('window.') ||
+    code.includes('document.') ||
+    code.includes('onClick') ||
+    code.includes('onChange') ||
+    code.includes('onSubmit');
   
-  if ((hasHooks || hasEventHandlers || hasBrowserAPIs) && !hasUseClient && isComponent) {
+  if (needsUseClient) {
     return "'use client';\n\n" + code;
   }
   

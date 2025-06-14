@@ -1,4 +1,3 @@
-
 import * as t from '@babel/types';
 import traverse from '@babel/traverse';
 import { ASTTransformer } from '../ast/ASTTransformer';
@@ -44,7 +43,7 @@ export class ConflictDetector {
     const conflicts: Conflict[] = [];
     const layerNames = Array.from(this.layerChanges.keys());
 
-    // Check for overlapping line changes
+    // Check for overlapping line changes - but ignore benign overlaps
     for (let i = 0; i < layerNames.length; i++) {
       for (let j = i + 1; j < layerNames.length; j++) {
         const layer1Changes = this.layerChanges.get(layerNames[i]) || [];
@@ -56,7 +55,13 @@ export class ConflictDetector {
           layerNames[i], 
           layerNames[j]
         );
-        conflicts.push(...overlappingConflicts);
+        
+        // Filter out benign conflicts
+        const significantConflicts = overlappingConflicts.filter(conflict => 
+          !this.isBenignConflict(conflict, layer1Changes, layer2Changes)
+        );
+        
+        conflicts.push(...significantConflicts);
       }
     }
 
@@ -170,10 +175,51 @@ export class ConflictDetector {
     return 'low';
   }
 
+  private isBenignConflict(conflict: Conflict, changes1: CodeChange[], changes2: CodeChange[]): boolean {
+    // Check if both changes are adding the same 'use client' directive
+    const change1 = changes1.find(c => c.location.line === conflict.location.line);
+    const change2 = changes2.find(c => c.location.line === conflict.location.line);
+    
+    if (change1 && change2) {
+      const isUseClientConflict = 
+        (change1.content.includes("'use client'") && change2.content.includes("'use client'")) ||
+        (change1.content.trim() === change2.content.trim()); // Identical changes
+      
+      if (isUseClientConflict) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
   private findSemanticConflicts(): Conflict[] {
     const conflicts: Conflict[] = [];
-    // Implementation for semantic conflict detection
-    // This would analyze AST-level conflicts like duplicate function names, conflicting imports, etc.
+    
+    // Check for duplicate 'use client' additions across layers
+    const useClientLayers: string[] = [];
+    
+    this.layerChanges.forEach((changes, layerName) => {
+      const hasUseClientAddition = changes.some(change => 
+        change.type === 'addition' && change.content.includes("'use client'")
+      );
+      
+      if (hasUseClientAddition) {
+        useClientLayers.push(layerName);
+      }
+    });
+    
+    if (useClientLayers.length > 1) {
+      conflicts.push({
+        type: 'semantic_conflict',
+        layers: useClientLayers,
+        location: { line: 1, column: 1 },
+        description: `Multiple layers (${useClientLayers.join(', ')}) are adding 'use client' directive`,
+        severity: 'low', // This is actually harmless but worth noting
+        suggestion: 'Consolidate use client directive handling to a single layer'
+      });
+    }
+    
     return conflicts;
   }
 

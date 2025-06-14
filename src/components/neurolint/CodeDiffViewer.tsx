@@ -1,7 +1,7 @@
 
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, FilePlus, Copy as CopyIcon, ArrowRight } from "lucide-react";
+import { FileText, FilePlus, Copy as CopyIcon, ArrowDown } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { copyToClipboard } from "@/lib/neurolint/clipboard";
 
@@ -60,34 +60,10 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
         </div>
       </div>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
-        {/* Original Code Panel */}
-        <div className="border-r border-[#232339] lg:border-r border-b lg:border-b-0">
-          <div className="flex items-center justify-between px-4 py-2 bg-[#2a1f1f] border-b border-[#3a2f2f]">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-              <span className="text-sm font-medium text-red-200">Original</span>
-            </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="hover:bg-red-500/20 text-red-300 h-6 w-6"
-              aria-label="Copy original code"
-              onClick={handleCopyOriginal}
-            >
-              <CopyIcon className="w-3 h-3" />
-            </Button>
-          </div>
-          <div className="p-4 overflow-auto max-h-[50vh] bg-[#1a1416]">
-            <pre className="text-sm text-red-100 whitespace-pre-wrap">
-              <code>{highlighted(original)}</code>
-            </pre>
-          </div>
-        </div>
-
-        {/* Transformed Code Panel */}
-        <div>
+      {/* Vertical Stack Layout */}
+      <div className="flex flex-col h-full">
+        {/* Transformed Code Panel (Top) */}
+        <div className="border-b border-[#232339]">
           <div className="flex items-center justify-between px-4 py-2 bg-[#1f2a1f] border-b border-[#2f3a2f]">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
@@ -103,18 +79,42 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
               <CopyIcon className="w-3 h-3" />
             </Button>
           </div>
-          <div className="p-4 overflow-auto max-h-[50vh] bg-[#141a14]">
+          <div className="p-4 overflow-auto max-h-[25vh] bg-[#141a14]">
             <pre className="text-sm text-green-100 whitespace-pre-wrap">
               <code>{highlighted(transformed)}</code>
             </pre>
           </div>
         </div>
-      </div>
 
-      {/* Transformation Arrow (Desktop Only) */}
-      <div className="hidden lg:flex absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        <div className="bg-purple-500/90 rounded-full p-2 shadow-lg backdrop-blur">
-          <ArrowRight className="w-4 h-4 text-white" />
+        {/* Transformation Arrow */}
+        <div className="flex justify-center py-2 bg-[#1a1c22]/95">
+          <div className="bg-purple-500/90 rounded-full p-2 shadow-lg backdrop-blur">
+            <ArrowDown className="w-4 h-4 text-white" />
+          </div>
+        </div>
+
+        {/* Original Code Panel (Bottom) */}
+        <div>
+          <div className="flex items-center justify-between px-4 py-2 bg-[#2a1f1f] border-b border-[#3a2f2f]">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+              <span className="text-sm font-medium text-red-200">Original</span>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="hover:bg-red-500/20 text-red-300 h-6 w-6"
+              aria-label="Copy original code"
+              onClick={handleCopyOriginal}
+            >
+              <CopyIcon className="w-3 h-3" />
+            </Button>
+          </div>
+          <div className="p-4 overflow-auto max-h-[25vh] bg-[#1a1416]">
+            <pre className="text-sm text-red-100 whitespace-pre-wrap">
+              <code>{highlighted(original)}</code>
+            </pre>
+          </div>
         </div>
       </div>
     </div>

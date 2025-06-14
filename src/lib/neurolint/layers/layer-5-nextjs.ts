@@ -2,13 +2,50 @@
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // Apply Next.js specific fixes - avoid duplicating work from other layers
+  console.log('Layer 5 (Next.js) input length:', code.length);
+  
+  // Apply Next.js specific fixes
+  transformed = addUseClientIfNeeded(transformed);
   transformed = fixCorruptedImports(transformed);
   transformed = fixImportOrder(transformed);
   transformed = fixAppRouterPatterns(transformed);
-  transformed = addUseClientIfNeeded(transformed);
+  
+  console.log('Layer 5 (Next.js) output length:', transformed.length);
+  console.log('Layer 5 changes:', transformed !== code);
   
   return transformed;
+}
+
+function addUseClientIfNeeded(code: string): string {
+  // Only add 'use client' if not already present and actually needed
+  if (code.includes("'use client'") || code.includes('"use client"')) {
+    return code;
+  }
+
+  const needsUseClient = 
+    code.includes('useState') ||
+    code.includes('useEffect') ||
+    code.includes('useCallback') ||
+    code.includes('useMemo') ||
+    code.includes('useRef') ||
+    code.includes('localStorage') ||
+    code.includes('sessionStorage') ||
+    code.includes('window.') ||
+    code.includes('document.') ||
+    code.includes('onClick') ||
+    code.includes('onChange') ||
+    code.includes('onSubmit') ||
+    code.includes('onFocus') ||
+    code.includes('onBlur') ||
+    code.includes('onKeyDown') ||
+    code.includes('onKeyUp') ||
+    /on[A-Z][a-zA-Z]*=/.test(code); // Any event handler
+  
+  if (needsUseClient) {
+    return "'use client';\n\n" + code;
+  }
+  
+  return code;
 }
 
 function fixCorruptedImports(code: string): string {
@@ -49,29 +86,6 @@ function fixCorruptedImports(code: string): string {
   return cleanedLines.join('\n');
 }
 
-function addUseClientIfNeeded(code: string): string {
-  // Only add 'use client' if not already present and actually needed
-  if (code.includes("'use client'") || code.includes('"use client"')) {
-    return code;
-  }
-
-  const needsUseClient = 
-    code.includes('useState') ||
-    code.includes('useEffect') ||
-    code.includes('localStorage') ||
-    code.includes('window.') ||
-    code.includes('document.') ||
-    code.includes('onClick') ||
-    code.includes('onChange') ||
-    code.includes('onSubmit');
-  
-  if (needsUseClient) {
-    return "'use client';\n\n" + code;
-  }
-  
-  return code;
-}
-
 function fixImportOrder(code: string): string {
   if (code.startsWith("'use client';")) {
     // Ensure proper spacing after 'use client'
@@ -98,17 +112,6 @@ function fixAppRouterPatterns(code: string): string {
       /export default function (\w*Layout\w*)/g,
       'export default function Layout'
     );
-  }
-  
-  // Add metadata export for pages if missing
-  if (code.includes('export default function Page') && !code.includes('export const metadata')) {
-    const metadataExport = `export const metadata = {
-  title: 'Page Title',
-  description: 'Page description',
-};
-
-`;
-    fixed = metadataExport + fixed;
   }
   
   return fixed;

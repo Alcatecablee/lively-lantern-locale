@@ -2,8 +2,13 @@
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
+  console.log('Layer 2 (Entities) input length:', code.length);
+  
   // Fix HTML entity corruption - this is the main purpose of this layer
   transformed = fixHTMLEntities(transformed);
+  
+  console.log('Layer 2 (Entities) output length:', transformed.length);
+  console.log('Layer 2 changes:', transformed !== code);
   
   return transformed;
 }
@@ -11,7 +16,7 @@ export async function transform(code: string): Promise<string> {
 function fixHTMLEntities(code: string): string {
   let fixed = code;
   
-  // Fix common HTML entities
+  // Fix common HTML entities with more comprehensive patterns
   fixed = fixed.replace(/&quot;/g, '"');
   fixed = fixed.replace(/&#x27;/g, "'");
   fixed = fixed.replace(/&#39;/g, "'");
@@ -19,6 +24,13 @@ function fixHTMLEntities(code: string): string {
   fixed = fixed.replace(/&lt;/g, '<');
   fixed = fixed.replace(/&gt;/g, '>');
   fixed = fixed.replace(/&nbsp;/g, ' ');
+  
+  // Additional entity fixes
+  fixed = fixed.replace(/&apos;/g, "'");
+  fixed = fixed.replace(/&lsquo;/g, "'");
+  fixed = fixed.replace(/&rsquo;/g, "'");
+  fixed = fixed.replace(/&ldquo;/g, '"');
+  fixed = fixed.replace(/&rdquo;/g, '"');
   
   return fixed;
 }

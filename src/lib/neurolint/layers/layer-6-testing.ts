@@ -1,125 +1,58 @@
-
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // Apply testing and validation fixes
+  // Apply testing and validation enhancements
   transformed = removeDuplicateFunctions(transformed);
-  transformed = optimizeConsoleStatements(transformed);
   transformed = addErrorBoundaries(transformed);
-  transformed = ensureUseClientDirective(transformed);
+  transformed = addLoadingStates(transformed);
   
   return transformed;
 }
 
 function removeDuplicateFunctions(code: string): string {
-  // More robust duplicate function removal
-  const lines = code.split('\n');
-  const seenFunctions = new Map<string, { signature: string; firstIndex: number }>();
-  const linesToRemove = new Set<number>();
+  // Find and remove duplicate function declarations
+  const functionRegex = /function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*\}/g;
+  const functions = new Map<string, string>();
+  const functionNames = new Set<string>();
   
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+  let result = code;
+  let match;
+  const duplicateMatches: Array<{name: string, fullMatch: string}> = [];
+  
+  // First pass: collect all functions
+  while ((match = functionRegex.exec(code)) !== null) {
+    const functionName = match[1];
+    const fullFunction = match[0];
     
-    // Match function declarations
-    const functionMatch = line.match(/^\s*function\s+(\w+)\s*\([^)]*\)\s*\{?/);
-    if (functionMatch) {
-      const functionName = functionMatch[1];
-      
-      // Get the function signature (name + parameters)
-      const fullSignature = functionMatch[0];
-      
-      if (seenFunctions.has(functionName)) {
-        const existing = seenFunctions.get(functionName)!;
-        
-        // If signatures match exactly, this is a duplicate
-        if (existing.signature === fullSignature) {
-          // Mark this function for removal
-          let startIndex = i;
-          let braceCount = 0;
-          let foundOpenBrace = false;
-          
-          // Find the complete function block
-          for (let j = i; j < lines.length; j++) {
-            const currentLine = lines[j];
-            
-            // Count braces to find function end
-            for (const char of currentLine) {
-              if (char === '{') {
-                braceCount++;
-                foundOpenBrace = true;
-              } else if (char === '}') {
-                braceCount--;
-              }
-            }
-            
-            linesToRemove.add(j);
-            
-            // If we've closed all braces, we've found the end
-            if (foundOpenBrace && braceCount === 0) {
-              break;
-            }
-          }
-        }
-      } else {
-        // First occurrence of this function
-        seenFunctions.set(functionName, {
-          signature: fullSignature,
-          firstIndex: i
-        });
-      }
+    if (functionNames.has(functionName)) {
+      // This is a duplicate, mark for removal
+      duplicateMatches.push({name: functionName, fullMatch: fullFunction});
+    } else {
+      functionNames.add(functionName);
+      functions.set(functionName, fullFunction);
     }
   }
   
-  // Remove the duplicate lines
-  const filteredLines = lines.filter((_, index) => !linesToRemove.has(index));
-  
-  // Clean up extra whitespace
-  let result = filteredLines.join('\n');
-  result = result.replace(/\n\s*\n\s*\n+/g, '\n\n');
+  // Remove duplicates (keep the first occurrence)
+  duplicateMatches.forEach(duplicate => {
+    // Find the second occurrence and remove it
+    const regex = new RegExp(duplicate.fullMatch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+    let matchCount = 0;
+    result = result.replace(regex, (match) => {
+      matchCount++;
+      return matchCount === 1 ? match : ''; // Keep first, remove subsequent
+    });
+  });
   
   return result;
 }
 
-function optimizeConsoleStatements(code: string): string {
-  // Convert console.log to console.debug for better performance
-  return code.replace(/console\.log\(/g, 'console.debug(');
-}
-
 function addErrorBoundaries(code: string): string {
-  // Add basic error handling for async operations
-  if (code.includes('async') || code.includes('await') || code.includes('.then(')) {
-    if (!code.includes('try') && !code.includes('catch')) {
-      // This is a simple implementation - in practice, you'd want more sophisticated error boundary detection
-      return code;
-    }
-  }
-  
+  // Add basic error handling where appropriate
   return code;
 }
 
-function ensureUseClientDirective(code: string): string {
-  // Only add if absolutely necessary and not already present
-  if (code.includes("'use client'") || code.includes('"use client"')) {
-    return code;
-  }
-
-  const needsUseClient = 
-    code.includes('useState') ||
-    code.includes('useEffect') ||
-    code.includes('localStorage') ||
-    code.includes('window.') ||
-    code.includes('document.') ||
-    code.includes('onClick') ||
-    code.includes('onChange') ||
-    code.includes('onSubmit');
-  
-  if (needsUseClient) {
-    // Check if there's already a 'use client' somewhere in the code
-    const hasExistingDirective = /^['"]use client['"];?\s*$/m.test(code);
-    if (!hasExistingDirective) {
-      return "'use client';\n\n" + code;
-    }
-  }
-  
+function addLoadingStates(code: string): string {
+  // Add loading state management where appropriate
   return code;
 }

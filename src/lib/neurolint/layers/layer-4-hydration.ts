@@ -1,3 +1,4 @@
+
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
@@ -11,7 +12,7 @@ export async function transform(code: string): Promise<string> {
 function addSSRGuards(code: string): string {
   let fixed = code;
   
-  // Add SSR guards for localStorage access
+  // Add SSR guards for localStorage.getItem calls
   if (code.includes('localStorage.getItem') && !code.includes('typeof window !== "undefined"')) {
     fixed = fixed.replace(
       /localStorage\.getItem\(([^)]+)\)/g,
@@ -19,6 +20,7 @@ function addSSRGuards(code: string): string {
     );
   }
   
+  // Add SSR guards for localStorage.setItem calls
   if (code.includes('localStorage.setItem') && !code.includes('typeof window !== "undefined"')) {
     fixed = fixed.replace(
       /localStorage\.setItem\(([^)]+)\)/g,
@@ -30,6 +32,6 @@ function addSSRGuards(code: string): string {
 }
 
 function fixHydrationIssues(code: string): string {
-  // Add basic hydration fixes
+  // Add basic hydration fixes - could be expanded
   return code;
 }

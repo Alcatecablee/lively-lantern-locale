@@ -128,8 +128,8 @@ export async function transformAST(code: string): Promise<string> {
               if (hasJSXReturn) {
                 // Find the JSX element and add key prop
                 traverse(callback, {
-                  JSXElement(jsxPath) {
-                    const openingElement = jsxPath.node.openingElement;
+                  JSXElement(innerPath) {
+                    const openingElement = innerPath.node.openingElement;
                     const hasKey = openingElement.attributes.some(attr => 
                       t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'key'
                     );
@@ -150,7 +150,7 @@ export async function transformAST(code: string): Promise<string> {
                       openingElement.attributes.unshift(keyAttr);
                     }
                   }
-                }, jsxPath.scope);
+                }, path.scope);
               }
             }
           }

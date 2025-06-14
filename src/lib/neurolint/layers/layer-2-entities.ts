@@ -50,21 +50,32 @@ const PATTERN_FIXES: [RegExp, string | ((match: string, ...args: any[]) => strin
   [/<React\.Fragment>/g, '<>'],
   [/<\/React\.Fragment>/g, '</>'],
   
-  // Fix component prop destructuring spacing
-  [/{\s*([^}]+)\s*}/g, (match, props) => {
-    const cleanProps = props.split(',').map((p: string) => p.trim()).join(', ');
-    return `{ ${cleanProps} }`;
+  // Fix var declarations to const/let
+  [/\bvar\s+(\w+)\s*=\s*([^;]+);/g, 'const $1 = $2;'],
+  
+  // Fix duplicate function definitions
+  [/function\s+(\w+)\s*\([^)]*\)\s*{[^}]*}\s*function\s+\1\s*\([^)]*\)\s*{/g, (match, funcName) => {
+    // Remove the first duplicate function declaration
+    const secondFuncStart = match.lastIndexOf(`function ${funcName}`);
+    return match.substring(secondFuncStart);
   }],
   
-  // Fix unused useState destructuring
-  [/const\s*\[\s*\w+,\s*set\w+\s*\]\s*=\s*useState\([^)]*\);\s*(?=\n|$)/g, (match) => {
-    if (!match.includes('set')) return match;
-    return match; // Keep as is for now - would need more context
+  // Clean up extra whitespace and fix formatting
+  [/{\s*([^}]+)\s*}/g, (match, content) => {
+    if (content.includes('\n')) {
+      // Multi-line content - preserve structure but clean up
+      const cleaned = content.replace(/\s+/g, ' ').trim();
+      return `{ ${cleaned} }`;
+    }
+    return match;
   }],
 ];
 
 export async function transform(code: string): Promise<string> {
   let transformed = code;
+  
+  // First, remove duplicate function definitions
+  transformed = removeDuplicateFunctions(transformed);
   
   // Apply HTML entity fixes
   for (const [pattern, replacement] of HTML_ENTITIES) {
@@ -86,7 +97,51 @@ export async function transform(code: string): Promise<string> {
   // Fix import order
   transformed = fixImportOrder(transformed);
   
+  // Clean up formatting
+  transformed = cleanupFormatting(transformed);
+  
   return transformed;
+}
+
+function removeDuplicateFunctions(code: string): string {
+  const lines = code.split('\n');
+  const functionDeclarations = new Map<string, number>();
+  const linesToRemove = new Set<number>();
+  
+  // Find duplicate function declarations
+  lines.forEach((line, index) => {
+    const functionMatch = line.match(/^\s*function\s+(\w+)\s*\(/);
+    if (functionMatch) {
+      const funcName = functionMatch[1];
+      if (functionDeclarations.has(funcName)) {
+        // Mark the previous declaration for removal
+        const prevIndex = functionDeclarations.get(funcName)!;
+        let braceCount = 0;
+        let started = false;
+        
+        // Remove the entire function block
+        for (let i = prevIndex; i < lines.length; i++) {
+          if (lines[i].includes('{')) {
+            started = true;
+            braceCount += (lines[i].match(/{/g) || []).length;
+          }
+          if (lines[i].includes('}')) {
+            braceCount -= (lines[i].match(/}/g) || []).length;
+          }
+          
+          linesToRemove.add(i);
+          
+          if (started && braceCount === 0) {
+            break;
+          }
+        }
+      }
+      functionDeclarations.set(funcName, index);
+    }
+  });
+  
+  // Filter out lines marked for removal
+  return lines.filter((_, index) => !linesToRemove.has(index)).join('\n');
 }
 
 function removeUnusedImports(code: string): string {
@@ -158,4 +213,21 @@ function fixImportOrder(code: string): string {
   });
   
   return [...sortedImports, '', ...rest].join('\n');
+}
+
+function cleanupFormatting(code: string): string {
+  return code
+    // Fix spacing around braces
+    .replace(/{\s*([^}]+)\s*}/g, (match, content) => {
+      if (content.includes('\n')) {
+        return match; // Keep multi-line as is
+      }
+      return `{ ${content.trim()} }`;
+    })
+    // Fix excessive newlines
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
+    // Fix indentation for function bodies
+    .replace(/function\s+(\w+)[^{]*{\s*/g, 'function $1() {\n  ')
+    // Clean up trailing spaces
+    .replace(/[ \t]+$/gm, '');
 }

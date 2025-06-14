@@ -1,4 +1,3 @@
-
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
@@ -10,6 +9,7 @@ export async function transform(code: string): Promise<string> {
   transformed = addPerformanceOptimizations(transformed);
   transformed = addErrorHandling(transformed);
   transformed = fixTypeScriptIssues(transformed);
+  transformed = cleanupCodeStructure(transformed);
   
   return transformed;
 }
@@ -166,4 +166,22 @@ function fixTypeScriptIssues(code: string): string {
   );
   
   return fixed;
+}
+
+function cleanupCodeStructure(code: string): string {
+  // Remove duplicate exports
+  const exportMatches = code.match(/export default \w+;/g) || [];
+  if (exportMatches.length > 1) {
+    // Keep only the last export default
+    const lastExport = exportMatches[exportMatches.length - 1];
+    let cleanedCode = code;
+    
+    exportMatches.slice(0, -1).forEach(exportStatement => {
+      cleanedCode = cleanedCode.replace(exportStatement, '');
+    });
+    
+    return cleanedCode;
+  }
+  
+  return code;
 }

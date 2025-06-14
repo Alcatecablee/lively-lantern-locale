@@ -12,27 +12,29 @@ export async function transformAST(code: string): Promise<string> {
     transformed = `import { ${imports.join(', ')} } from 'react';\n${transformed}`;
   }
   
-  // Remove duplicate functions - enhanced detection
+  // Remove duplicate functions - much simpler approach
   transformed = removeDuplicateFunctions(transformed);
   
-  // Add missing key props - improved regex
+  // Add missing key props - simpler regex
   transformed = addMissingKeyProps(transformed);
   
   // Convert var to const
   transformed = transformed.replace(/\bvar\s+/g, 'const ');
   
-  // Add basic accessibility - fixed img tag regex
-  transformed = transformed.replace(/<img\s+([^>]*?)(?<!alt="[^"]*")\s*\/?>/g, (match, attrs) => {
+  // Add basic accessibility - much simpler approach
+  // Fix img tags without alt
+  transformed = transformed.replace(/<img\s+([^>]*?)>/g, (match, attrs) => {
     if (attrs.includes('alt=')) return match;
     return `<img ${attrs} alt="" />`;
   });
   
+  // Fix button accessibility
   transformed = transformed.replace(/<button\s+([^>]*?)>/g, (match, attrs) => {
     if (attrs.includes('aria-label')) return match;
     return `<button aria-label="Button" ${attrs}>`;
   });
   
-  // Add TypeScript interfaces for components with props
+  // Add TypeScript interfaces for components with props - simpler approach
   if (transformed.includes('function') && transformed.includes('({ ') && !transformed.includes('interface')) {
     transformed = addBasicInterface(transformed);
   }
@@ -42,41 +44,56 @@ export async function transformAST(code: string): Promise<string> {
 }
 
 function removeDuplicateFunctions(code: string): string {
-  // Find all function declarations with their positions
-  const functionRegex = /function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*\}/g;
-  const functions = new Map();
-  const toRemove = [];
+  // Much simpler approach - just find and remove exact duplicate function blocks
+  const lines = code.split('\n');
+  const seenFunctions = new Set();
+  const result = [];
+  let currentFunction = '';
+  let inFunction = false;
+  let functionName = '';
   
-  let match;
-  while ((match = functionRegex.exec(code)) !== null) {
-    const functionName = match[1];
-    const fullFunction = match[0];
-    const startIndex = match.index;
-    const endIndex = match.index + fullFunction.length;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     
-    if (functions.has(functionName)) {
-      // Mark this duplicate for removal
-      toRemove.push({ start: startIndex, end: endIndex, text: fullFunction });
-      console.log(`Found duplicate function: ${functionName}`);
-    } else {
-      functions.set(functionName, { text: fullFunction, start: startIndex, end: endIndex });
+    // Check if this line starts a function
+    const functionMatch = line.match(/^\s*function\s+(\w+)\s*\(/);
+    if (functionMatch) {
+      functionName = functionMatch[1];
+      inFunction = true;
+      currentFunction = line;
+      continue;
+    }
+    
+    if (inFunction) {
+      currentFunction += '\n' + line;
+      
+      // Check if function ends (simple brace counting)
+      if (line.includes('}') && !line.includes('{')) {
+        // Function ended
+        if (seenFunctions.has(functionName)) {
+          // Skip this duplicate function
+          console.log(`Removed duplicate function: ${functionName}`);
+        } else {
+          // Add this function
+          result.push(currentFunction);
+          seenFunctions.add(functionName);
+        }
+        inFunction = false;
+        currentFunction = '';
+        continue;
+      }
+    }
+    
+    if (!inFunction) {
+      result.push(line);
     }
   }
   
-  // Remove duplicates from end to start to preserve indices
-  toRemove.sort((a, b) => b.start - a.start);
-  let result = code;
-  
-  for (const duplicate of toRemove) {
-    result = result.substring(0, duplicate.start) + result.substring(duplicate.end);
-    console.log(`Removed duplicate function`);
-  }
-  
-  return result;
+  return result.join('\n');
 }
 
 function addMissingKeyProps(code: string): string {
-  // Enhanced key prop detection for map functions
+  // Much simpler regex that actually works
   return code.replace(
     /(\w+)\.map\s*\(\s*(\w+)\s*=>\s*\(\s*<(\w+)([^>]*?)>/g,
     (match, array, item, tag, attributes) => {
@@ -89,7 +106,7 @@ function addMissingKeyProps(code: string): string {
 }
 
 function addBasicInterface(code: string): string {
-  // Add a basic Props interface for components that take props
+  // Much simpler interface addition
   const componentMatch = code.match(/function\s+(\w+)\s*\(\s*{\s*([^}]+)\s*}\s*\)/);
   if (componentMatch) {
     const componentName = componentMatch[1];
@@ -102,6 +119,7 @@ function addBasicInterface(code: string): string {
 
 `;
     
+    // Replace the function signature
     return interfaceCode + code.replace(
       `function ${componentName}({ ${props} })`,
       `function ${componentName}({ ${props} }: ${interfaceName})`

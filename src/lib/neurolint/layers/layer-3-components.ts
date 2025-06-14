@@ -40,15 +40,26 @@ function addMissingImports(code: string): string {
 }
 
 function fixMissingKeyProps(code: string): string {
-  // Fix map operations without keys
+  // Fix map operations without keys - more robust pattern
   return code.replace(
-    /\.map\(\((\w+)(?:,\s*(\w+))?\)\s*=>\s*\(\s*<(\w+)([^>]*?)>/g,
+    /\.map\(\s*\(?\s*(\w+)(?:\s*,\s*(\w+))?\s*\)?\s*=>\s*\(\s*<(\w+)([^>]*?)(?:>[\s\S]*?<\/\3>|\/?>)/g,
     (match, item, index, component, props) => {
       if (props.includes('key=')) return match;
       
-      const keyValue = `{${item}.id || ${index || item}}`;
-      return `.map((${item}${index ? `, ${index}` : ''}) => (
-        <${component} key=${keyValue}${props}>`;
+      const keyValue = index ? `{${index}}` : `{${item}.id || ${item}.name || Math.random()}`;
+      const hasClosingTag = match.includes(`</${component}>`);
+      
+      if (hasClosingTag) {
+        return match.replace(
+          `<${component}${props}>`,
+          `<${component} key=${keyValue}${props}>`
+        );
+      } else {
+        return match.replace(
+          `<${component}${props}`,
+          `<${component} key=${keyValue}${props}`
+        );
+      }
     }
   );
 }
@@ -56,7 +67,7 @@ function fixMissingKeyProps(code: string): string {
 function fixAccessibilityAttributes(code: string): string {
   let fixed = code;
   
-  // Add alt attributes to images
+  // Add alt attributes to images - don't modify if already has alt
   fixed = fixed.replace(
     /<img([^>]*?)(?:\s*\/?>)/g,
     (match, attributes) => {
@@ -67,11 +78,12 @@ function fixAccessibilityAttributes(code: string): string {
     }
   );
   
-  // Add aria-label to buttons without accessible text
+  // Add aria-label to buttons without accessible text - but preserve existing onClick
   fixed = fixed.replace(
     /<button([^>]*?)>/g,
     (match, attributes) => {
       if (!attributes.includes('aria-label') && !attributes.includes('aria-labelledby')) {
+        // Don't modify the onClick handler, just add aria-label
         return `<button${attributes} aria-label="Button">`;
       }
       return match;

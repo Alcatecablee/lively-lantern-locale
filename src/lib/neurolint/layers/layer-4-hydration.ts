@@ -65,7 +65,9 @@ function addUseClientDirective(code: string): string {
     code.includes('localStorage') ||
     code.includes('window.') ||
     code.includes('document.') ||
-    code.includes('onClick');
+    code.includes('onClick') ||
+    code.includes('onChange') ||
+    code.includes('onSubmit');
   
   if (needsUseClient && !code.includes("'use client'") && !code.includes('"use client"')) {
     return "'use client';\n\n" + code;

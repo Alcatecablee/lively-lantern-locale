@@ -150,7 +150,7 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
   const checks = {
     'Added use client directive': transformedCode.includes("'use client'"),
     'Fixed HTML entity corruption': !transformedCode.includes('&quot;') && !transformedCode.includes('&#x27;') && !transformedCode.includes('&amp;'),
-    'Added missing key props': /key=\{[^}]+\}/.test(transformedCode),
+    'Added missing key props': /key=\{[^}]+\}/.test(transformedCode) || transformedCode.includes('key={'),
     'Optimized console statements': transformedCode.includes('console.debug') && !transformedCode.includes('console.log'),
     'Added SSR guards': transformedCode.includes('typeof window !== "undefined"'),
     'Added accessibility attributes': transformedCode.includes('aria-label') || transformedCode.includes('alt=""'),

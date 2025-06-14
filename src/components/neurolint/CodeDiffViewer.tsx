@@ -1,6 +1,8 @@
 
-import React from "react";
+// @ts-expect-error: No type declarations for 'react-diff-viewer'
 import DiffViewer from "react-diff-viewer";
+
+import React from "react";
 
 interface CodeDiffViewerProps {
   original: string;

@@ -43,7 +43,7 @@ export class QualityGates {
     const matches = code.match(malformedPattern) || [];
     
     for (const match of matches) {
-      if (match.includes(') => () =') || match.includes(') =') {
+      if (match.includes(') => () =') || match.includes(') =')) {
         return false;
       }
     }

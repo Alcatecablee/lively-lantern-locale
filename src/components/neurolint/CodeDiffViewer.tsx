@@ -51,7 +51,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
   };
 
   return (
-    <div className="min-h-[600px] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden max-h-[80vh] shadow-cursor-glass group transition-all font-mono backdrop-blur-xl">
+    <div className="min-h-[600px] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden h-[85vh] shadow-cursor-glass group transition-all font-mono backdrop-blur-xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#232339] bg-[#1a1c22]/95 rounded-t-lg backdrop-blur font-sans">
         <div className="flex gap-2 items-center">
@@ -61,7 +61,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
       </div>
 
       {/* Vertical Stack Layout */}
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-[calc(100%-3rem)]">
         {/* Transformed Code Panel (Top) */}
         <div className="border-b border-[#232339] flex-1">
           <div className="flex items-center justify-between px-4 py-2 bg-[#1f2a1f] border-b border-[#2f3a2f]">
@@ -79,7 +79,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
               <CopyIcon className="w-3 h-3" />
             </Button>
           </div>
-          <div className="p-4 overflow-auto h-[calc(50vh-8rem)] bg-[#141a14]">
+          <div className="p-4 overflow-auto h-[calc(100%-3rem)] bg-[#141a14]">
             <pre className="text-sm text-green-100 whitespace-pre-wrap">
               <code>{highlighted(transformed)}</code>
             </pre>
@@ -110,7 +110,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
               <CopyIcon className="w-3 h-3" />
             </Button>
           </div>
-          <div className="p-4 overflow-auto h-[calc(50vh-8rem)] bg-[#1a1416]">
+          <div className="p-4 overflow-auto h-[calc(100%-3rem)] bg-[#1a1416]">
             <pre className="text-sm text-red-100 whitespace-pre-wrap">
               <code>{highlighted(original)}</code>
             </pre>

@@ -7,7 +7,7 @@ import * as layer6 from "./layers/layer-6-testing";
 import { transformWithAST } from "./ast/orchestrator";
 import { NeuroLintLayerResult } from "./types";
 
-// Enhanced orchestrator with AST-based transformations and fallbacks
+// Enhanced orchestrator with AST-based transformations, contracts, and quality gates
 const layers = [
   {
     fn: layer1.transform,
@@ -66,6 +66,7 @@ export async function NeuroLintOrchestrator(
       const previous = current;
       let next = current;
       let usedAST = false;
+      let contractInfo = '';
       
       // Try AST transform first if supported and enabled
       if (useAST && layer.astSupported && layer.astLayerName) {
@@ -73,9 +74,29 @@ export async function NeuroLintOrchestrator(
         if (astResult.success) {
           next = astResult.code;
           usedAST = true;
+          
+          // Add contract validation info
+          if (astResult.contractResults) {
+            const { preconditions, postconditions } = astResult.contractResults;
+            contractInfo = `Contract validation - Pre: ${preconditions.passed ? '✅' : '❌'}, Post: ${postconditions.passed ? '✅' : '❌'}`;
+            
+            if (!preconditions.passed || !postconditions.passed) {
+              console.warn(`Contract validation issues for ${layer.name}:`, {
+                preconditions: preconditions.failedRules,
+                postconditions: postconditions.failedRules
+              });
+            }
+          }
+          
+          // Add performance impact info
+          if (astResult.performanceImpact) {
+            const impact = astResult.performanceImpact;
+            contractInfo += ` | Performance: ${impact.impact} (${impact.sizeIncrease.toFixed(1)}% size, +${impact.complexityIncrease} complexity)`;
+          }
         } else {
           console.warn(`AST transform failed for ${layer.name}, using fallback:`, astResult.error);
           next = await layer.fn(current, filePath);
+          contractInfo = `Fallback used due to: ${astResult.error}`;
         }
       } else {
         // Use regex-based transform
@@ -87,7 +108,7 @@ export async function NeuroLintOrchestrator(
       
       results.push({
         name: layer.name,
-        description: layer.description,
+        description: layer.description + (contractInfo ? ` | ${contractInfo}` : ''),
         code: next,
         success: true,
         executionTime,
@@ -150,7 +171,7 @@ function detectImprovements(before: string, after: string, usedAST: boolean = fa
   }
   
   if (usedAST) {
-    improvements.push('Used AST-based transformation');
+    improvements.push('Used AST-based transformation with contracts');
   }
   
   return improvements;

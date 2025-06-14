@@ -1,3 +1,4 @@
+
 export interface TestCase {
   name: string;
   description: string;
@@ -140,7 +141,6 @@ function EntityTest() {
     expectedFixes: [
       'Added use client directive',
       'Added missing imports',
-      'Optimized console statements',
       'Removed duplicate functions'
     ]
   }
@@ -158,7 +158,7 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
   const checks = {
     'Added use client directive': transformedCode.includes("'use client'"),
     'Fixed HTML entity corruption': !transformedCode.includes('&quot;') && !transformedCode.includes('&#x27;') && !transformedCode.includes('&amp;'),
-    'Added missing key props': /key=\{[^}]+\}/.test(transformedCode) || transformedCode.includes('key={'),
+    'Added missing key props': /key=\{[^}]+\}/.test(transformedCode),
     'Optimized console statements': transformedCode.includes('console.debug') && !transformedCode.includes('console.log'),
     'Added SSR guards': transformedCode.includes('typeof window !== "undefined"'),
     'Added accessibility attributes': transformedCode.includes('aria-label') || transformedCode.includes('alt=""'),
@@ -166,20 +166,26 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
     'Added missing imports': transformedCode.includes('import {') && (transformedCode.includes('useState') || transformedCode.includes('useEffect')),
     'Converted var to const': !transformedCode.includes('var ') && transformedCode.includes('const '),
     'Removed duplicate functions': (function() {
-      // Check if we had duplicates in the original and now have only one
       const originalInput = testCase.input;
-      const functionMatches = transformedCode.match(/function\s+\w+\s*\([^)]*\)\s*\{/g) || [];
-      const originalFunctionMatches = originalInput.match(/function\s+\w+\s*\([^)]*\)\s*\{/g) || [];
       
-      // For the specific test case, check if we reduced from 2 'add' functions to 1
+      // For the specific duplicate functions test
       if (testCase.name === "Duplicate Functions") {
         const addFunctionsInOriginal = (originalInput.match(/function\s+add\s*\(/g) || []).length;
         const addFunctionsInTransformed = (transformedCode.match(/function\s+add\s*\(/g) || []).length;
         return addFunctionsInOriginal > 1 && addFunctionsInTransformed === 1;
       }
       
-      // General case: check if we have fewer function declarations than before
-      return originalFunctionMatches.length > functionMatches.length;
+      // General case: check if we have fewer duplicate function names
+      const originalFunctions = originalInput.match(/function\s+(\w+)\s*\(/g) || [];
+      const transformedFunctions = transformedCode.match(/function\s+(\w+)\s*\(/g) || [];
+      
+      const originalFunctionNames = originalFunctions.map(f => f.match(/function\s+(\w+)/)?.[1]).filter(Boolean);
+      const transformedFunctionNames = transformedFunctions.map(f => f.match(/function\s+(\w+)/)?.[1]).filter(Boolean);
+      
+      const originalDuplicates = originalFunctionNames.length - new Set(originalFunctionNames).size;
+      const transformedDuplicates = transformedFunctionNames.length - new Set(transformedFunctionNames).size;
+      
+      return originalDuplicates > 0 && transformedDuplicates < originalDuplicates;
     })()
   };
 

@@ -3,12 +3,13 @@ export async function transform(code: string): Promise<string> {
   let transformed = code;
   
   console.log('Layer 5 (Next.js) input length:', code.length);
+  console.log('Layer 5 (Next.js) checking for use client...');
   
-  // Apply Next.js specific fixes
-  transformed = addUseClientIfNeeded(transformed);
-  transformed = fixCorruptedImports(transformed);
-  transformed = fixImportOrder(transformed);
-  transformed = fixAppRouterPatterns(transformed);
+  // Add 'use client' directive for client-side React components
+  transformed = addUseClientDirective(transformed);
+  
+  // Clean up any import corruption
+  transformed = cleanImports(transformed);
   
   console.log('Layer 5 (Next.js) output length:', transformed.length);
   console.log('Layer 5 changes:', transformed !== code);
@@ -16,102 +17,33 @@ export async function transform(code: string): Promise<string> {
   return transformed;
 }
 
-function addUseClientIfNeeded(code: string): string {
-  // Only add 'use client' if not already present and actually needed
-  if (code.includes("'use client'") || code.includes('"use client"')) {
-    return code;
-  }
-
-  const needsUseClient = 
-    code.includes('useState') ||
-    code.includes('useEffect') ||
-    code.includes('useCallback') ||
-    code.includes('useMemo') ||
-    code.includes('useRef') ||
-    code.includes('localStorage') ||
-    code.includes('sessionStorage') ||
-    code.includes('window.') ||
-    code.includes('document.') ||
-    code.includes('onClick') ||
-    code.includes('onChange') ||
-    code.includes('onSubmit') ||
-    code.includes('onFocus') ||
-    code.includes('onBlur') ||
-    code.includes('onKeyDown') ||
-    code.includes('onKeyUp') ||
-    /on[A-Z][a-zA-Z]*=/.test(code); // Any event handler
+function addUseClientDirective(code: string): string {
+  // Check if this looks like a React component that needs 'use client'
+  const hasReactFeatures = /useState|useEffect|onClick|onChange|onSubmit/.test(code);
+  const hasUseClient = code.includes("'use client'") || code.includes('"use client"');
   
-  if (needsUseClient) {
+  console.log('Has React features:', hasReactFeatures);
+  console.log('Has use client:', hasUseClient);
+  
+  if (hasReactFeatures && !hasUseClient) {
+    console.log('Adding use client directive');
     return "'use client';\n\n" + code;
   }
   
   return code;
 }
 
-function fixCorruptedImports(code: string): string {
+function cleanImports(code: string): string {
   let fixed = code;
   
-  // Fix pattern: import {\n import { ... } from "..."
-  fixed = fixed.replace(
-    /import\s*{\s*\n\s*import\s*{([^}]+)}\s*from\s*["']([^"']+)["']/gm,
-    'import { $1 } from "$2"'
-  );
+  // Remove duplicate imports
+  const importLines = fixed.split('\n').filter(line => line.trim().startsWith('import'));
+  const uniqueImports = [...new Set(importLines)];
   
-  // Fix pattern: import {\n  SomeComponent,\n} from "..."
-  fixed = fixed.replace(
-    /import\s*{\s*\n\s*([^}]+)\n\s*}\s*from\s*["']([^"']+)["']/gm,
-    'import {\n  $1\n} from "$2"'
-  );
-  
-  // Fix standalone import { without closing
-  fixed = fixed.replace(/^import\s*{\s*$/gm, '');
-  
-  // Clean up duplicate imports
-  const lines = fixed.split('\n');
-  const cleanedLines = [];
-  const seenImports = new Set();
-  
-  for (const line of lines) {
-    if (line.trim().startsWith('import ')) {
-      const importKey = line.trim().replace(/\s+/g, ' ');
-      if (!seenImports.has(importKey)) {
-        seenImports.add(importKey);
-        cleanedLines.push(line);
-      }
-    } else {
-      cleanedLines.push(line);
-    }
-  }
-  
-  return cleanedLines.join('\n');
-}
-
-function fixImportOrder(code: string): string {
-  if (code.startsWith("'use client';")) {
-    // Ensure proper spacing after 'use client'
-    return code.replace(/^'use client';\n+/, "'use client';\n\n");
-  }
-  
-  return code;
-}
-
-function fixAppRouterPatterns(code: string): string {
-  let fixed = code;
-  
-  // Fix page.tsx exports
-  if (code.includes('export default function') && code.includes('Page')) {
-    fixed = fixed.replace(
-      /export default function (\w*Page\w*)/g,
-      'export default function Page'
-    );
-  }
-  
-  // Fix layout.tsx exports
-  if (code.includes('export default function') && code.includes('Layout')) {
-    fixed = fixed.replace(
-      /export default function (\w*Layout\w*)/g,
-      'export default function Layout'
-    );
+  // Replace all import lines with unique ones
+  if (importLines.length !== uniqueImports.length) {
+    const nonImportLines = fixed.split('\n').filter(line => !line.trim().startsWith('import'));
+    fixed = uniqueImports.join('\n') + '\n' + nonImportLines.join('\n');
   }
   
   return fixed;

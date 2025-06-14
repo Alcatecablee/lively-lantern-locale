@@ -1,10 +1,9 @@
-
 export async function transformAST(code: string): Promise<string> {
   console.log('Using ultra-simplified component transformations for MVP');
   
   let transformed = code;
   
-  // Add missing imports (simple approach)
+  // 1. Add missing imports (simple approach)
   if ((code.includes('useState') || code.includes('useEffect')) && !code.includes('import {')) {
     const imports = [];
     if (code.includes('useState')) imports.push('useState');
@@ -12,10 +11,10 @@ export async function transformAST(code: string): Promise<string> {
     transformed = `import { ${imports.join(', ')} } from 'react';\n${transformed}`;
   }
   
-  // Convert var to const (simplest approach)
+  // 2. Convert var to const (simplest approach)
   transformed = transformed.replace(/\bvar\s+/g, 'const ');
   
-  // Add missing key props (ultra-simple regex)
+  // 3. Add missing key props (ultra-simple regex)
   transformed = transformed.replace(
     /(\w+)\.map\s*\(\s*(\w+)\s*=>\s*\(\s*<(\w+)([^>]*?)>/g,
     (match, array, item, tag, attributes) => {
@@ -24,88 +23,86 @@ export async function transformAST(code: string): Promise<string> {
     }
   );
   
-  // Fix img tags - ultra-simple approach
+  // 4. Fix img tags - completely rewritten approach
   transformed = transformed.replace(/<img\s+([^>]*?)\s*\/?>/g, (match, attrs) => {
-    if (attrs.includes('alt=')) return match;
     // Clean up any malformed syntax first
-    const cleanAttrs = attrs.replace(/\s*\/\s*/, ' ').trim();
-    return `<img ${cleanAttrs} alt="" />`;
+    let cleanAttrs = attrs.replace(/\s*\/\s*/, ' ').trim();
+    
+    // Add alt attribute if missing
+    if (!cleanAttrs.includes('alt=')) {
+      cleanAttrs += ' alt=""';
+    }
+    
+    return `<img ${cleanAttrs} />`;
   });
   
-  // Fix button accessibility
+  // 5. Fix button accessibility
   transformed = transformed.replace(/<button\s+([^>]*?)>/g, (match, attrs) => {
     if (attrs.includes('aria-label')) return match;
     return `<button aria-label="Button" ${attrs}>`;
   });
   
-  // Remove duplicate functions - ultra-simple string replacement approach
-  transformed = removeDuplicateFunctionsSimple(transformed);
+  // 6. Remove duplicate functions - completely new approach using function signatures
+  transformed = removeDuplicateFunctionsNew(transformed);
   
-  // Add TypeScript interfaces - ultra-simple approach
-  transformed = addSimpleInterface(transformed);
+  // 7. Add TypeScript interfaces - simplified approach
+  transformed = addSimpleInterfaceNew(transformed);
   
   console.log('Component transformations completed');
   return transformed;
 }
 
-function removeDuplicateFunctionsSimple(code: string): string {
-  // Find exact duplicate function blocks using string matching
+function removeDuplicateFunctionsNew(code: string): string {
+  // Split by lines and track function signatures
   const lines = code.split('\n');
-  const functionBlocks = [];
-  let currentBlock = '';
-  let inFunction = false;
-  let braceCount = 0;
+  const seenFunctions = new Set();
+  const resultLines = [];
+  let inDuplicateFunction = false;
+  let braceDepth = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const trimmedLine = line.trim();
     
-    if (line.trim().startsWith('function ')) {
-      if (inFunction && currentBlock) {
-        functionBlocks.push(currentBlock.trim());
-      }
-      currentBlock = line;
-      inFunction = true;
-      braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
-    } else if (inFunction) {
-      currentBlock += '\n' + line;
-      braceCount += (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+    // Check if this line starts a function
+    const functionMatch = trimmedLine.match(/^\s*function\s+(\w+)\s*\(/);
+    if (functionMatch) {
+      const functionName = functionMatch[1];
       
-      if (braceCount === 0) {
-        functionBlocks.push(currentBlock.trim());
-        currentBlock = '';
-        inFunction = false;
+      if (seenFunctions.has(functionName)) {
+        // This is a duplicate, start skipping
+        inDuplicateFunction = true;
+        braceDepth = 0;
+        // Count opening braces in this line
+        braceDepth += (line.match(/{/g) || []).length;
+        braceDepth -= (line.match(/}/g) || []).length;
+        continue;
+      } else {
+        // First occurrence, keep it
+        seenFunctions.add(functionName);
+        inDuplicateFunction = false;
       }
     }
-  }
-  
-  // Remove exact duplicates
-  const seen = new Set();
-  const toKeep = [];
-  
-  for (const block of functionBlocks) {
-    if (!seen.has(block)) {
-      seen.add(block);
-      toKeep.push(block);
-    } else {
-      console.log('Removed duplicate function block');
+    
+    if (inDuplicateFunction) {
+      // Count braces to know when function ends
+      braceDepth += (line.match(/{/g) || []).length;
+      braceDepth -= (line.match(/}/g) || []).length;
+      
+      // If we're back to 0, the function has ended
+      if (braceDepth <= 0) {
+        inDuplicateFunction = false;
+      }
+      continue;
     }
+    
+    resultLines.push(line);
   }
   
-  // Reconstruct code without function blocks, then add unique ones
-  let result = code;
-  for (const block of functionBlocks) {
-    result = result.replace(block, '');
-  }
-  
-  // Add back the unique functions
-  for (const block of toKeep) {
-    result += '\n' + block;
-  }
-  
-  return result.replace(/\n\s*\n\s*\n/g, '\n\n'); // Clean up extra newlines
+  return resultLines.join('\n');
 }
 
-function addSimpleInterface(code: string): string {
+function addSimpleInterfaceNew(code: string): string {
   // Only add interface if function has destructured props
   const match = code.match(/function\s+(\w+)\s*\(\s*{\s*([^}]+)\s*}\s*\)/);
   if (match) {

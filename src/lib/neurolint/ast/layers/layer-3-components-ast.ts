@@ -123,7 +123,7 @@ function fixAccessibilityAttributesAST(ast: t.File): void {
           }
         }
         
-        // Add aria-label to buttons without existing aria attributes
+        // Add aria-label to buttons without existing aria attributes or text content
         if (tagName === 'button') {
           const hasAriaLabel = openingElement.attributes.some(attr =>
             t.isJSXAttribute(attr) && 
@@ -131,7 +131,14 @@ function fixAccessibilityAttributesAST(ast: t.File): void {
             (attr.name.name === 'aria-label' || attr.name.name === 'aria-labelledby')
           );
           
-          if (!hasAriaLabel) {
+          // Check if button has text content
+          const hasTextContent = element.children && element.children.some(child => 
+            t.isJSXText(child) && child.value.trim() ||
+            t.isJSXExpressionContainer(child) ||
+            t.isJSXElement(child)
+          );
+          
+          if (!hasAriaLabel && !hasTextContent) {
             openingElement.attributes.push(
               t.jsxAttribute(t.jsxIdentifier('aria-label'), t.stringLiteral('Button'))
             );

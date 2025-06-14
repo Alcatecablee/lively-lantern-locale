@@ -21,28 +21,49 @@ export async function transformAST(code: string): Promise<string> {
 
 function addSSRGuardsAST(ast: t.File): void {
   traverse(ast, {
-    MemberExpression(path) {
+    CallExpression(path) {
       const node = path.node;
       if (
-        t.isIdentifier(node.object) &&
-        node.object.name === 'localStorage' &&
-        t.isIdentifier(node.property)
+        t.isMemberExpression(node.callee) &&
+        t.isIdentifier(node.callee.object) &&
+        node.callee.object.name === 'localStorage' &&
+        t.isIdentifier(node.callee.property)
       ) {
-        // Only wrap if not already wrapped
+        // Check if already wrapped in typeof check
         if (
-          !t.isLogicalExpression(path.parent) ||
-          !t.isBinaryExpression((path.parent as t.LogicalExpression).left)
+          t.isLogicalExpression(path.parent) &&
+          t.isBinaryExpression((path.parent as t.LogicalExpression).left) &&
+          t.isUnaryExpression(((path.parent as t.LogicalExpression).left as t.BinaryExpression).left) &&
+          ((((path.parent as t.LogicalExpression).left as t.BinaryExpression).left as t.UnaryExpression).argument as t.Identifier).name === 'window'
         ) {
-          // Wrap localStorage calls with typeof window check
-          const typeofCheck = t.binaryExpression(
-            '!==',
-            t.unaryExpression('typeof', t.identifier('window')),
-            t.stringLiteral('undefined')
-          );
-          
-          const guardedAccess = t.logicalExpression('&&', typeofCheck, node);
-          path.replaceWith(guardedAccess);
+          return; // Already wrapped
         }
+        
+        // Create typeof window !== "undefined" check
+        const typeofCheck = t.binaryExpression(
+          '!==',
+          t.unaryExpression('typeof', t.identifier('window')),
+          t.stringLiteral('undefined')
+        );
+        
+        // Create conditional expression: typeof window !== "undefined" ? localStorage.method(...) : fallback
+        let fallbackValue: t.Expression;
+        
+        if (node.callee.property.name === 'getItem') {
+          fallbackValue = t.nullLiteral();
+        } else if (node.callee.property.name === 'setItem') {
+          fallbackValue = t.identifier('undefined');
+        } else {
+          fallbackValue = t.identifier('undefined');
+        }
+        
+        const conditionalExpression = t.conditionalExpression(
+          typeofCheck,
+          node,
+          fallbackValue
+        );
+        
+        path.replaceWith(conditionalExpression);
       }
     }
   });
@@ -55,15 +76,14 @@ function addMountedStatesAST(ast: t.File): void {
   
   // Check if component uses localStorage and useState
   traverse(ast, {
-    MemberExpression(path) {
+    CallExpression(path) {
       if (
-        t.isIdentifier(path.node.object) &&
-        path.node.object.name === 'localStorage'
+        t.isMemberExpression(path.node.callee) &&
+        t.isIdentifier(path.node.callee.object) &&
+        path.node.callee.object.name === 'localStorage'
       ) {
         hasLocalStorage = true;
       }
-    },
-    CallExpression(path) {
       if (t.isIdentifier(path.node.callee) && path.node.callee.name === 'useState') {
         hasUseState = true;
       }

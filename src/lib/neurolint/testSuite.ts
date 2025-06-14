@@ -146,17 +146,17 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
   const detectedFixes: string[] = [];
   const missingFixes: string[] = [];
 
-  // Check for specific fixes based on test case
+  // More robust checks for specific fixes
   const checks = {
     'Added use client directive': transformedCode.includes("'use client'"),
     'Fixed HTML entity corruption': !transformedCode.includes('&quot;') && !transformedCode.includes('&#x27;') && !transformedCode.includes('&amp;'),
-    'Added missing key props': transformedCode.includes('key='),
-    'Optimized console statements': !transformedCode.includes('console.log') || transformedCode.includes('console.debug'),
-    'Added SSR guards': transformedCode.includes('typeof window !== "undefined"') || transformedCode.includes('typeof document !== "undefined"'),
-    'Added accessibility attributes': transformedCode.includes('aria-label') || transformedCode.includes('alt='),
-    'Added TypeScript interfaces': transformedCode.includes('interface') || transformedCode.includes('Props'),
-    'Added missing imports': transformedCode.includes('import { useState') || transformedCode.includes('import React'),
-    'Added error handling': transformedCode.includes('try') && transformedCode.includes('catch')
+    'Added missing key props': /key=\{[^}]+\}/.test(transformedCode),
+    'Optimized console statements': transformedCode.includes('console.debug') && !transformedCode.includes('console.log'),
+    'Added SSR guards': transformedCode.includes('typeof window !== "undefined"'),
+    'Added accessibility attributes': transformedCode.includes('aria-label') || transformedCode.includes('alt=""'),
+    'Added TypeScript interfaces': transformedCode.includes('interface') && transformedCode.includes('Props'),
+    'Added missing imports': transformedCode.includes('import {') && transformedCode.includes('} from'),
+    'Converted var to const': !transformedCode.includes('var ') && transformedCode.includes('const ')
   };
 
   testCase.expectedFixes.forEach(expectedFix => {

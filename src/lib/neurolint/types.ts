@@ -1,4 +1,3 @@
-
 export interface NeuroLintLayerResult {
   name: string;
   description?: string;
@@ -8,6 +7,9 @@ export interface NeuroLintLayerResult {
   executionTime?: number;
   changeCount?: number;
   improvements?: string[];
+  originalSize?: number;
+  transformedSize?: number;
+  error?: string;
 }
 
 export interface NeuroLintOptions {

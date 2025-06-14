@@ -1,42 +1,107 @@
 
+const HTML_ENTITIES: [RegExp, string][] = [
+  [/&quot;/g, '"'],
+  [/&#x27;/g, "'"],
+  [/&apos;/g, "'"],
+  [/&amp;/g, "&"],
+  [/&lt;/g, "<"],
+  [/&gt;/g, ">"],
+  [/&#36;/g, "$"],
+  [/&#x24;/g, "$"],
+  [/&euro;/g, "€"],
+  [/&#8364;/g, "€"],
+  [/&#x20AC;/g, "€"],
+  [/&pound;/g, "£"],
+  [/&#163;/g, "£"],
+  [/&yen;/g, "¥"],
+  [/&#165;/g, "¥"],
+  [/&ndash;/g, "–"],
+  [/&#8211;/g, "–"],
+  [/&mdash;/g, "—"],
+  [/&#8212;/g, "—"],
+  [/&#8217;/g, "'"],
+  [/&#64;/g, "@"],
+  [/&nbsp;/g, " "],
+  [/&copy;/g, "©"],
+  [/&reg;/g, "®"],
+  [/&trade;/g, "™"],
+  [/&sect;/g, "§"],
+  [/&para;/g, "¶"],
+  [/&bull;/g, "•"],
+  [/&deg;/g, "°"],
+  [/&#8209;/g, "-"],
+];
+
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  console.log('Layer 2 (Entities) input length:', code.length);
-  console.log('Layer 2 (Entities) input sample:', code.substring(0, 200));
+  // First, apply HTML entity fixes
+  for (const [pattern, replacement] of HTML_ENTITIES) {
+    transformed = transformed.replace(pattern, replacement);
+  }
   
-  // Fix HTML entity corruption - this is the main purpose of this layer
-  transformed = fixHTMLEntities(transformed);
+  // Fix var declarations to const/let
+  transformed = transformed.replace(/\bvar\s+(\w+)\s*=\s*([^;]+);/g, 'const $1 = $2;');
   
-  console.log('Layer 2 (Entities) output length:', transformed.length);
-  console.log('Layer 2 changes:', transformed !== code);
-  console.log('Layer 2 (Entities) output sample:', transformed.substring(0, 200));
+  // Fix console.log to console.debug
+  transformed = transformed.replace(/console\.log\(/g, 'console.debug(');
+  
+  // Clean up imports and remove duplicates
+  transformed = cleanupImports(transformed);
+  
+  // Remove duplicate function definitions
+  transformed = removeDuplicateFunctions(transformed);
   
   return transformed;
 }
 
-function fixHTMLEntities(code: string): string {
-  let fixed = code;
+function cleanupImports(code: string): string {
+  const lines = code.split('\n');
+  const imports: string[] = [];
+  const rest: string[] = [];
+  const seenImports = new Set<string>();
   
-  // Fix common HTML entities with more comprehensive patterns
-  const originalLength = fixed.length;
+  lines.forEach(line => {
+    if (line.trim().startsWith('import ')) {
+      const normalizedImport = line.trim().replace(/\s+/g, ' ');
+      if (!seenImports.has(normalizedImport)) {
+        seenImports.add(normalizedImport);
+        imports.push(line);
+      }
+    } else {
+      rest.push(line);
+    }
+  });
   
-  fixed = fixed.replace(/&quot;/g, '"');
-  fixed = fixed.replace(/&#x27;/g, "'");
-  fixed = fixed.replace(/&#39;/g, "'");
-  fixed = fixed.replace(/&amp;/g, '&');
-  fixed = fixed.replace(/&lt;/g, '<');
-  fixed = fixed.replace(/&gt;/g, '>');
-  fixed = fixed.replace(/&nbsp;/g, ' ');
+  return [...imports, '', ...rest].join('\n');
+}
+
+function removeDuplicateFunctions(code: string): string {
+  const functionPattern = /function\s+(\w+)\s*\([^)]*\)\s*\{[^}]*\}/g;
+  const functions = new Map<string, string>();
+  let match;
   
-  // Additional entity fixes
-  fixed = fixed.replace(/&apos;/g, "'");
-  fixed = fixed.replace(/&lsquo;/g, "'");
-  fixed = fixed.replace(/&rsquo;/g, "'");
-  fixed = fixed.replace(/&ldquo;/g, '"');
-  fixed = fixed.replace(/&rdquo;/g, '"');
+  // Find all function declarations
+  while ((match = functionPattern.exec(code)) !== null) {
+    const [fullMatch, funcName] = match;
+    if (!functions.has(funcName)) {
+      functions.set(funcName, fullMatch);
+    }
+  }
   
-  console.log('HTML entities fix: before length', originalLength, 'after length', fixed.length);
+  // Replace all function declarations with unique ones
+  let result = code;
+  functions.forEach((funcCode, funcName) => {
+    const pattern = new RegExp(`function\\s+${funcName}\\s*\\([^)]*\\)\\s*\\{[^}]*\\}`, 'g');
+    let firstReplacement = true;
+    result = result.replace(pattern, (match) => {
+      if (firstReplacement) {
+        firstReplacement = false;
+        return match;
+      }
+      return ''; // Remove duplicate
+    });
+  });
   
-  return fixed;
+  return result;
 }

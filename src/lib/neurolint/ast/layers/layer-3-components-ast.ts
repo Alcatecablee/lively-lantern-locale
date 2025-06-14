@@ -1,268 +1,200 @@
 
-import * as parser from '@babel/parser';
-import traverse from '@babel/traverse';
-import generate from '@babel/generator';
 import * as t from '@babel/types';
+import traverse from '@babel/traverse';
+import { ASTTransformer } from '../ASTTransformer';
+import { ASTUtils } from '../utils';
 
 export async function transformAST(code: string): Promise<string> {
-  console.log('Using proper AST transformations for components');
+  const transformer = new ASTTransformer();
   
   try {
-    // Parse the code into an AST
-    const ast = parser.parse(code, {
-      sourceType: 'module',
-      plugins: ['typescript', 'jsx'],
-      allowImportExportEverywhere: true,
-      allowReturnOutsideFunction: true,
-      strictMode: false,
-      allowUndeclaredExports: true,
-      errorRecovery: true,
+    return transformer.transform(code, (ast) => {
+      addMissingImportsAST(ast);
+      fixMissingKeyPropsAST(ast);
+      fixAccessibilityAttributesAST(ast);
+      addComponentInterfacesAST(ast);
     });
+  } catch (error) {
+    console.warn('AST transform failed, using fallback');
+    throw error;
+  }
+}
 
-    let needsReactImport = false;
-    const usedHooks = new Set<string>();
-    const seenFunctions = new Set<string>();
-    const duplicateFunctions: any[] = [];
-    let hasJSX = false;
-
-    // First pass: analyze what we need
-    traverse(ast, {
-      CallExpression(path) {
-        if (t.isIdentifier(path.node.callee)) {
-          const name = path.node.callee.name;
-          if (name === 'useState' || name === 'useEffect') {
-            usedHooks.add(name);
-            needsReactImport = true;
-          }
-        }
-      },
-      
-      JSXElement() {
-        hasJSX = true;
-      },
-
-      FunctionDeclaration(path) {
-        const funcName = path.node.id?.name;
-        if (funcName) {
-          if (seenFunctions.has(funcName)) {
-            // Mark for removal
-            duplicateFunctions.push(path);
-          } else {
-            seenFunctions.add(funcName);
-          }
-        }
-      },
-
-      VariableDeclarator(path) {
-        if (t.isIdentifier(path.node.id) && path.node.id.name) {
-          // Convert var to const
-          const declaration = path.findParent((p) => t.isVariableDeclaration(p.node));
-          if (declaration && t.isVariableDeclaration(declaration.node) && declaration.node.kind === 'var') {
-            declaration.node.kind = 'const';
-          }
+function addMissingImportsAST(ast: t.File): void {
+  const hooks: string[] = [];
+  
+  traverse(ast, {
+    CallExpression(path) {
+      if (t.isIdentifier(path.node.callee)) {
+        const name = path.node.callee.name;
+        const hookPattern = /^use[A-Z]/;
+        if (hookPattern.test(name) && !hooks.includes(name)) {
+          hooks.push(name);
         }
       }
-    });
+    }
+  });
+  
+  if (hooks.length > 0) {
+    ASTUtils.addMissingReactImports(ast, hooks);
+  }
+}
 
-    // Second pass: make transformations
-    traverse(ast, {
-      Program(path) {
-        // Add missing imports at the top
-        if (needsReactImport && usedHooks.size > 0) {
-          const existingImports = path.node.body.filter(node => t.isImportDeclaration(node));
-          const hasReactImport = existingImports.some(imp => 
-            t.isStringLiteral(imp.source) && 
-            imp.source.value === 'react'
-          );
-
-          if (!hasReactImport) {
-            const importSpecifiers = Array.from(usedHooks).map(hook => 
-              t.importSpecifier(t.identifier(hook), t.identifier(hook))
-            );
-            const importDeclaration = t.importDeclaration(
-              importSpecifiers,
-              t.stringLiteral('react')
-            );
-            path.node.body.unshift(importDeclaration);
-          }
-        }
-
-        // Add 'use client' if needed
-        const needsUseClient = hasJSX || usedHooks.size > 0;
-        const hasUseClient = path.node.body.some(stmt => 
-          t.isExpressionStatement(stmt) && 
-          t.isStringLiteral(stmt.expression) && 
-          stmt.expression.value === 'use client'
-        );
-        
-        if (needsUseClient && !hasUseClient) {
-          const useClientDirective = t.expressionStatement(t.stringLiteral('use client'));
-          path.node.body.unshift(useClientDirective);
-        }
-      },
-
-      CallExpression(path) {
-        // Add key props to map operations
-        if (t.isMemberExpression(path.node.callee) && 
-            t.isIdentifier(path.node.callee.property) && 
-            path.node.callee.property.name === 'map') {
+function fixMissingKeyPropsAST(ast: t.File): void {
+  traverse(ast, {
+    CallExpression(path) {
+      if (
+        t.isMemberExpression(path.node.callee) &&
+        t.isIdentifier(path.node.callee.property) &&
+        path.node.callee.property.name === 'map'
+      ) {
+        const callback = path.node.arguments[0];
+        if (t.isArrowFunctionExpression(callback) || t.isFunctionExpression(callback)) {
+          const params = callback.params;
+          const itemParam = params[0];
+          const indexParam = params[1];
           
-          const callback = path.node.arguments[0];
-          if (t.isArrowFunctionExpression(callback) || t.isFunctionExpression(callback)) {
-            const param = callback.params[0];
-            if (t.isIdentifier(param)) {
-              // Check if the return value is JSX
-              let hasJSXReturn = false;
+          // Find JSX elements in callback
+          traverse(callback, {
+            JSXElement(jsxPath) {
+              const element = jsxPath.node;
+              const hasKey = element.openingElement.attributes.some(attr =>
+                t.isJSXAttribute(attr) && 
+                t.isJSXIdentifier(attr.name) && 
+                attr.name.name === 'key'
+              );
               
-              if (t.isJSXElement(callback.body)) {
-                hasJSXReturn = true;
-              } else if (t.isBlockStatement(callback.body)) {
-                for (const stmt of callback.body.body) {
-                  if (t.isReturnStatement(stmt) && t.isJSXElement(stmt.argument)) {
-                    hasJSXReturn = true;
-                    break;
-                  }
+              if (!hasKey) {
+                let keyValue: t.Expression;
+                
+                if (indexParam && t.isIdentifier(indexParam)) {
+                  keyValue = t.identifier(indexParam.name);
+                } else if (itemParam && t.isIdentifier(itemParam)) {
+                  keyValue = t.logicalExpression(
+                    '||',
+                    t.logicalExpression(
+                      '||',
+                      t.memberExpression(t.identifier(itemParam.name), t.identifier('id')),
+                      t.memberExpression(t.identifier(itemParam.name), t.identifier('name'))
+                    ),
+                    t.callExpression(
+                      t.memberExpression(t.identifier('Math'), t.identifier('random')),
+                      []
+                    )
+                  );
+                } else {
+                  keyValue = t.callExpression(
+                    t.memberExpression(t.identifier('Math'), t.identifier('random')),
+                    []
+                  );
                 }
-              }
-              
-              if (hasJSXReturn) {
-                // Find the JSX element and add key prop
-                traverse(callback, {
-                  JSXElement(innerPath) {
-                    const openingElement = innerPath.node.openingElement;
-                    const hasKey = openingElement.attributes.some(attr => 
-                      t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'key'
-                    );
-                    
-                    if (!hasKey) {
-                      // Add key prop using the parameter name with .id fallback
-                      const keyExpression = t.jsxExpressionContainer(
-                        t.logicalExpression(
-                          '||',
-                          t.memberExpression(t.identifier(param.name), t.identifier('id')),
-                          t.callExpression(
-                            t.memberExpression(t.identifier('Math'), t.identifier('random')),
-                            []
-                          )
-                        )
-                      );
-                      const keyAttr = t.jsxAttribute(t.jsxIdentifier('key'), keyExpression);
-                      openingElement.attributes.unshift(keyAttr);
-                    }
-                  }
-                }, path.scope);
+                
+                ASTUtils.addKeyToJSXElement(element, keyValue);
               }
             }
-          }
+          });
         }
+      }
+    }
+  });
+}
 
-        // Convert console.log to console.debug
-        if (t.isMemberExpression(path.node.callee) &&
-            t.isIdentifier(path.node.callee.object) &&
-            path.node.callee.object.name === 'console' &&
-            t.isIdentifier(path.node.callee.property) &&
-            path.node.callee.property.name === 'log') {
-          path.node.callee.property.name = 'debug';
-        }
-      },
-
-      JSXElement(path) {
-        const openingElement = path.node.openingElement;
+function fixAccessibilityAttributesAST(ast: t.File): void {
+  traverse(ast, {
+    JSXElement(path) {
+      const element = path.node;
+      const openingElement = element.openingElement;
+      
+      if (t.isJSXIdentifier(openingElement.name)) {
+        const tagName = openingElement.name.name;
         
-        // Fix img tags
-        if (t.isJSXIdentifier(openingElement.name) && openingElement.name.name === 'img') {
-          const hasAlt = openingElement.attributes.some(attr => 
-            t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'alt'
+        // Add alt to images
+        if (tagName === 'img') {
+          const hasAlt = openingElement.attributes.some(attr =>
+            t.isJSXAttribute(attr) && 
+            t.isJSXIdentifier(attr.name) && 
+            attr.name.name === 'alt'
           );
           
           if (!hasAlt) {
-            const altAttr = t.jsxAttribute(
-              t.jsxIdentifier('alt'),
-              t.stringLiteral('')
+            openingElement.attributes.push(
+              t.jsxAttribute(t.jsxIdentifier('alt'), t.stringLiteral(''))
             );
-            openingElement.attributes.push(altAttr);
           }
         }
-
-        // Fix button accessibility
-        if (t.isJSXIdentifier(openingElement.name) && openingElement.name.name === 'button') {
-          const hasAriaLabel = openingElement.attributes.some(attr => 
-            t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'aria-label'
+        
+        // Add aria-label to buttons without existing aria attributes or text content
+        if (tagName === 'button') {
+          const hasAriaLabel = openingElement.attributes.some(attr =>
+            t.isJSXAttribute(attr) && 
+            t.isJSXIdentifier(attr.name) && 
+            (attr.name.name === 'aria-label' || attr.name.name === 'aria-labelledby')
           );
           
-          if (!hasAriaLabel) {
-            const ariaLabelAttr = t.jsxAttribute(
-              t.jsxIdentifier('aria-label'),
-              t.stringLiteral('Button')
+          // Check if button has text content
+          const hasTextContent = element.children && element.children.some(child => 
+            t.isJSXText(child) && child.value.trim() ||
+            t.isJSXExpressionContainer(child) ||
+            t.isJSXElement(child)
+          );
+          
+          if (!hasAriaLabel && !hasTextContent) {
+            openingElement.attributes.push(
+              t.jsxAttribute(t.jsxIdentifier('aria-label'), t.stringLiteral('Button'))
             );
-            openingElement.attributes.push(ariaLabelAttr);
           }
         }
       }
-    });
-
-    // Remove duplicate functions
-    duplicateFunctions.forEach(path => {
-      path.remove();
-    });
-
-    // Generate TypeScript interfaces for function components
-    let result = generate(ast, {
-      retainLines: false,
-      compact: false,
-      comments: true,
-    }).code;
-
-    // Add TypeScript interfaces using regex for function components
-    const functionPattern = /function\s+(\w+)\s*\(\s*\{\s*([^}]+)\s*\}\s*\)/g;
-    const matches = [...result.matchAll(functionPattern)];
-    
-    for (const match of matches) {
-      const componentName = match[1];
-      const propsContent = match[2];
-      
-      // Create interface
-      const interfaceName = `${componentName}Props`;
-      const props = propsContent.split(',').map(prop => prop.trim() + ': any').join(';\n  ');
-      const interfaceDeclaration = `interface ${interfaceName} {\n  ${props};\n}\n\n`;
-      
-      // Replace function signature
-      const newFunctionSignature = `function ${componentName}({ ${propsContent} }: ${interfaceName})`;
-      
-      result = interfaceDeclaration + result.replace(match[0], newFunctionSignature);
     }
+  });
+}
 
-    console.log('AST transformations completed successfully');
-    return result;
-
-  } catch (error) {
-    console.error('AST transformation failed, falling back to simple regex:', error);
-    
-    // Fallback to simple transformations
-    let transformed = code;
-    
-    // Simple fallbacks
-    transformed = transformed.replace(/&quot;/g, '"');
-    transformed = transformed.replace(/&#x27;/g, "'");
-    transformed = transformed.replace(/&amp;/g, '&');
-    
-    if (!transformed.includes("'use client'") && 
-        (transformed.includes('useState') || transformed.includes('useEffect') || transformed.includes('onClick'))) {
-      transformed = "'use client';\n\n" + transformed;
-    }
-    
-    // Convert var to const
-    transformed = transformed.replace(/\bvar\s+/g, 'const ');
-    
-    // Add basic accessibility
-    transformed = transformed.replace(/<img\s+([^>]*?)(?<!alt="[^"]*")\s*>/g, '<img $1 alt="" >');
-    transformed = transformed.replace(/<button([^>]*?)>/g, (match, attrs) => {
-      if (!attrs.includes('aria-label')) {
-        return `<button aria-label="Button"${attrs}>`;
+function addComponentInterfacesAST(ast: t.File): void {
+  traverse(ast, {
+    FunctionDeclaration(path) {
+      const func = path.node;
+      if (func.params.length > 0) {
+        const firstParam = func.params[0];
+        if (t.isObjectPattern(firstParam) && func.id) {
+          const componentName = func.id.name;
+          const interfaceName = `${componentName}Props`;
+          
+          // Check if interface already exists
+          const hasInterface = ast.program.body.some(stmt =>
+            t.isTSInterfaceDeclaration(stmt) && stmt.id.name === interfaceName
+          );
+          
+          if (!hasInterface) {
+            const props = firstParam.properties.map(prop => {
+              if (t.isObjectProperty(prop) && t.isIdentifier(prop.key)) {
+                return t.tsPropertySignature(
+                  t.identifier(prop.key.name),
+                  t.tsTypeAnnotation(t.tsAnyKeyword())
+                );
+              }
+              return null;
+            }).filter(Boolean) as t.TSPropertySignature[];
+            
+            const interfaceDecl = t.tsInterfaceDeclaration(
+              t.identifier(interfaceName),
+              null,
+              null,
+              t.tsInterfaceBody(props)
+            );
+            
+            // Add interface before the function
+            const funcIndex = ast.program.body.indexOf(path.node);
+            ast.program.body.splice(funcIndex, 0, interfaceDecl);
+            
+            // Update function parameter type
+            if (t.isObjectPattern(firstParam)) {
+              firstParam.typeAnnotation = t.tsTypeAnnotation(
+                t.tsTypeReference(t.identifier(interfaceName))
+              );
+            }
+          }
+        }
       }
-      return match;
-    });
-    
-    return transformed;
-  }
+    }
+  });
 }

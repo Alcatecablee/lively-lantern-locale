@@ -1,3 +1,4 @@
+
 export interface NeuroLintLayerResult {
   name: string;
   description?: string;
@@ -7,18 +8,6 @@ export interface NeuroLintLayerResult {
   executionTime?: number;
   changeCount?: number;
   improvements?: string[];
-  originalSize?: number;
-  transformedSize?: number;
-  error?: string;
-  contractResults?: {
-    preconditions: { passed: boolean; failedRules: string[] };
-    postconditions: { passed: boolean; failedRules: string[] };
-  };
-  performanceImpact?: {
-    sizeIncrease: number;
-    complexityIncrease: number;
-    impact: 'low' | 'medium' | 'high';
-  };
 }
 
 export interface NeuroLintOptions {

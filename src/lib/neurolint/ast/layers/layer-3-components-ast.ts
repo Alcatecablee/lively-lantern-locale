@@ -82,25 +82,9 @@ function addMissingKeyPropsAST(ast: t.File): void {
         const callback = path.node.arguments[0];
         if (t.isArrowFunctionExpression(callback) || t.isFunctionExpression(callback)) {
           const body = callback.body;
-          if (t.isJSXElement(body) || 
-              (t.isBlockStatement(body) && 
-               body.body.some(stmt => 
-                 t.isReturnStatement(stmt) && t.isJSXElement(stmt.argument)
-               ))) {
-            
-            let jsxElement: t.JSXElement | null = null;
-            if (t.isJSXElement(body)) {
-              jsxElement = body;
-            } else if (t.isBlockStatement(body)) {
-              const returnStmt = body.body.find(stmt => 
-                t.isReturnStatement(stmt) && t.isJSXElement(stmt.argument)
-              ) as t.ReturnStatement;
-              if (returnStmt && t.isJSXElement(returnStmt.argument)) {
-                jsxElement = returnStmt.argument;
-              }
-            }
-            
-            if (jsxElement && !jsxElement.openingElement.attributes.some(attr => 
+          if (t.isJSXElement(body)) {
+            // Direct JSX return
+            if (!body.openingElement.attributes.some(attr => 
               t.isJSXAttribute(attr) && 
               t.isJSXIdentifier(attr.name) && 
               attr.name.name === 'key'
@@ -110,16 +94,9 @@ function addMissingKeyPropsAST(ast: t.File): void {
                 t.jsxExpressionContainer(
                   t.logicalExpression(
                     '||',
-                    t.logicalExpression(
-                      '||',
-                      t.memberExpression(
-                        callback.params[0] as t.Identifier,
-                        t.identifier('id')
-                      ),
-                      t.memberExpression(
-                        callback.params[0] as t.Identifier,
-                        t.identifier('name')
-                      )
+                    t.memberExpression(
+                      callback.params[0] as t.Identifier,
+                      t.identifier('id')
                     ),
                     t.callExpression(
                       t.memberExpression(t.identifier('Math'), t.identifier('random')),
@@ -128,8 +105,37 @@ function addMissingKeyPropsAST(ast: t.File): void {
                   )
                 )
               );
-              jsxElement.openingElement.attributes.push(keyAttribute);
+              body.openingElement.attributes.push(keyAttribute);
             }
+          } else if (t.isBlockStatement(body)) {
+            // Block statement with return
+            body.body.forEach(stmt => {
+              if (t.isReturnStatement(stmt) && t.isJSXElement(stmt.argument)) {
+                if (!stmt.argument.openingElement.attributes.some(attr => 
+                  t.isJSXAttribute(attr) && 
+                  t.isJSXIdentifier(attr.name) && 
+                  attr.name.name === 'key'
+                )) {
+                  const keyAttribute = t.jsxAttribute(
+                    t.jsxIdentifier('key'),
+                    t.jsxExpressionContainer(
+                      t.logicalExpression(
+                        '||',
+                        t.memberExpression(
+                          callback.params[0] as t.Identifier,
+                          t.identifier('id')
+                        ),
+                        t.callExpression(
+                          t.memberExpression(t.identifier('Math'), t.identifier('random')),
+                          []
+                        )
+                      )
+                    )
+                  );
+                  stmt.argument.openingElement.attributes.push(keyAttribute);
+                }
+              }
+            });
           }
         }
       }
@@ -169,19 +175,21 @@ function addTypeScriptInterfacesAST(ast: t.File): void {
               return null;
             }).filter(Boolean) as t.TSPropertySignature[];
             
-            const interfaceDeclaration = t.tsInterfaceDeclaration(
-              t.identifier(interfaceName),
-              null,
-              null,
-              t.tsInterfaceBody(properties)
-            );
-            
-            interfacesToAdd.push(interfaceDeclaration);
-            
-            // Update function parameter
-            firstParam.typeAnnotation = t.tsTypeAnnotation(
-              t.tsTypeReference(t.identifier(interfaceName))
-            );
+            if (properties.length > 0) {
+              const interfaceDeclaration = t.tsInterfaceDeclaration(
+                t.identifier(interfaceName),
+                null,
+                null,
+                t.tsInterfaceBody(properties)
+              );
+              
+              interfacesToAdd.push(interfaceDeclaration);
+              
+              // Update function parameter
+              firstParam.typeAnnotation = t.tsTypeAnnotation(
+                t.tsTypeReference(t.identifier(interfaceName))
+              );
+            }
           }
         }
       }
@@ -224,7 +232,8 @@ function addAccessibilityAttributesAST(ast: t.File): void {
             attr.name.name === 'aria-label'
           );
           
-          if (!hasAriaLabel) {
+          // Only add aria-label if button doesn't have text content
+          if (!hasAriaLabel && element.children.length === 0) {
             const ariaLabelAttribute = t.jsxAttribute(
               t.jsxIdentifier('aria-label'),
               t.stringLiteral('Button')

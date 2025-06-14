@@ -27,9 +27,12 @@ export class ASTTransformer {
         plugins: this.options.plugins as any[],
         allowImportExportEverywhere: true,
         allowReturnOutsideFunction: true,
+        strictMode: false,
+        allowUndeclaredExports: true,
+        errorRecovery: true,
       });
     } catch (error) {
-      console.warn('AST parsing failed, falling back to string transforms:', error);
+      console.warn('AST parsing failed:', error);
       return null;
     }
   }
@@ -39,6 +42,7 @@ export class ASTTransformer {
       const result = generate(ast, {
         retainLines: false,
         compact: false,
+        comments: this.options.preserveComments,
       });
       return result.code;
     } catch (error) {
@@ -53,8 +57,13 @@ export class ASTTransformer {
       throw new Error('Failed to parse code');
     }
 
-    transformFn(ast);
-    return this.generate(ast);
+    try {
+      transformFn(ast);
+      return this.generate(ast);
+    } catch (error) {
+      console.warn('AST transformation failed:', error);
+      throw error;
+    }
   }
 
   traverse(ast: t.Node, visitor: traverse.Visitor) {

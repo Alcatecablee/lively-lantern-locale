@@ -1,6 +1,5 @@
 
 import React, { useRef } from "react";
-// @ts-expect-error: No type declarations for 'react-diff-viewer'
 import DiffViewer from "react-diff-viewer";
 import { Button } from "@/components/ui/button";
 import { FileText, FilePlus, Copy as CopyIcon } from "lucide-react";
@@ -69,8 +68,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
         renderContent={highlighted}
         styles={{
           contentText: { fontFamily: "Menlo, Monaco, monospace", fontSize: 13 },
-          removedLine: { background: "#ffeaea" },
-          addedLine: { background: "#eaffea" },
+          // Removed 'removedLine' and 'addedLine' as they're not valid keys
         }}
       />
     </div>
@@ -92,4 +90,3 @@ function highlighted(str: string) {
     .replace(new RegExp("\\b(" + keywords.join("|") + ")\\b", "g"), '<span style="color:#076;">$1</span>');
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
-

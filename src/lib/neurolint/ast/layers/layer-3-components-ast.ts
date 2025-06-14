@@ -14,7 +14,7 @@ export async function transformAST(code: string): Promise<string> {
   // 2. Convert var to const (simplest approach)
   transformed = transformed.replace(/\bvar\s+/g, 'const ');
   
-  // 3. Add missing key props (ultra-simple regex)
+  // 3. Add missing key props - completely rewritten with simpler regex
   transformed = transformed.replace(
     /(\w+)\.map\s*\(\s*(\w+)\s*=>\s*\(\s*<(\w+)([^>]*?)>/g,
     (match, array, item, tag, attributes) => {
@@ -23,94 +23,100 @@ export async function transformAST(code: string): Promise<string> {
     }
   );
   
-  // 4. Fix img tags - completely rewritten approach
-  transformed = transformed.replace(/<img\s+([^>]*?)\s*\/?>/g, (match, attrs) => {
-    // Clean up any malformed syntax first
-    let cleanAttrs = attrs.replace(/\s*\/\s*/, ' ').trim();
-    
-    // Add alt attribute if missing
-    if (!cleanAttrs.includes('alt=')) {
-      cleanAttrs += ' alt=""';
-    }
-    
-    return `<img ${cleanAttrs} />`;
-  });
+  // 4. Fix img tags - completely new approach
+  transformed = fixImgTags(transformed);
   
   // 5. Fix button accessibility
-  transformed = transformed.replace(/<button\s+([^>]*?)>/g, (match, attrs) => {
+  transformed = transformed.replace(/<button([^>]*)>/g, (match, attrs) => {
     if (attrs.includes('aria-label')) return match;
-    return `<button aria-label="Button" ${attrs}>`;
+    return `<button aria-label="Button"${attrs}>`;
   });
   
-  // 6. Remove duplicate functions - completely new approach using function signatures
-  transformed = removeDuplicateFunctionsNew(transformed);
+  // 6. Remove duplicate functions - brand new approach
+  transformed = removeDuplicatesSimple(transformed);
   
-  // 7. Add TypeScript interfaces - simplified approach
-  transformed = addSimpleInterfaceNew(transformed);
+  // 7. Add TypeScript interfaces - much simpler approach
+  transformed = addInterfaceSimple(transformed);
   
   console.log('Component transformations completed');
   return transformed;
 }
 
-function removeDuplicateFunctionsNew(code: string): string {
-  // Split by lines and track function signatures
+function fixImgTags(code: string): string {
+  // Find all img tags and fix them one by one
+  return code.replace(/<img\s+([^>]*?)\s*\/?>/g, (match, attrs) => {
+    // Clean up attributes
+    let cleanAttrs = attrs.trim();
+    
+    // Add alt if missing
+    if (!cleanAttrs.includes('alt=')) {
+      cleanAttrs += ' alt=""';
+    }
+    
+    // Ensure proper self-closing syntax
+    return `<img ${cleanAttrs} />`;
+  });
+}
+
+function removeDuplicatesSimple(code: string): string {
   const lines = code.split('\n');
+  const result = [];
   const seenFunctions = new Set();
-  const resultLines = [];
-  let inDuplicateFunction = false;
-  let braceDepth = 0;
+  let skipMode = false;
+  let braceCount = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const trimmedLine = line.trim();
     
-    // Check if this line starts a function
-    const functionMatch = trimmedLine.match(/^\s*function\s+(\w+)\s*\(/);
-    if (functionMatch) {
-      const functionName = functionMatch[1];
+    // Check for function declaration
+    const funcMatch = line.match(/^\s*function\s+(\w+)\s*\(/);
+    if (funcMatch) {
+      const funcName = funcMatch[1];
       
-      if (seenFunctions.has(functionName)) {
-        // This is a duplicate, start skipping
-        inDuplicateFunction = true;
-        braceDepth = 0;
-        // Count opening braces in this line
-        braceDepth += (line.match(/{/g) || []).length;
-        braceDepth -= (line.match(/}/g) || []).length;
+      if (seenFunctions.has(funcName)) {
+        // This is a duplicate - start skipping
+        skipMode = true;
+        braceCount = 0;
+        // Count braces in this line
+        for (const char of line) {
+          if (char === '{') braceCount++;
+          if (char === '}') braceCount--;
+        }
+        if (braceCount <= 0) skipMode = false; // Single line function
         continue;
       } else {
-        // First occurrence, keep it
-        seenFunctions.add(functionName);
-        inDuplicateFunction = false;
+        // First occurrence - keep it
+        seenFunctions.add(funcName);
       }
     }
     
-    if (inDuplicateFunction) {
+    if (skipMode) {
       // Count braces to know when function ends
-      braceDepth += (line.match(/{/g) || []).length;
-      braceDepth -= (line.match(/}/g) || []).length;
-      
-      // If we're back to 0, the function has ended
-      if (braceDepth <= 0) {
-        inDuplicateFunction = false;
+      for (const char of line) {
+        if (char === '{') braceCount++;
+        if (char === '}') braceCount--;
+      }
+      if (braceCount <= 0) {
+        skipMode = false;
       }
       continue;
     }
     
-    resultLines.push(line);
+    result.push(line);
   }
   
-  return resultLines.join('\n');
+  return result.join('\n');
 }
 
-function addSimpleInterfaceNew(code: string): string {
-  // Only add interface if function has destructured props
+function addInterfaceSimple(code: string): string {
+  // Look for function with destructured props
   const match = code.match(/function\s+(\w+)\s*\(\s*{\s*([^}]+)\s*}\s*\)/);
   if (match) {
     const componentName = match[1];
     const props = match[2].trim();
     const interfaceName = `${componentName}Props`;
     
-    // Create simple interface
+    // Create interface
     const interfaceCode = `interface ${interfaceName} {\n  ${props}: any;\n}\n\n`;
     
     // Replace function signature

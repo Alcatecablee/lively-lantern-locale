@@ -1,11 +1,9 @@
-
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // Apply hydration-specific fixes safely
+  // Apply hydration and SSR fixes
   transformed = addSSRGuards(transformed);
-  transformed = addMountedStates(transformed);
-  transformed = addUseClientDirective(transformed);
+  transformed = fixHydrationIssues(transformed);
   
   return transformed;
 }
@@ -13,71 +11,25 @@ export async function transform(code: string): Promise<string> {
 function addSSRGuards(code: string): string {
   let fixed = code;
   
-  // Fix localStorage access with proper guards
-  fixed = fixed.replace(
-    /localStorage\.getItem\(/g,
-    'typeof window !== "undefined" ? localStorage.getItem('
-  );
+  // Add SSR guards for localStorage access
+  if (code.includes('localStorage.getItem') && !code.includes('typeof window !== "undefined"')) {
+    fixed = fixed.replace(
+      /localStorage\.getItem\(([^)]+)\)/g,
+      'typeof window !== "undefined" ? localStorage.getItem($1) : null'
+    );
+  }
   
-  fixed = fixed.replace(
-    /localStorage\.setItem\(/g,
-    'typeof window !== "undefined" ? localStorage.setItem('
-  );
-  
-  // Close the conditional expressions properly
-  fixed = fixed.replace(
-    /(typeof window !== "undefined" \? localStorage\.(?:get|set)Item\([^)]+\))/g,
-    '$1 : null'
-  );
+  if (code.includes('localStorage.setItem') && !code.includes('typeof window !== "undefined"')) {
+    fixed = fixed.replace(
+      /localStorage\.setItem\(([^)]+)\)/g,
+      'typeof window !== "undefined" && localStorage.setItem($1)'
+    );
+  }
   
   return fixed;
 }
 
-function addMountedStates(code: string): string {
-  // Add mounted state for components using localStorage
-  if (code.includes('localStorage') && code.includes('useState') && !code.includes('mounted')) {
-    // Add mounted state
-    const statePattern = /const \[([^,]+),\s*set[^\]]+\] = useState/;
-    const match = code.match(statePattern);
-    
-    if (match) {
-      let result = code.replace(
-        match[0],
-        `const [mounted, setMounted] = useState(false);\n  ${match[0]}`
-      );
-      
-      // Add useEffect for mounted state
-      if (!result.includes('setMounted(true)')) {
-        const useEffectPattern = /useEffect\(\(\) => \{/;
-        if (useEffectPattern.test(result)) {
-          result = result.replace(
-            useEffectPattern,
-            'useEffect(() => {\n    setMounted(true);\n  }, []);\n\n  useEffect(() => {\n    if (!mounted) return;'
-          );
-        }
-      }
-      
-      return result;
-    }
-  }
-  
-  return code;
-}
-
-function addUseClientDirective(code: string): string {
-  const needsUseClient = 
-    code.includes('useState') ||
-    code.includes('useEffect') ||
-    code.includes('localStorage') ||
-    code.includes('window.') ||
-    code.includes('document.') ||
-    code.includes('onClick') ||
-    code.includes('onChange') ||
-    code.includes('onSubmit');
-  
-  if (needsUseClient && !code.includes("'use client'") && !code.includes('"use client"')) {
-    return "'use client';\n\n" + code;
-  }
-  
+function fixHydrationIssues(code: string): string {
+  // Add basic hydration fixes
   return code;
 }

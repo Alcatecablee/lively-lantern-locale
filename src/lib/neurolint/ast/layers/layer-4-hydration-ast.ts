@@ -14,7 +14,7 @@ export async function transformAST(code: string): Promise<string> {
       addUseClientDirectiveAST(ast, code);
     });
   } catch (error) {
-    console.warn('AST transform failed, using fallback');
+    console.warn('AST transform failed for hydration layer:', error);
     throw error;
   }
 }
@@ -29,41 +29,53 @@ function addSSRGuardsAST(ast: t.File): void {
         node.callee.object.name === 'localStorage' &&
         t.isIdentifier(node.callee.property)
       ) {
-        // Check if already wrapped in typeof check
-        if (
-          t.isLogicalExpression(path.parent) &&
-          t.isBinaryExpression((path.parent as t.LogicalExpression).left) &&
-          t.isUnaryExpression(((path.parent as t.LogicalExpression).left as t.BinaryExpression).left) &&
-          ((((path.parent as t.LogicalExpression).left as t.BinaryExpression).left as t.UnaryExpression).argument as t.Identifier).name === 'window'
-        ) {
-          return; // Already wrapped
+        // Check if already wrapped in typeof check by looking at parent expressions
+        let currentPath = path.parentPath;
+        let isAlreadyWrapped = false;
+        
+        while (currentPath && currentPath.depth < 5) {
+          if (
+            currentPath.isConditionalExpression() ||
+            (currentPath.isLogicalExpression() && 
+             currentPath.node.left && 
+             t.isBinaryExpression(currentPath.node.left) &&
+             t.isUnaryExpression(currentPath.node.left.left) &&
+             t.isIdentifier(currentPath.node.left.left.argument) &&
+             currentPath.node.left.left.argument.name === 'window')
+          ) {
+            isAlreadyWrapped = true;
+            break;
+          }
+          currentPath = currentPath.parentPath;
         }
         
-        // Create typeof window !== "undefined" check
-        const typeofCheck = t.binaryExpression(
-          '!==',
-          t.unaryExpression('typeof', t.identifier('window')),
-          t.stringLiteral('undefined')
-        );
-        
-        // Create conditional expression: typeof window !== "undefined" ? localStorage.method(...) : fallback
-        let fallbackValue: t.Expression;
-        
-        if (node.callee.property.name === 'getItem') {
-          fallbackValue = t.nullLiteral();
-        } else if (node.callee.property.name === 'setItem') {
-          fallbackValue = t.identifier('undefined');
-        } else {
-          fallbackValue = t.identifier('undefined');
+        if (!isAlreadyWrapped) {
+          // Create typeof window !== "undefined" check
+          const typeofCheck = t.binaryExpression(
+            '!==',
+            t.unaryExpression('typeof', t.identifier('window')),
+            t.stringLiteral('undefined')
+          );
+          
+          // Create conditional expression: typeof window !== "undefined" ? localStorage.method(...) : fallback
+          let fallbackValue: t.Expression;
+          
+          if (node.callee.property.name === 'getItem') {
+            fallbackValue = t.nullLiteral();
+          } else if (node.callee.property.name === 'setItem') {
+            fallbackValue = t.identifier('undefined');
+          } else {
+            fallbackValue = t.identifier('undefined');
+          }
+          
+          const conditionalExpression = t.conditionalExpression(
+            typeofCheck,
+            node,
+            fallbackValue
+          );
+          
+          path.replaceWith(conditionalExpression);
         }
-        
-        const conditionalExpression = t.conditionalExpression(
-          typeofCheck,
-          node,
-          fallbackValue
-        );
-        
-        path.replaceWith(conditionalExpression);
       }
     }
   });
@@ -101,39 +113,41 @@ function addMountedStatesAST(ast: t.File): void {
   });
   
   if (hasLocalStorage && hasUseState && !hasMountedState) {
-    // Add mounted state and useEffect
+    // Find function component and add mounted state
     traverse(ast, {
       FunctionDeclaration(path) {
-        const body = path.node.body.body;
-        
-        // Add mounted state at the beginning
-        const mountedState = t.variableDeclaration('const', [
-          t.variableDeclarator(
-            t.arrayPattern([
-              t.identifier('mounted'),
-              t.identifier('setMounted')
-            ]),
-            t.callExpression(t.identifier('useState'), [t.booleanLiteral(false)])
-          )
-        ]);
-        
-        // Add mount effect
-        const mountEffect = t.expressionStatement(
-          t.callExpression(t.identifier('useEffect'), [
-            t.arrowFunctionExpression(
-              [],
-              t.blockStatement([
-                t.expressionStatement(
-                  t.callExpression(t.identifier('setMounted'), [t.booleanLiteral(true)])
-                )
-              ])
-            ),
-            t.arrayExpression([])
-          ])
-        );
-        
-        body.unshift(mountedState, mountEffect);
-        path.stop();
+        if (path.node.id && /^[A-Z]/.test(path.node.id.name)) {
+          const body = path.node.body.body;
+          
+          // Add mounted state at the beginning
+          const mountedState = t.variableDeclaration('const', [
+            t.variableDeclarator(
+              t.arrayPattern([
+                t.identifier('mounted'),
+                t.identifier('setMounted')
+              ]),
+              t.callExpression(t.identifier('useState'), [t.booleanLiteral(false)])
+            )
+          ]);
+          
+          // Add mount effect
+          const mountEffect = t.expressionStatement(
+            t.callExpression(t.identifier('useEffect'), [
+              t.arrowFunctionExpression(
+                [],
+                t.blockStatement([
+                  t.expressionStatement(
+                    t.callExpression(t.identifier('setMounted'), [t.booleanLiteral(true)])
+                  )
+                ])
+              ),
+              t.arrayExpression([])
+            ])
+          );
+          
+          body.unshift(mountedState, mountEffect);
+          path.stop();
+        }
       }
     });
   }

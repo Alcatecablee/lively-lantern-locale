@@ -1,6 +1,6 @@
 
 export async function transformAST(code: string): Promise<string> {
-  console.log('Using simplified component transformations for MVP');
+  console.log('Using ultra-simplified component transformations for MVP');
   
   let transformed = code;
   
@@ -12,20 +12,24 @@ export async function transformAST(code: string): Promise<string> {
     transformed = `import { ${imports.join(', ')} } from 'react';\n${transformed}`;
   }
   
-  // Remove duplicate functions - much simpler approach
-  transformed = removeDuplicateFunctions(transformed);
-  
-  // Add missing key props - simpler regex
-  transformed = addMissingKeyProps(transformed);
-  
-  // Convert var to const
+  // Convert var to const (simplest approach)
   transformed = transformed.replace(/\bvar\s+/g, 'const ');
   
-  // Add basic accessibility - much simpler approach
-  // Fix img tags without alt
-  transformed = transformed.replace(/<img\s+([^>]*?)>/g, (match, attrs) => {
+  // Add missing key props (ultra-simple regex)
+  transformed = transformed.replace(
+    /(\w+)\.map\s*\(\s*(\w+)\s*=>\s*\(\s*<(\w+)([^>]*?)>/g,
+    (match, array, item, tag, attributes) => {
+      if (attributes.includes('key=')) return match;
+      return match.replace(`<${tag}${attributes}>`, `<${tag} key={${item}.id || ${item}.name || Math.random()}${attributes}>`);
+    }
+  );
+  
+  // Fix img tags - ultra-simple approach
+  transformed = transformed.replace(/<img\s+([^>]*?)\s*\/?>/g, (match, attrs) => {
     if (attrs.includes('alt=')) return match;
-    return `<img ${attrs} alt="" />`;
+    // Clean up any malformed syntax first
+    const cleanAttrs = attrs.replace(/\s*\/\s*/, ' ').trim();
+    return `<img ${cleanAttrs} alt="" />`;
   });
   
   // Fix button accessibility
@@ -34,96 +38,88 @@ export async function transformAST(code: string): Promise<string> {
     return `<button aria-label="Button" ${attrs}>`;
   });
   
-  // Add TypeScript interfaces for components with props - simpler approach
-  if (transformed.includes('function') && transformed.includes('({ ') && !transformed.includes('interface')) {
-    transformed = addBasicInterface(transformed);
-  }
+  // Remove duplicate functions - ultra-simple string replacement approach
+  transformed = removeDuplicateFunctionsSimple(transformed);
+  
+  // Add TypeScript interfaces - ultra-simple approach
+  transformed = addSimpleInterface(transformed);
   
   console.log('Component transformations completed');
   return transformed;
 }
 
-function removeDuplicateFunctions(code: string): string {
-  // Much simpler approach - just find and remove exact duplicate function blocks
+function removeDuplicateFunctionsSimple(code: string): string {
+  // Find exact duplicate function blocks using string matching
   const lines = code.split('\n');
-  const seenFunctions = new Set();
-  const result = [];
-  let currentFunction = '';
+  const functionBlocks = [];
+  let currentBlock = '';
   let inFunction = false;
-  let functionName = '';
+  let braceCount = 0;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Check if this line starts a function
-    const functionMatch = line.match(/^\s*function\s+(\w+)\s*\(/);
-    if (functionMatch) {
-      functionName = functionMatch[1];
-      inFunction = true;
-      currentFunction = line;
-      continue;
-    }
-    
-    if (inFunction) {
-      currentFunction += '\n' + line;
-      
-      // Check if function ends (simple brace counting)
-      if (line.includes('}') && !line.includes('{')) {
-        // Function ended
-        if (seenFunctions.has(functionName)) {
-          // Skip this duplicate function
-          console.log(`Removed duplicate function: ${functionName}`);
-        } else {
-          // Add this function
-          result.push(currentFunction);
-          seenFunctions.add(functionName);
-        }
-        inFunction = false;
-        currentFunction = '';
-        continue;
+    if (line.trim().startsWith('function ')) {
+      if (inFunction && currentBlock) {
+        functionBlocks.push(currentBlock.trim());
       }
-    }
-    
-    if (!inFunction) {
-      result.push(line);
+      currentBlock = line;
+      inFunction = true;
+      braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+    } else if (inFunction) {
+      currentBlock += '\n' + line;
+      braceCount += (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+      
+      if (braceCount === 0) {
+        functionBlocks.push(currentBlock.trim());
+        currentBlock = '';
+        inFunction = false;
+      }
     }
   }
   
-  return result.join('\n');
-}
-
-function addMissingKeyProps(code: string): string {
-  // Much simpler regex that actually works
-  return code.replace(
-    /(\w+)\.map\s*\(\s*(\w+)\s*=>\s*\(\s*<(\w+)([^>]*?)>/g,
-    (match, array, item, tag, attributes) => {
-      if (attributes.includes('key=')) return match;
-      // Use item.id if available, otherwise use item.name or fallback
-      const keyValue = `${item}.id || ${item}.name || Math.random()`;
-      return match.replace(`<${tag}${attributes}>`, `<${tag} key={${keyValue}}${attributes}>`);
+  // Remove exact duplicates
+  const seen = new Set();
+  const toKeep = [];
+  
+  for (const block of functionBlocks) {
+    if (!seen.has(block)) {
+      seen.add(block);
+      toKeep.push(block);
+    } else {
+      console.log('Removed duplicate function block');
     }
-  );
+  }
+  
+  // Reconstruct code without function blocks, then add unique ones
+  let result = code;
+  for (const block of functionBlocks) {
+    result = result.replace(block, '');
+  }
+  
+  // Add back the unique functions
+  for (const block of toKeep) {
+    result += '\n' + block;
+  }
+  
+  return result.replace(/\n\s*\n\s*\n/g, '\n\n'); // Clean up extra newlines
 }
 
-function addBasicInterface(code: string): string {
-  // Much simpler interface addition
-  const componentMatch = code.match(/function\s+(\w+)\s*\(\s*{\s*([^}]+)\s*}\s*\)/);
-  if (componentMatch) {
-    const componentName = componentMatch[1];
-    const props = componentMatch[2];
+function addSimpleInterface(code: string): string {
+  // Only add interface if function has destructured props
+  const match = code.match(/function\s+(\w+)\s*\(\s*{\s*([^}]+)\s*}\s*\)/);
+  if (match) {
+    const componentName = match[1];
+    const props = match[2].trim();
     const interfaceName = `${componentName}Props`;
     
-    const interfaceCode = `interface ${interfaceName} {
-  ${props.split(',').map(prop => `${prop.trim()}: any;`).join('\n  ')}
-}
-
-`;
+    // Create simple interface
+    const interfaceCode = `interface ${interfaceName} {\n  ${props}: any;\n}\n\n`;
     
-    // Replace the function signature
-    return interfaceCode + code.replace(
-      `function ${componentName}({ ${props} })`,
-      `function ${componentName}({ ${props} }: ${interfaceName})`
-    );
+    // Replace function signature
+    const newSignature = `function ${componentName}({ ${props} }: ${interfaceName})`;
+    
+    return interfaceCode + code.replace(match[0], newSignature);
   }
   
   return code;

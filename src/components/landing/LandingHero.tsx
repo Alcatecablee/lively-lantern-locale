@@ -31,14 +31,7 @@ export function LandingHero() {
         <ArrowRight className="mr-2" />
         Try NeuroLint Free
       </Button>
-      <div className="w-full flex justify-center">
-        <img
-          src="/placeholder.svg"
-          alt="Code transformation preview"
-          className="rounded-xl border border-[#262633] shadow-lg max-w-xs md:max-w-lg touch-manipulation"
-          draggable={false}
-        />
-      </div>
+      {/* Removed the code transformation preview image section */}
     </section>
   );
 }

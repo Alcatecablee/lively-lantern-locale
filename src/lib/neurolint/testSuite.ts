@@ -1,4 +1,3 @@
-
 export interface TestCase {
   name: string;
   description: string;
@@ -60,9 +59,49 @@ export const TEST_CASES: TestCase[] = [
       "Added lint:fix script",
       "Added type-check script"
     ]
+  },
+  // --- Layer 2 specific test ---
+  {
+    name: "HTML Entity Correction",
+    description: "Replaces corrupted entities such as &quot; and &amp; in code.",
+    category: "pattern",
+    input: `
+const title = &quot;Welcome &amp; Enjoy!&quot;;
+// Hello &gt; Goodbye
+`,
+    expectedFixes: [
+      "Fixed HTML entities in source"
+    ]
+  },
+  // --- Layer 3 specific test ---
+  {
+    name: "Missing Key Prop Correction",
+    description: "Adds missing key prop to mapped elements in React components.",
+    category: "component",
+    input: `
+function List({ items }) {
+  return <ul>{items.map(item => <li>{item.name}</li>)}</ul>;
+}
+`,
+    expectedFixes: [
+      "Added missing key prop in mapped elements"
+    ]
+  },
+  // --- Layer 4 specific test ---
+  {
+    name: "Add SSR Guard for LocalStorage Use",
+    description: "Protects localStorage access with SSR guard (typeof window check).",
+    category: "hydration",
+    input: `
+const value = localStorage.getItem("something");
+`,
+    expectedFixes: [
+      "Added SSR guard for localStorage"
+    ]
   }
 ];
 
+// --- Update validateTestResult --
 export function validateTestResult(testCase: TestCase, transformedCode: string): {
   passed: boolean;
   detectedFixes: string[];
@@ -73,23 +112,34 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
 
   // Checks for config optimizations only
   const checks: Record<string, boolean> = {
-    // For tsconfig.json
+    // --- Layer 1 (config) ---
     "Upgraded TypeScript target to ES2022":
       transformedCode.includes('"target": "ES2022"') ||
       transformedCode.includes('"target":"ES2022"'),
 
-    // For next.config.js
     "Enabled reactStrictMode":
       transformedCode.includes('reactStrictMode: true') ||
       transformedCode.includes('reactStrictMode:true'),
     "Optimized next.config.js":
       !transformedCode.includes('experimental: {}') && transformedCode.includes('module.exports'),
 
-    // For package.json
     "Added lint:fix script":
       transformedCode.includes('"lint:fix":') || transformedCode.includes("'lint:fix':"),
     "Added type-check script":
       transformedCode.includes('"type-check":') || transformedCode.includes("'type-check':"),
+
+    // --- Layer 2: Pattern/entity fixes ---
+    "Fixed HTML entities in source":
+      transformedCode.includes('const title = "Welcome & Enjoy!";') &&
+      transformedCode.includes("// Hello > Goodbye"),
+
+    // --- Layer 3: Missing key prop ---
+    "Added missing key prop in mapped elements":
+      /<li key=/.test(transformedCode),
+
+    // --- Layer 4: SSR guard for localStorage ---
+    "Added SSR guard for localStorage":
+      transformedCode.includes('typeof window !== "undefined" && localStorage.getItem("something")'),
   };
 
   testCase.expectedFixes.forEach(expectedFix => {

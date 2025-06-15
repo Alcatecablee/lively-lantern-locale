@@ -6,6 +6,8 @@ import { NeuroLintOrchestrator, NeuroLintLayerResult, LAYER_LIST } from "@/lib/n
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Brain } from "lucide-react";
 import { LayerSelector } from "@/components/neurolint/LayerSelector";
+import { HowToDropDown } from "@/components/neurolint/HowToDropDown";
+
 const AppPage = () => {
   const [originalCode, setOriginalCode] = useState<string>("");
   const [transformedCode, setTransformedCode] = useState<string>("");
@@ -38,7 +40,7 @@ const AppPage = () => {
   return <div className="min-h-screen w-full flex flex-col items-center justify-center px-2 py-8 bg-[#181921] dark">
       <Card className="w-full max-w-xl bg-[#181B26] border border-[#292939] rounded-xl shadow-cursor-glass transition-all backdrop-blur-lg font-sans">
         <CardHeader>
-          
+          <HowToDropDown />
           <div className="mt-3">
             <LayerSelector enabledLayers={enabledLayers} setEnabledLayers={setEnabledLayers} />
           </div>

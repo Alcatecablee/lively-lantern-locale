@@ -29,10 +29,10 @@ export default function Docs() {
             <li><b>Contrib-friendly:</b> Patterns, layers, and safety features are easy to extend.</li>
           </ul>
           <div className="flex flex-wrap gap-2 my-4">
-            <a href="https://github.com/neurolint/neurolint" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/Alcatecablee/neurolint/" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="bg-black/80">View on GitHub</Button>
             </a>
-            <a href="https://github.com/neurolint/neurolint/wiki" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/Alcatecablee/neurolint/wiki" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" className="bg-black/80">Wiki & API</Button>
             </a>
             <a href="mailto:founder@neurolint.com" target="_blank" rel="noopener noreferrer">

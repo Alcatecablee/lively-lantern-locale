@@ -1,5 +1,5 @@
+
 import { LandingHero } from "@/components/landing/LandingHero";
-import { LandingFeatures } from "@/components/landing/LandingFeatures";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -47,8 +47,7 @@ export default function Landing() {
             &ldquo;Got an ancient project production-ready in under 2 minutes. Insanely fast.&rdquo; — PH beta tester
           </p>
         </section>
-        {/* Features Grid */}
-        <LandingFeatures />
+        {/* Features Grid removed here */}
       </main>
       {/* Community footer */}
       <LandingFooter />

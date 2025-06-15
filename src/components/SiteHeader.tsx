@@ -1,13 +1,10 @@
-
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 export function SiteHeader() {
-  const navigate = useNavigate();
+  const location = useLocation();
   return (
     <header className="sticky top-0 z-40 w-full bg-black/80 border-b border-[#292939] backdrop-blur-lg px-4 py-2 flex items-center justify-between">
-      {/* Brand with uploaded logo */}
-      <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+      <div className="flex items-center gap-2">
         <img
           src="/lovable-uploads/e4414bf6-9b0f-4b32-812b-7ae83d8c6a85.png"
           alt="NeuroLint logo"
@@ -19,36 +16,29 @@ export function SiteHeader() {
           NeuroLint
         </span>
       </div>
-      {/* Navigation - large tap targets */}
       <nav className="flex gap-2 sm:gap-4">
-        <a
-          href="/#features"
-          className="text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+        <Link
+          to="/app"
+          className={`text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400
+           ${location.pathname === "/app" ? "bg-[#22242B]" : ""}`}
         >
-          Features
-        </a>
-        <a
-          href="/#how"
-          className="text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          Workflow
+        </Link>
+        <Link
+          to="/landing"
+          className={`text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400
+           ${location.pathname === "/landing" || location.pathname === "/" ? "bg-[#22242B]" : ""}`}
         >
-          How it Works
-        </a>
-        <a
-          href="/#contact"
-          className="text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+          Landing
+        </Link>
+        <Link
+          to="/docs"
+          className={`text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400
+           ${location.pathname === "/docs" ? "bg-[#22242B]" : ""}`}
         >
-          Contact
-        </a>
+          Docs
+        </Link>
       </nav>
-      <a
-        href="mailto:founder@neurolint.com?subject=I can help with NeuroLint orchestration!"
-        className="ml-2"
-        tabIndex={-1}
-      >
-        <Button className="bg-gradient-to-r from-blue-700 to-purple-500 text-white px-4 py-2 rounded-lg text-base shadow-md active:scale-95 touch-manipulation">
-          Get Involved
-        </Button>
-      </a>
     </header>
   );
 }

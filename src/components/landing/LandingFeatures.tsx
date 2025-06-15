@@ -1,3 +1,4 @@
+
 import { Zap, Users, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
@@ -62,7 +63,7 @@ export function LandingFeatures() {
   return (
     <section
       id="features"
-      className="w-full flex flex-col items-center py-10 px-2 bg-gradient-to-b from-[#181921] via-[#181921]/90 to-[#16151a]"
+      className="w-full flex flex-col items-center py-10 px-2 bg-[#17181c]"
     >
       <div className="max-w-3xl w-full">
         {/* Features Title */}

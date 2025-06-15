@@ -7,7 +7,7 @@ export function LandingHero() {
   const navigate = useNavigate();
 
   return (
-    <section className="w-full flex flex-col items-center justify-center py-10 xs:py-12 px-3 sm:py-20 bg-gradient-to-br from-[#181921] to-[#22242B]">
+    <section className="w-full flex flex-col items-center justify-center py-10 xs:py-12 px-3 sm:py-20 bg-[#191a1f]">
       {/* Main logo */}
       <img
         src="/lovable-uploads/9491cce3-b317-4586-bcb1-fc0df07a440d.png"
@@ -31,7 +31,6 @@ export function LandingHero() {
         <ArrowRight className="mr-2" />
         Try NeuroLint Free
       </Button>
-      {/* Removed the code transformation preview image section */}
     </section>
   );
 }

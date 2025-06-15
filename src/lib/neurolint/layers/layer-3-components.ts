@@ -83,8 +83,13 @@ function fixAccessibilityAttributes(code: string): string {
     /<button([^>]*?)>/g,
     (match, attributes) => {
       if (!attributes.includes('aria-label') && !attributes.includes('aria-labelledby')) {
-        // Don't modify the onClick handler, just add aria-label
-        return `<button${attributes} aria-label="Button">`;
+        // Check if there's already an onClick handler to avoid breaking it
+        if (attributes.includes('onClick=')) {
+          // Just add aria-label without disrupting onClick
+          return `<button${attributes} aria-label="Button">`;
+        } else {
+          return `<button${attributes} aria-label="Button">`;
+        }
       }
       return match;
     }

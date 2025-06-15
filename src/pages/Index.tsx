@@ -2,12 +2,13 @@ import { useState } from "react";
 import { FileUploadZone } from "@/components/neurolint/FileUploadZone";
 import { CodeDiffViewer } from "@/components/neurolint/CodeDiffViewer";
 import { TransformationInsights } from "@/components/neurolint/TransformationInsights";
-import { NeuroLintOrchestrator, NeuroLintLayerResult } from "@/lib/neurolint/orchestrator";
+import { NeuroLintOrchestrator, NeuroLintLayerResult, LAYER_LIST } from "@/lib/neurolint/orchestrator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Brain, Zap, Clock, FileCode, TestTube, Users, ArrowRight, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { LayerSelector } from "@/components/neurolint/LayerSelector"; // NEW: import the selector
 
 const LAYERS = [
   {
@@ -52,6 +53,11 @@ const Index = () => {
   const [processing, setProcessing] = useState(false);
   const [fileName, setFileName] = useState<string>("");
 
+  // NEW: Add layer selection state -- default on only for LIVE layers, map to orchestrator layer IDs (1-4)
+  const liveLayerIds = LAYER_LIST.map(layer => layer.id); // All supported, not just "live"
+  const [enabledLayers, setEnabledLayers] = useState<number[]>([1]); // Show 1 as default ON (just Layer 1 live by default)
+
+  // Handler for resetting transformedCode on file re-upload
   const handleFileUpload = async (code: string, uploadedFileName?: string) => {
     setOriginalCode(code);
     setFileName(uploadedFileName || "uploaded-file");
@@ -59,7 +65,8 @@ const Index = () => {
 
     try {
       const startTime = Date.now();
-      const { transformed, layers } = await NeuroLintOrchestrator(code);
+      // NEW: Pass enabledLayers to orchestrator!
+      const { transformed, layers } = await NeuroLintOrchestrator(code, undefined, true, enabledLayers);
       const totalTime = Date.now() - startTime;
 
       setTransformedCode(transformed);
@@ -158,6 +165,16 @@ const Index = () => {
             ))}
             <span className="text-xs text-yellow-400">(Not yet live. Want to help? <a href="mailto:founder@neurolint.com" className="underline text-blue-200">Contact me!</a>)</span>
           </div>
+          {/* NEW: Selector for which layers to run */}
+          <div className="my-4">
+            <LayerSelector
+              enabledLayers={enabledLayers}
+              setEnabledLayers={setEnabledLayers}
+            />
+            <div className="text-xs text-blue-200 font-medium mt-1 ml-1">
+              Select which layers to run in this session. <span className="text-purple-300">Layer 1 (Config Optimization) is live and recommended for production use. Other layers are experimental.</span>
+            </div>
+          </div>
           {/* ... keep existing code (stats Badges and rest of CardHeader) */}
           <div className="flex flex-col lg:flex-row gap-4 mt-5">
             <div className="flex flex-wrap gap-3">
@@ -179,7 +196,7 @@ const Index = () => {
                 }
                 className="flex items-center gap-1"
               >
-                {stats ? stats.successfulLayers : 0}/6 Layers Successful
+                {stats ? stats.successfulLayers : 0}/{enabledLayers.length} Layers Successful
               </Badge>
             </div>
             <div className="flex items-center gap-2 ml-auto">

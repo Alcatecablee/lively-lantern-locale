@@ -1,7 +1,6 @@
 
 import { transformAST as transformComponentsAST } from './layers/layer-3-components-ast';
 import { transformAST as transformHydrationAST } from './layers/layer-4-hydration-ast';
-import { transformAST as transformNextjsAST } from './layers/layer-5-nextjs-ast';
 
 export interface ASTTransformResult {
   success: boolean;
@@ -20,9 +19,6 @@ export async function transformWithAST(code: string, layerName: string): Promise
         break;
       case 'layer-4-hydration':
         transformed = await transformHydrationAST(code);
-        break;
-      case 'layer-5-nextjs':
-        transformed = await transformNextjsAST(code);
         break;
       default:
         return { 

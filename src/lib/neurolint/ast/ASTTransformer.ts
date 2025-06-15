@@ -56,8 +56,7 @@ export class ASTTransformer {
       
       // Fallback with minimal plugins
       try {
-        const cleanedCode = this.preprocessCode(code);
-        return parser.parse(cleanedCode, {
+        return parser.parse(code, {
           sourceType: 'module',
           plugins: ['typescript', 'jsx'],
           allowImportExportEverywhere: true,
@@ -86,36 +85,10 @@ export class ASTTransformer {
     // Fix malformed imports
     cleaned = cleaned.replace(/import\s*{\s*\n\s*import\s*{/g, 'import {');
     
-    // IMPROVED: Remove duplicate imports that cause parsing errors
-    cleaned = this.removeDuplicateImports(cleaned);
-    
     // Ensure proper line endings
     cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
     return cleaned;
-  }
-
-  private removeDuplicateImports(code: string): string {
-    const lines = code.split('\n');
-    const seenImports = new Set<string>();
-    const result: string[] = [];
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('import ')) {
-        // Normalize the import line for comparison
-        const normalized = trimmed.replace(/\s+/g, ' ');
-        if (!seenImports.has(normalized)) {
-          seenImports.add(normalized);
-          result.push(line);
-        }
-        // Skip duplicate imports
-      } else {
-        result.push(line);
-      }
-    }
-    
-    return result.join('\n');
   }
 
   generate(ast: t.Node): string {

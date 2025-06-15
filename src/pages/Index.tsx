@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FileUploadZone } from "@/components/neurolint/FileUploadZone";
 import { CodeDiffViewer } from "@/components/neurolint/CodeDiffViewer";
@@ -6,9 +5,12 @@ import { TransformationInsights } from "@/components/neurolint/TransformationIns
 import { NeuroLintOrchestrator, NeuroLintLayerResult } from "@/lib/neurolint/orchestrator";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Brain, Zap, Clock, FileCode } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Brain, Zap, Clock, FileCode, TestTube } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [originalCode, setOriginalCode] = useState<string>("");
   const [transformedCode, setTransformedCode] = useState<string>("");
   const [insights, setInsights] = useState<NeuroLintLayerResult[]>([]);
@@ -58,6 +60,16 @@ const Index = () => {
             <span className="font-normal text-xl text-muted-foreground pl-2">
               Intelligent Code Transformation Engine
             </span>
+            <div className="ml-auto">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/test')}
+                className="flex items-center gap-2"
+              >
+                <TestTube className="w-4 h-4" />
+                Test Suite
+              </Button>
+            </div>
           </CardTitle>
           
           {stats && (

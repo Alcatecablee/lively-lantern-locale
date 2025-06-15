@@ -1,5 +1,8 @@
 
 export function fixAccessibilityAttributes(code: string): string {
+  // This function is now handled by AST-based transformation
+  // when AST is available. This serves as a fallback for when
+  // AST parsing fails.
   let fixed = code;
   
   // Add alt attributes to images - don't modify if already has alt
@@ -13,17 +16,8 @@ export function fixAccessibilityAttributes(code: string): string {
     }
   );
   
-  // Add aria-label to buttons without accessible text - preserve existing attributes
-  fixed = fixed.replace(
-    /<button([^>]*?)>/g,
-    (match, attributes) => {
-      if (!attributes.includes('aria-label') && !attributes.includes('aria-labelledby')) {
-        // Insert aria-label at the end of attributes, before the closing >
-        return `<button${attributes} aria-label="Button">`;
-      }
-      return match;
-    }
-  );
+  // Note: Button aria-label handling is now done via AST to avoid
+  // breaking complex onClick handlers and other attributes
   
   return fixed;
 }

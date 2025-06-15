@@ -3,11 +3,12 @@ import * as layer2 from "./layers/layer-2-entities";
 import * as layer3 from "./layers/layer-3-components";
 import * as layer4 from "./layers/layer-4-hydration";
 import * as layer5 from "./layers/layer-5-nextjs";
+import * as layer6 from "./layers/layer-6-testing";
 import { transformWithAST } from "./ast/orchestrator";
 import { NeuroLintLayerResult } from "./types";
-import { validateJSXIntegrity } from "./validation/jsx-validator";
+import { CodeValidator } from "./validation/codeValidator";
 
-// Enhanced orchestrator with AST-based transformations and fallbacks
+// Enhanced orchestrator with AST-based transformations and validation
 const layers = [
   {
     fn: layer1.transform,
@@ -39,8 +40,13 @@ const layers = [
     fn: layer5.transform,
     name: "Next.js App Router Optimization",
     description: "Fixes 'use client' placement, import corruption, and App Router patterns.",
-    astSupported: true,
-    astLayerName: "layer-5-nextjs",
+    astSupported: false,
+  },
+  {
+    fn: layer6.transform,
+    name: "Testing & Validation Enhancement",
+    description: "Adds error boundaries, prop validation, loading states, and performance optimizations.",
+    astSupported: false,
   },
 ];
 
@@ -61,23 +67,16 @@ export async function NeuroLintOrchestrator(
       const previous = current;
       let next = current;
       let usedAST = false;
-      let astError: string | undefined;
+      let wasReverted = false;
       
       // Try AST transform first if supported and enabled
       if (useAST && layer.astSupported && layer.astLayerName) {
-        try {
-          const astResult = await transformWithAST(current, layer.astLayerName);
-          if (astResult.success) {
-            next = astResult.code;
-            usedAST = true;
-          } else {
-            astError = astResult.error;
-            console.warn(`AST transform failed for ${layer.name}, using fallback:`, astResult.error);
-            next = await layer.fn(current, filePath);
-          }
-        } catch (astCatchError) {
-          astError = astCatchError instanceof Error ? astCatchError.message : 'Unknown AST error';
-          console.warn(`AST transform threw error for ${layer.name}:`, astError);
+        const astResult = await transformWithAST(current, layer.astLayerName);
+        if (astResult.success) {
+          next = astResult.code;
+          usedAST = true;
+        } else {
+          console.warn(`AST transform failed for ${layer.name}, using fallback:`, astResult.error);
           next = await layer.fn(current, filePath);
         }
       } else {
@@ -85,30 +84,31 @@ export async function NeuroLintOrchestrator(
         next = await layer.fn(current, filePath);
       }
       
-      // Validate JSX integrity after transformation
-      const jsxValidation = validateJSXIntegrity(previous, next);
-      if (!jsxValidation.isValid) {
-        console.warn(`JSX validation failed for ${layer.name}:`, jsxValidation.errors);
-        // Revert to previous code if JSX was corrupted
-        next = previous;
+      // Validate the transformation
+      const validation = CodeValidator.compareBeforeAfter(previous, next);
+      if (validation.shouldRevert) {
+        console.warn(`Reverting ${layer.name} transformation: ${validation.reason}`);
+        next = previous; // Revert to previous state
+        wasReverted = true;
       }
       
       const executionTime = Date.now() - startTime;
       const changeCount = calculateChanges(previous, next);
       
       const improvements = detectImprovements(previous, next, usedAST);
-      if (astError && !usedAST) {
-        improvements.push(`Fallback used due to AST error: ${astError.substring(0, 50)}...`);
+      if (wasReverted) {
+        improvements.push('Prevented code corruption');
       }
       
       results.push({
         name: layer.name,
         description: layer.description,
         code: next,
-        success: jsxValidation.isValid,
+        success: !wasReverted,
         executionTime,
         changeCount,
         improvements,
+        message: wasReverted ? `Transformation reverted: ${validation.reason}` : undefined,
       });
       current = next;
     } catch (e: any) {

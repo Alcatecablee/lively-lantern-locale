@@ -130,7 +130,7 @@ function fixAccessibilityAttributesAST(ast: t.File): void {
         if (t.isJSXIdentifier(openingElement.name)) {
           const tagName = openingElement.name.name;
           
-          // Add alt to images
+          // Add alt to images if missing
           if (tagName === 'img') {
             const hasAlt = openingElement.attributes.some(attr =>
               t.isJSXAttribute(attr) && 
@@ -145,7 +145,7 @@ function fixAccessibilityAttributesAST(ast: t.File): void {
             }
           }
           
-          // Add aria-label to buttons without existing aria attributes or text content
+          // Add aria-label to buttons without existing aria attributes or meaningful text content
           if (tagName === 'button') {
             const hasAriaLabel = openingElement.attributes.some(attr =>
               t.isJSXAttribute(attr) && 
@@ -154,9 +154,21 @@ function fixAccessibilityAttributesAST(ast: t.File): void {
             );
             
             if (!hasAriaLabel) {
-              openingElement.attributes.push(
-                t.jsxAttribute(t.jsxIdentifier('aria-label'), t.stringLiteral('Button'))
-              );
+              // Check if button has meaningful text content
+              const hasTextContent = element.children.some(child => {
+                if (t.isJSXText(child)) {
+                  return child.value.trim() !== '';
+                }
+                // For JSX expressions, assume they provide meaningful content
+                return t.isJSXExpressionContainer(child);
+              });
+              
+              // Only add aria-label if there's no meaningful text content
+              if (!hasTextContent) {
+                openingElement.attributes.push(
+                  t.jsxAttribute(t.jsxIdentifier('aria-label'), t.stringLiteral('Button'))
+                );
+              }
             }
           }
         }

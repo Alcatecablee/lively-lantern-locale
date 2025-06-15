@@ -7,8 +7,16 @@ export function LandingHero() {
   const navigate = useNavigate();
 
   return (
-    <section className="w-full flex flex-col items-center justify-center py-12 px-3 sm:py-20 bg-gradient-to-br from-[#181921] to-[#22242B]">
-      <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-purple-300 via-blue-400 to-blue-200 bg-clip-text text-transparent text-center leading-tight mb-4">
+    <section className="w-full flex flex-col items-center justify-center py-10 xs:py-12 px-3 sm:py-20 bg-gradient-to-br from-[#181921] to-[#22242B]">
+      {/* Main logo */}
+      <img
+        src="/lovable-uploads/9491cce3-b317-4586-bcb1-fc0df07a440d.png"
+        alt="NeuroLint logo"
+        className="w-32 h-auto mb-4 sm:w-40 select-none pointer-events-none"
+        draggable={false}
+        loading="eager"
+      />
+      <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-purple-300 via-blue-400 to-blue-200 bg-clip-text text-transparent text-center leading-tight mb-4">
         AI-powered Drop-in <br className="hidden xs:block" />
         <span className="text-white">Code & Config Fixer</span>
       </h1>
@@ -16,7 +24,7 @@ export function LandingHero() {
         Instantly modernize configs and codebase—TypeScript, Next.js, and more—with a single upload.<br />Safe. Transparent. Powerful.
       </div>
       <Button
-        className="w-full max-w-xs py-4 text-lg rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 mb-8 shadow-cursor-glass"
+        className="w-full max-w-xs py-4 text-lg rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 mb-8 shadow-cursor-glass active:scale-98 transition-all touch-manipulation"
         onClick={() => navigate("/")}
         size="lg"
       >
@@ -27,7 +35,7 @@ export function LandingHero() {
         <img
           src="/placeholder.svg"
           alt="Code transformation preview"
-          className="rounded-xl border border-[#262633] shadow-lg max-w-xs md:max-w-lg"
+          className="rounded-xl border border-[#262633] shadow-lg max-w-xs md:max-w-lg touch-manipulation"
           draggable={false}
         />
       </div>

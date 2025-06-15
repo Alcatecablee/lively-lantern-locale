@@ -7,7 +7,7 @@ import { transformWithAST } from "./ast/orchestrator";
 import { NeuroLintLayerResult } from "./types";
 import { CodeValidator } from "./validation/codeValidator";
 
-// Enhanced orchestrator with AST-based transformations and validation
+// Cleaned-up orchestrator with working layers only
 const layers = [
   {
     fn: layer1.transform,

@@ -1,4 +1,3 @@
-
 export function fixMissingKeyProps(code: string): string {
   // Only fix simple map patterns to avoid corrupting complex expressions
 
@@ -6,7 +5,6 @@ export function fixMissingKeyProps(code: string): string {
   let fixed = code.replace(
     /\.map\(\s*\(([^,)]+)(?:\s*,\s*([^)]+))?\)\s*=>\s*<(\w+)([^>]*)>(.*?)<\/\3>/gs,
     (match, item, index, component, props, children) => {
-      // Skip if already has key or is dangerous
       if (
         props.includes('key=') ||
         match.includes('onClick=') ||
@@ -22,12 +20,11 @@ export function fixMissingKeyProps(code: string): string {
     }
   );
 
-  // Pattern 2: concise arrow function, e.g. items.map(item => <li>{item.name}</li>)
-  // Also supports: items.map(item => <li {...spread}>{item.name}</li>)
+  // Pattern 2: items.map(item => <li>{item.name}</li>)
+  // Improved to allow for extra spacing and parentheses around the argument
   fixed = fixed.replace(
-    /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<(\w+)([^>]*)>(.*?)<\/\2>/gs,
+    /\.map\(\s*(?:\(?\s*([a-zA-Z0-9_]+)\s*\)?)\s*=>\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)/g,
     (match, item, component, props, children) => {
-      // Prevent duplicate key or risky changes
       if (
         props.includes('key=') ||
         match.includes('onClick=') ||
@@ -41,7 +38,24 @@ export function fixMissingKeyProps(code: string): string {
     }
   );
 
-  // Pattern 3: self-closing tags (rare for lists, but add for safety/completeness)
+  // Pattern 3: concise arrow function with no parentheses in .map single expression
+  fixed = fixed.replace(
+    /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<(\w+)([^>]*)>(.*?)<\/\2>/gs,
+    (match, item, component, props, children) => {
+      if (
+        props.includes('key=') ||
+        match.includes('onClick=') ||
+        props.includes('onClick=') ||
+        ['button', 'input', 'a', 'textarea', 'form', 'select'].includes(component)
+      ) {
+        return match;
+      }
+      const keyValue = `{${item}.id || Math.random()}`;
+      return `<${component} key=${keyValue}${props}>${children}</${component}>`;
+    }
+  );
+
+  // Pattern 4: self-closing tags in .map
   fixed = fixed.replace(
     /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<(\w+)([^>]*)\/>/g,
     (match, item, component, props) => {
@@ -58,7 +72,7 @@ export function fixMissingKeyProps(code: string): string {
     }
   );
 
-  // Pattern 4: map with parentheses around arrow and JSX
+  // Pattern 5: map with parentheses arrow function returning JSX in parens
   fixed = fixed.replace(
     /\.map\(\s*\(([^,)]+)(?:\s*,\s*([^)]+))?\)\s*=>\s*\(\s*<(\w+)([^>]*)>(.*?)<\/\3>\s*\)/gs,
     (match, item, index, component, props, children) => {

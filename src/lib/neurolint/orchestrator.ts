@@ -1,5 +1,4 @@
 import * as layer1 from "./layers/layer-1-config";
-import * as layer2 from "./layers/layer-2-entities";
 import * as layer3 from "./layers/layer-3-components";
 import * as layer4 from "./layers/layer-4-hydration";
 import * as layer5 from "./layers/layer-5-nextjs";
@@ -14,12 +13,6 @@ const layers = [
     fn: layer1.transform,
     name: "Configuration Validation",
     description: "Optimizes TypeScript, Next.js config, and package.json with modern settings.",
-    astSupported: false,
-  },
-  {
-    fn: layer2.transform,
-    name: "HTML Entity & Pattern Cleanup",
-    description: "Fixes HTML entity corruption, cleans imports, and standardizes patterns.",
     astSupported: false,
   },
   {

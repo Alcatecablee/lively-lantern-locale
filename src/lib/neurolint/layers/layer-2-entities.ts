@@ -1,9 +1,8 @@
-
 const HTML_ENTITIES: [RegExp, string][] = [
+  // Process more specific entities first, then general ones
   [/&quot;/g, '"'],
   [/&#x27;/g, "'"],
   [/&apos;/g, "'"],
-  [/&amp;/g, "&"],
   [/&lt;/g, "<"],
   [/&gt;/g, ">"],
   [/&#36;/g, "$"],
@@ -30,26 +29,26 @@ const HTML_ENTITIES: [RegExp, string][] = [
   [/&bull;/g, "•"],
   [/&deg;/g, "°"],
   [/&#8209;/g, "-"],
+  // Process &amp; LAST since it contains & which is used in other entities
+  [/&amp;/g, "&"],
 ];
 
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // Apply HTML entity fixes FIRST - process multiple times to catch nested entities
-  for (let i = 0; i < 3; i++) {
-    let changed = false;
-    for (const [pattern, replacement] of HTML_ENTITIES) {
-      const before = transformed;
-      transformed = transformed.replace(pattern, replacement);
-      if (before !== transformed) changed = true;
-    }
+  // Apply HTML entity fixes with improved logic
+  let maxIterations = 5;
+  let iteration = 0;
+  
+  while (iteration < maxIterations) {
+    let hasChanges = false;
+    const beforeIteration = transformed;
     
-    // Apply numeric HTML entity patterns
-    const beforeNumeric = transformed;
+    // Apply numeric HTML entity patterns first
     transformed = transformed.replace(/&#(\d+);/g, (match, num) => {
       try {
         const charCode = parseInt(num, 10);
-        if (charCode > 0 && charCode < 1114112) { // Valid Unicode range
+        if (charCode > 0 && charCode < 1114112) {
           return String.fromCharCode(charCode);
         }
         return match;
@@ -58,11 +57,11 @@ export async function transform(code: string): Promise<string> {
       }
     });
     
-    // Apply hex entity patterns  
+    // Apply hex entity patterns
     transformed = transformed.replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => {
       try {
         const charCode = parseInt(hex, 16);
-        if (charCode > 0 && charCode < 1114112) { // Valid Unicode range
+        if (charCode > 0 && charCode < 1114112) {
           return String.fromCharCode(charCode);
         }
         return match;
@@ -71,9 +70,21 @@ export async function transform(code: string): Promise<string> {
       }
     });
     
-    if (!changed && beforeNumeric === transformed) {
-      break; // No more changes, exit early
+    // Apply named HTML entities
+    for (const [pattern, replacement] of HTML_ENTITIES) {
+      const before = transformed;
+      transformed = transformed.replace(pattern, replacement);
+      if (before !== transformed) {
+        hasChanges = true;
+      }
     }
+    
+    // Exit if no changes were made in this iteration
+    if (!hasChanges && beforeIteration === transformed) {
+      break;
+    }
+    
+    iteration++;
   }
   
   // Fix var declarations to const/let

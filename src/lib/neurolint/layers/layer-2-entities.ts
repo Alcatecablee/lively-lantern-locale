@@ -35,28 +35,46 @@ const HTML_ENTITIES: [RegExp, string][] = [
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // Apply HTML entity fixes FIRST and more aggressively
-  for (const [pattern, replacement] of HTML_ENTITIES) {
-    transformed = transformed.replace(pattern, replacement);
+  // Apply HTML entity fixes FIRST - process multiple times to catch nested entities
+  for (let i = 0; i < 3; i++) {
+    let changed = false;
+    for (const [pattern, replacement] of HTML_ENTITIES) {
+      const before = transformed;
+      transformed = transformed.replace(pattern, replacement);
+      if (before !== transformed) changed = true;
+    }
+    
+    // Apply numeric HTML entity patterns
+    const beforeNumeric = transformed;
+    transformed = transformed.replace(/&#(\d+);/g, (match, num) => {
+      try {
+        const charCode = parseInt(num, 10);
+        if (charCode > 0 && charCode < 1114112) { // Valid Unicode range
+          return String.fromCharCode(charCode);
+        }
+        return match;
+      } catch {
+        return match;
+      }
+    });
+    
+    // Apply hex entity patterns  
+    transformed = transformed.replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => {
+      try {
+        const charCode = parseInt(hex, 16);
+        if (charCode > 0 && charCode < 1114112) { // Valid Unicode range
+          return String.fromCharCode(charCode);
+        }
+        return match;
+      } catch {
+        return match;
+      }
+    });
+    
+    if (!changed && beforeNumeric === transformed) {
+      break; // No more changes, exit early
+    }
   }
-  
-  // Apply additional HTML entity patterns that might be missed
-  transformed = transformed.replace(/&#(\d+);/g, (match, num) => {
-    try {
-      return String.fromCharCode(parseInt(num, 10));
-    } catch {
-      return match; // Keep original if conversion fails
-    }
-  });
-  
-  // Apply hex entity patterns
-  transformed = transformed.replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => {
-    try {
-      return String.fromCharCode(parseInt(hex, 16));
-    } catch {
-      return match; // Keep original if conversion fails
-    }
-  });
   
   // Fix var declarations to const/let
   transformed = transformed.replace(/\bvar\s+(\w+)\s*=\s*([^;]+);/g, 'const $1 = $2;');

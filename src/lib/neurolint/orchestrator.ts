@@ -1,46 +1,17 @@
+
 import * as layer1 from "./layers/layer-1-config";
-import * as layer3 from "./layers/layer-3-components";
-import * as layer4 from "./layers/layer-4-hydration";
-import * as layer5 from "./layers/layer-5-nextjs";
-import * as layer6 from "./layers/layer-6-testing";
 import { transformWithAST } from "./ast/orchestrator";
 import { NeuroLintLayerResult } from "./types";
 import { CodeValidator } from "./validation/codeValidator";
 
-// Cleaned-up orchestrator with working layers only
+// Only Layer 1 kept for maximum reliability!
 const layers = [
   {
     fn: layer1.transform,
     name: "Configuration Validation",
     description: "Optimizes TypeScript, Next.js config, and package.json with modern settings.",
     astSupported: false,
-  },
-  {
-    fn: layer3.transform,
-    name: "Component Enhancement",
-    description: "Adds missing props, imports, accessibility attributes, and component interfaces.",
-    astSupported: true,
-    astLayerName: "layer-3-components",
-  },
-  {
-    fn: layer4.transform,
-    name: "Hydration & SSR Protection",
-    description: "Adds SSR guards, fixes hydration mismatches, and protects client-only APIs.",
-    astSupported: true,
-    astLayerName: "layer-4-hydration",
-  },
-  {
-    fn: layer5.transform,
-    name: "Next.js App Router Optimization",
-    description: "Fixes 'use client' placement, import corruption, and App Router patterns.",
-    astSupported: false,
-  },
-  {
-    fn: layer6.transform,
-    name: "Testing & Validation Enhancement",
-    description: "Adds error boundaries, prop validation, loading states, and performance optimizations.",
-    astSupported: false,
-  },
+  }
 ];
 
 export async function NeuroLintOrchestrator(
@@ -61,22 +32,10 @@ export async function NeuroLintOrchestrator(
       let next = current;
       let usedAST = false;
       let wasReverted = false;
-      
-      // Try AST transform first if supported and enabled
-      if (useAST && layer.astSupported && layer.astLayerName) {
-        const astResult = await transformWithAST(current, layer.astLayerName);
-        if (astResult.success) {
-          next = astResult.code;
-          usedAST = true;
-        } else {
-          console.warn(`AST transform failed for ${layer.name}, using fallback:`, astResult.error);
-          next = await layer.fn(current, filePath);
-        }
-      } else {
-        // Use regex-based transform
-        next = await layer.fn(current, filePath);
-      }
-      
+
+      // We only have Layer 1 which is not AST-based
+      next = await layer.fn(current, filePath);
+
       // Validate the transformation
       const validation = CodeValidator.compareBeforeAfter(previous, next);
       if (validation.shouldRevert) {
@@ -115,53 +74,19 @@ export async function NeuroLintOrchestrator(
         executionTime,
         changeCount: 0,
       });
-      // Continue with remaining layers even if one fails
+      // Continue with remaining layers even if one fails (future-proof for more layers)
     }
   }
-  
+
   return { transformed: current, layers: results };
 }
 
 function detectImprovements(before: string, after: string, usedAST: boolean = false): string[] {
   const improvements: string[] = [];
-  
-  // Detect specific improvements
-  if (before.includes('&quot;') && !after.includes('&quot;')) {
-    improvements.push('Fixed HTML entity corruption');
+  // Layer 1 is config, not code, so these checks are just placeholders for later expansion
+  if (before !== after) {
+    improvements.push('Optimized configuration file');
   }
-  
-  if (!before.includes("'use client'") && after.includes("'use client'")) {
-    improvements.push('Added use client directive');
-  }
-  
-  if (!before.includes('aria-label') && after.includes('aria-label')) {
-    improvements.push('Added accessibility attributes');
-  }
-  
-  if (!before.includes('key=') && after.includes('key=')) {
-    improvements.push('Added missing key props');
-  }
-  
-  if (!before.includes('interface') && after.includes('interface')) {
-    improvements.push('Added TypeScript interfaces');
-  }
-  
-  if (!before.includes('typeof window') && after.includes('typeof window')) {
-    improvements.push('Added SSR guards');
-  }
-  
-  if (!before.includes('try') && after.includes('try')) {
-    improvements.push('Added error handling');
-  }
-  
-  if (before.includes('console.log') && !after.includes('console.log')) {
-    improvements.push('Optimized console statements');
-  }
-  
-  if (usedAST) {
-    improvements.push('Used AST-based transformation');
-  }
-  
   return improvements;
 }
 

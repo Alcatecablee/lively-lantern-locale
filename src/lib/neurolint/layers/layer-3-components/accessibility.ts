@@ -1,4 +1,5 @@
 
+
 export function fixAccessibilityAttributes(code: string): string {
   let fixed = code;
   
@@ -13,20 +14,27 @@ export function fixAccessibilityAttributes(code: string): string {
     }
   );
   
-  // Add aria-label to buttons without accessible text - preserve existing attributes
-  // More careful regex to avoid corrupting onClick handlers
+  // Add aria-label to buttons without accessible text
+  // Use a more sophisticated approach that doesn't break complex attributes
   fixed = fixed.replace(
-    /<button([^>]*?)>/g,
-    (match, attributes) => {
+    /<button([^>]*?)>(.*?)<\/button>/gs,
+    (match, attributes, content) => {
       // Check if aria-label or aria-labelledby already exists
       if (!attributes.includes('aria-label') && !attributes.includes('aria-labelledby')) {
-        // Only add aria-label if we can safely insert it
-        // Avoid inserting into complex attribute patterns
-        if (attributes.trim() === '') {
-          return `<button aria-label="Button">`;
-        } else {
-          // Insert aria-label before the closing > but after existing attributes
-          return `<button${attributes} aria-label="Button">`;
+        // Check if the button has text content (not just whitespace/variables)
+        const hasTextContent = content.trim() && 
+          !content.trim().startsWith('{') && 
+          content.replace(/\s+/g, ' ').trim() !== '';
+        
+        // Only add aria-label if there's no meaningful text content
+        if (!hasTextContent) {
+          // Safely add aria-label as a separate attribute
+          const cleanAttributes = attributes.trim();
+          if (cleanAttributes === '') {
+            return `<button aria-label="Button">${content}</button>`;
+          } else {
+            return `<button${cleanAttributes} aria-label="Button">${content}</button>`;
+          }
         }
       }
       return match;
@@ -35,3 +43,4 @@ export function fixAccessibilityAttributes(code: string): string {
   
   return fixed;
 }
+

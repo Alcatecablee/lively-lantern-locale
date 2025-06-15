@@ -3,7 +3,7 @@ export interface TestCase {
   description: string;
   input: string;
   expectedFixes: string[];
-  category: 'config';
+  category: "config" | "pattern" | "component" | "hydration";
 }
 
 export interface TestResult {

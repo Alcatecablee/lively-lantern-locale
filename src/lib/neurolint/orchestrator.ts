@@ -61,15 +61,23 @@ export async function NeuroLintOrchestrator(
       const previous = current;
       let next = current;
       let usedAST = false;
+      let astError: string | undefined;
       
       // Try AST transform first if supported and enabled
       if (useAST && layer.astSupported && layer.astLayerName) {
-        const astResult = await transformWithAST(current, layer.astLayerName);
-        if (astResult.success) {
-          next = astResult.code;
-          usedAST = true;
-        } else {
-          console.warn(`AST transform failed for ${layer.name}, using fallback:`, astResult.error);
+        try {
+          const astResult = await transformWithAST(current, layer.astLayerName);
+          if (astResult.success) {
+            next = astResult.code;
+            usedAST = true;
+          } else {
+            astError = astResult.error;
+            console.warn(`AST transform failed for ${layer.name}, using fallback:`, astResult.error);
+            next = await layer.fn(current, filePath);
+          }
+        } catch (astCatchError) {
+          astError = astCatchError instanceof Error ? astCatchError.message : 'Unknown AST error';
+          console.warn(`AST transform threw error for ${layer.name}:`, astError);
           next = await layer.fn(current, filePath);
         }
       } else {
@@ -88,6 +96,11 @@ export async function NeuroLintOrchestrator(
       const executionTime = Date.now() - startTime;
       const changeCount = calculateChanges(previous, next);
       
+      const improvements = detectImprovements(previous, next, usedAST);
+      if (astError && !usedAST) {
+        improvements.push(`Fallback used due to AST error: ${astError.substring(0, 50)}...`);
+      }
+      
       results.push({
         name: layer.name,
         description: layer.description,
@@ -95,7 +108,7 @@ export async function NeuroLintOrchestrator(
         success: jsxValidation.isValid,
         executionTime,
         changeCount,
-        improvements: detectImprovements(previous, next, usedAST),
+        improvements,
       });
       current = next;
     } catch (e: any) {

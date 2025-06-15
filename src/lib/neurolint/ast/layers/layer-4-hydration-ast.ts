@@ -14,15 +14,23 @@ export async function transformAST(code: string): Promise<string> {
       addUseClientDirectiveAST(ast, code);
     });
   } catch (error) {
-    console.warn('AST transform failed, using fallback');
+    console.warn('AST transform failed for layer-4-hydration, using fallback');
     throw error;
   }
 }
 
 function addSSRGuardsAST(ast: t.File): void {
+  const processedNodes = new WeakSet(); // Prevent infinite recursion
+  
   traverse(ast, {
     CallExpression(path) {
       const node = path.node;
+      
+      // Skip if already processed
+      if (processedNodes.has(node)) {
+        return;
+      }
+      
       if (
         t.isMemberExpression(node.callee) &&
         t.isIdentifier(node.callee.object) &&
@@ -30,14 +38,19 @@ function addSSRGuardsAST(ast: t.File): void {
         t.isIdentifier(node.callee.property)
       ) {
         // Check if already wrapped in typeof check
+        const parent = path.parent;
         if (
-          t.isLogicalExpression(path.parent) &&
-          t.isBinaryExpression((path.parent as t.LogicalExpression).left) &&
-          t.isUnaryExpression(((path.parent as t.LogicalExpression).left as t.BinaryExpression).left) &&
-          ((((path.parent as t.LogicalExpression).left as t.BinaryExpression).left as t.UnaryExpression).argument as t.Identifier).name === 'window'
+          t.isConditionalExpression(parent) &&
+          t.isBinaryExpression(parent.test) &&
+          t.isUnaryExpression(parent.test.left) &&
+          t.isIdentifier(parent.test.left.argument) &&
+          parent.test.left.argument.name === 'window'
         ) {
           return; // Already wrapped
         }
+        
+        // Mark as processed before transformation
+        processedNodes.add(node);
         
         // Create typeof window !== "undefined" check
         const typeofCheck = t.binaryExpression(
@@ -64,6 +77,7 @@ function addSSRGuardsAST(ast: t.File): void {
         );
         
         path.replaceWith(conditionalExpression);
+        path.skip(); // Skip traversing the replaced node
       }
     }
   });

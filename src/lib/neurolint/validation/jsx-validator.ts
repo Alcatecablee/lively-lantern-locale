@@ -31,12 +31,12 @@ export function validateJSXIntegrity(originalCode: string, transformedCode: stri
       result.errors.push('JSX elements were removed during transformation');
     }
 
-    // Check for syntax corruption patterns
+    // Check for specific JSX corruption patterns (more precise)
     const corruptionPatterns = [
-      /onClick=\{[^}]*\)\s*=>\s*\(\)\s*=>/g, // Malformed onClick handlers
-      /return\s+"[^"]*className/g, // JSX turned into strings
-      /\(\s*e:\s*React\.MouseEvent\s*\)\s*=>\s*\(\)\s*=>/g, // Corrupted event handlers
-      /<\/?\w+[^>]*">/g, // Malformed JSX tags
+      /onClick=\{[^}]*\)\s*=>\s*\(\)\s*=>/g, // Malformed onClick handlers like () => func()(e)
+      /return\s*"[^"]*className[^"]*"[^;]*;/g, // JSX completely turned into return strings
+      />\s*"[^"]*<\/\w+>/g, // JSX content turned into quoted strings
+      /<\w+[^>]*"[^>]*>/g, // Unclosed quotes in JSX attributes
     ];
 
     for (const pattern of corruptionPatterns) {

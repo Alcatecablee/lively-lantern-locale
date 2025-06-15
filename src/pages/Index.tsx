@@ -46,12 +46,12 @@ const Index = () => {
       : null;
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center px-2 py-8 bg-gradient-to-br from-[#22242B] via-[#181921] to-[#16151a] dark">
-      <Card className="w-full max-w-xl bg-black/80 border border-[#292939] rounded-xl shadow-cursor-glass transition-all backdrop-blur-lg font-sans">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center px-2 py-8 bg-[#181921] dark">
+      <Card className="w-full max-w-xl bg-[#181B26] border border-[#292939] rounded-xl shadow-cursor-glass transition-all backdrop-blur-lg font-sans">
         <CardHeader>
           <CardTitle className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
             <Brain className="w-8 h-8 text-purple-400" />
-            <span className="tracking-tighter font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            <span className="tracking-tighter font-bold text-white">
               NeuroLint
             </span>
           </CardTitle>

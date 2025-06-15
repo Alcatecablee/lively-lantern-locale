@@ -56,12 +56,12 @@ function performCodeBasedTransforms(code: string): Promise<string> {
 function fixTSConfig(filePath: string): string {
   const content = fs.readFileSync(filePath, 'utf8');
   const tsConfig: TSConfig = JSON.parse(content);
-  
+
   // Update compiler options with modern settings
   tsConfig.compilerOptions = {
     ...tsConfig.compilerOptions,
-    target: "ES2020",
-    lib: ["dom", "dom.iterable", "es6", "ES2020"],
+    target: "ES2022", // Updated from ES2020 to ES2022
+    lib: ["dom", "dom.iterable", "es6", "ES2022"],
     downlevelIteration: true,
     allowSyntheticDefaultImports: true,
     esModuleInterop: true,
@@ -77,18 +77,18 @@ function fixTSConfig(filePath: string): string {
       "@/*": ["./src/*"]
     }
   };
-  
+
   return JSON.stringify(tsConfig, null, 2);
 }
 
 function fixTSConfigContent(content: string): string {
   try {
     const tsConfig: TSConfig = JSON.parse(content);
-    
+
     tsConfig.compilerOptions = {
       ...tsConfig.compilerOptions,
-      target: "ES2020",
-      lib: ["dom", "dom.iterable", "es6", "ES2020"],
+      target: "ES2022", // Updated from ES2020 to ES2022
+      lib: ["dom", "dom.iterable", "es6", "ES2022"],
       downlevelIteration: true,
       allowSyntheticDefaultImports: true,
       esModuleInterop: true,
@@ -102,7 +102,7 @@ function fixTSConfigContent(content: string): string {
         "@/*": ["./src/*"]
       }
     };
-    
+
     return JSON.stringify(tsConfig, null, 2);
   } catch (error) {
     return content;

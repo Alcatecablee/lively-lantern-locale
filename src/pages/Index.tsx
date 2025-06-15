@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { FileUploadZone } from "@/components/neurolint/FileUploadZone";
 import { CodeDiffViewer } from "@/components/neurolint/CodeDiffViewer";
@@ -7,7 +6,7 @@ import { NeuroLintOrchestrator, NeuroLintLayerResult } from "@/lib/neurolint/orc
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Brain, Zap, Clock, FileCode, TestTube, Users, ArrowRight } from "lucide-react";
+import { Brain, Zap, Clock, FileCode, TestTube, Users, ArrowRight, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const LAYERS = [
@@ -42,6 +41,8 @@ const LAYERS = [
     status: "soon",
   },
 ];
+
+const EXPERIMENTAL_LAYERS = LAYERS.filter(l => l.status === "soon");
 
 const Index = () => {
   const navigate = useNavigate();
@@ -117,6 +118,47 @@ const Index = () => {
               </Button>
             </div>
           </CardTitle>
+          {/* CALL TO ACTION for collaborator/testers */}
+          <div className="flex flex-col sm:flex-row gap-2 mt-5">
+            <span className="flex items-center text-blue-400 font-semibold text-base">
+              <Users className="mr-2" />
+              <span>
+                Engineers/Ai experts: Help us unlock safe, automated multi-layer code repair!
+              </span>
+            </span>
+            <Button
+              className="bg-gradient-to-r from-blue-700 to-purple-500 text-white font-semibold text-base"
+              onClick={() =>
+                window.open(
+                  "mailto:founder@neurolint.com?subject=I want to collaborate!",
+                  "_blank"
+                )
+              }
+            >
+              Get Involved
+            </Button>
+          </div>
+          {/* DEMO: Experimental layer toggle zone */}
+          <div className="mt-6 flex flex-wrap items-center gap-3 bg-yellow-950/80 border border-yellow-700 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-yellow-300">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Experimental Layers (Demo Only):</span>
+            </div>
+            {EXPERIMENTAL_LAYERS.map((layer, idx) => (
+              <label key={layer.name} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  disabled
+                  checked={false}
+                  className="form-checkbox rounded border-blue-400 accent-purple-400 w-5 h-5"
+                  tabIndex={-1}
+                />
+                <span className="text-xs text-yellow-200 mr-1">{layer.name}</span>
+              </label>
+            ))}
+            <span className="text-xs text-yellow-400">(Not yet live. Want to help? <a href="mailto:founder@neurolint.com" className="underline text-blue-200">Contact me!</a>)</span>
+          </div>
+          {/* ... keep existing code (stats Badges and rest of CardHeader) */}
           <div className="flex flex-col lg:flex-row gap-4 mt-5">
             <div className="flex flex-wrap gap-3">
               <Badge variant="secondary" className="flex items-center gap-1">

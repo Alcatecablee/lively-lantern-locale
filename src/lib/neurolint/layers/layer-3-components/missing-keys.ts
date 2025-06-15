@@ -91,5 +91,16 @@ export function fixMissingKeyProps(code: string): string {
     }
   );
 
+  // Additional catch-all: specifically for concise .map(item => <li>{...}</li>)
+  // This runs *after* all the above, so only missed cases apply.
+  // Matches .map(item => <li ...>...</li>)
+  fixed = fixed.replace(
+    /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<li([^>]*)>([\s\S]*?)<\/li>\s*\)/g,
+    (match, item, props, children) => {
+      if (props.includes('key=')) return match;
+      return `.map(${item} => <li key={${item}.id || Math.random()}${props}>${children}</li>)`;
+    }
+  );
+
   return fixed;
 }

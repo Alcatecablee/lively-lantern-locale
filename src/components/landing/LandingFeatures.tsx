@@ -74,14 +74,14 @@ export function LandingFeatures() {
 
         {/* CALL TO ACTION FOR ENGINEERING COLLABORATORS */}
         <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-3 mb-7">
-          <div className="flex items-center text-blue-400 text-base font-semibold">
+          <div className="flex items-center text-blue-300 text-base font-semibold">
             <Users className="mr-2" />
             <span>
               Engineer or AI researcher? Help build the world’s first fully-automated code refactoring platform!
             </span>
           </div>
           <Button
-            className="bg-gradient-to-r from-blue-700 to-purple-500 text-white text-base"
+            className="bg-[#292939] text-white text-base border border-[#342d66] hover:bg-[#393b44]"
             asChild
           >
             <a
@@ -99,14 +99,14 @@ export function LandingFeatures() {
           {LAYERS.map((layer, idx) => (
             <div
               key={layer.name}
-              className="flex items-center gap-3 p-3 rounded-lg bg-black/80 border border-[#292939] w-full relative"
+              className="flex items-center gap-3 p-3 rounded-lg bg-[#1a1b21] border border-[#292939] w-full relative"
             >
               <Badge
                 variant={layer.status === "live" ? "default" : "secondary"}
                 className={
                   layer.status === "live"
-                    ? "bg-green-600 text-white"
-                    : "bg-gray-700 text-gray-300"
+                    ? "bg-green-700 text-white"
+                    : "bg-[#23233b] text-gray-300"
                 }
               >
                 {layer.status === "live" ? "LIVE" : layer.experimental ? "EXPERIMENTAL" : "READY"}
@@ -127,7 +127,7 @@ export function LandingFeatures() {
                 <label className="flex items-center gap-1 ml-1">
                   <input
                     type="checkbox"
-                    className="form-checkbox rounded border-blue-400 focus:ring-2 focus:ring-blue-400 accent-purple-400 w-5 h-5"
+                    className="form-checkbox rounded border-blue-400 focus:ring-2 focus:ring-blue-400 accent-purple-400 w-5 h-5 bg-[#26233b]"
                     checked={experimentalStates[layer.name] || false}
                     onChange={() => handleToggle(layer.name)}
                     disabled={true}
@@ -147,7 +147,7 @@ export function LandingFeatures() {
         </div>
 
         {/* Experimental safety notice */}
-        <div className="bg-yellow-900/90 border border-yellow-700 text-yellow-200 rounded-lg p-4 mb-6 text-sm flex items-center gap-2">
+        <div className="bg-[#232332] border border-yellow-700 text-yellow-200 rounded-lg p-4 mb-6 text-sm flex items-center gap-2">
           <AlertTriangle className="w-5 h-5 text-yellow-300" />
           <div>
             <b>Experimental Layers:</b> The toggles above are for demonstration only.
@@ -183,7 +183,7 @@ export function LandingFeatures() {
           <Users className="w-6 h-6" />
           How it Works
         </h2>
-        <div className="bg-black/60 rounded-lg border border-[#262633] p-6 text-gray-200">
+        <div className="bg-[#13141a] rounded-lg border border-[#262633] p-6 text-gray-200">
           <ol className="list-decimal ml-5 space-y-2 text-sm">
             <li>Upload your TypeScript/Next.js project or configs—no setup required.</li>
             <li>Select the AI layer(s) you want to run, including full-stack config upgrades.</li>

@@ -16,15 +16,15 @@ export function LandingHero() {
         draggable={false}
         loading="eager"
       />
-      <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-extrabold bg-gradient-to-r from-purple-300 via-blue-400 to-blue-200 bg-clip-text text-transparent text-center leading-tight mb-4">
+      <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl font-extrabold text-white text-center leading-tight mb-4">
         AI-powered Drop-in <br className="hidden xs:block" />
-        <span className="text-white">Code & Config Fixer</span>
+        <span className="text-purple-300">Code & Config Fixer</span>
       </h1>
       <div className="text-base sm:text-xl text-gray-300 font-medium mb-8 max-w-md text-center px-2">
         Instantly modernize configs and codebase—TypeScript, Next.js, and more—with a single upload.<br />Safe. Transparent. Powerful.
       </div>
       <Button
-        className="w-full max-w-xs py-4 text-lg rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 mb-8 shadow-cursor-glass active:scale-98 transition-all touch-manipulation"
+        className="w-full max-w-xs py-4 text-lg rounded-xl bg-[#292939] hover:bg-[#434455] mb-8 shadow-cursor-glass active:scale-98 transition-all touch-manipulation text-white border border-[#342d66]"
         onClick={() => navigate("/")}
         size="lg"
       >

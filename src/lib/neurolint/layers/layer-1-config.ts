@@ -115,13 +115,14 @@ function fixNextConfig(filePath: string): string {
 }
 
 function fixNextConfigContent(content: string): string {
-  // Remove deprecated appDir option and add modern config
+  // Remove deprecated appDir option and add modern config, including reactStrictMode: true
   let fixed = content.replace(/appDir:\s*true,?\s*/g, '');
   fixed = fixed.replace(/experimental:\s*{[^}]*},?\s*/g, '');
   
-  // Add optimized Next.js configuration
+  // Add optimized Next.js configuration, including reactStrictMode: true
   const optimizedConfig = `/** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: false,
   },

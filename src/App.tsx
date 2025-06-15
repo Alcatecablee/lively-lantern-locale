@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import Index from "./pages/Index";
 import TestSuite from "./pages/TestSuite";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
+import Docs from "./pages/Docs"; // Fixed: import Docs directly
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -25,7 +27,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/test" element={<TestSuite />} />
               <Route path="/landing" element={<Landing />} />
-              <Route path="/docs" element={<import('./pages/Docs').then(m => m.default)} /> 
+              <Route path="/docs" element={<Docs />} /> 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -1,3 +1,4 @@
+
 const HTML_ENTITIES: [RegExp, string][] = [
   [/&quot;/g, '"'],
   [/&#x27;/g, "'"],
@@ -34,10 +35,28 @@ const HTML_ENTITIES: [RegExp, string][] = [
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // First, apply HTML entity fixes
+  // Apply HTML entity fixes FIRST and more aggressively
   for (const [pattern, replacement] of HTML_ENTITIES) {
     transformed = transformed.replace(pattern, replacement);
   }
+  
+  // Apply additional HTML entity patterns that might be missed
+  transformed = transformed.replace(/&#(\d+);/g, (match, num) => {
+    try {
+      return String.fromCharCode(parseInt(num, 10));
+    } catch {
+      return match; // Keep original if conversion fails
+    }
+  });
+  
+  // Apply hex entity patterns
+  transformed = transformed.replace(/&#x([0-9A-Fa-f]+);/g, (match, hex) => {
+    try {
+      return String.fromCharCode(parseInt(hex, 16));
+    } catch {
+      return match; // Keep original if conversion fails
+    }
+  });
   
   // Fix var declarations to const/let
   transformed = transformed.replace(/\bvar\s+(\w+)\s*=\s*([^;]+);/g, 'const $1 = $2;');

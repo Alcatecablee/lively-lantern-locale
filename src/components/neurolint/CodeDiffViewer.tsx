@@ -51,20 +51,20 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
   };
 
   return (
-    <div className="min-h-[600px] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden h-[85vh] shadow-cursor-glass group transition-all font-mono backdrop-blur-xl">
+    <div className="h-[85vh] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden shadow-cursor-glass group transition-all font-mono backdrop-blur-xl flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[#232339] bg-[#1a1c22]/95 rounded-t-lg backdrop-blur font-sans">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-[#232339] bg-[#1a1c22]/95 rounded-t-lg backdrop-blur font-sans flex-shrink-0">
         <div className="flex gap-2 items-center">
           <FileText className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold text-white">Code Comparison</span>
         </div>
       </div>
 
-      {/* Vertical Stack Layout */}
-      <div className="flex flex-col h-[calc(100%-3rem)]">
-        {/* Transformed Code Panel (Top) */}
-        <div className="border-b border-[#232339] flex-1">
-          <div className="flex items-center justify-between px-4 py-2 bg-[#1f2a1f] border-b border-[#2f3a2f]">
+      {/* Content Area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {/* Transformed Code Panel (Top Half) */}
+        <div className="flex-1 border-b border-[#232339] flex flex-col min-h-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-[#1f2a1f] border-b border-[#2f3a2f] flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
               <span className="text-sm font-medium text-green-200">Transformed</span>
@@ -79,7 +79,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
               <CopyIcon className="w-3 h-3" />
             </Button>
           </div>
-          <div className="p-4 overflow-auto h-[calc(100%-3rem)] bg-[#141a14]">
+          <div className="flex-1 p-4 overflow-auto bg-[#141a14] min-h-0">
             <pre className="text-sm text-green-100 whitespace-pre-wrap">
               <code>{highlighted(transformed)}</code>
             </pre>
@@ -87,15 +87,15 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
         </div>
 
         {/* Transformation Arrow */}
-        <div className="flex justify-center py-2 bg-[#1a1c22]/95">
+        <div className="flex justify-center py-2 bg-[#1a1c22]/95 flex-shrink-0">
           <div className="bg-purple-500/90 rounded-full p-2 shadow-lg backdrop-blur">
             <ArrowDown className="w-4 h-4 text-white" />
           </div>
         </div>
 
-        {/* Original Code Panel (Bottom) */}
-        <div className="flex-1">
-          <div className="flex items-center justify-between px-4 py-2 bg-[#2a1f1f] border-b border-[#3a2f2f]">
+        {/* Original Code Panel (Bottom Half) */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between px-4 py-2 bg-[#2a1f1f] border-b border-[#3a2f2f] flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-red-400 rounded-full"></div>
               <span className="text-sm font-medium text-red-200">Original</span>
@@ -110,7 +110,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
               <CopyIcon className="w-3 h-3" />
             </Button>
           </div>
-          <div className="p-4 overflow-auto h-[calc(100%-3rem)] bg-[#1a1416]">
+          <div className="flex-1 p-4 overflow-auto bg-[#1a1416] min-h-0">
             <pre className="text-sm text-red-100 whitespace-pre-wrap">
               <code>{highlighted(original)}</code>
             </pre>

@@ -1,4 +1,3 @@
-
 const HTML_ENTITIES: [RegExp, string][] = [
   [/&quot;/g, '"'],
   [/&#x27;/g, "'"],
@@ -46,7 +45,7 @@ export async function transform(code: string): Promise<string> {
   // Fix console.log to console.debug
   transformed = transformed.replace(/console\.log\(/g, 'console.debug(');
   
-  // Clean up imports and remove duplicates
+  // Clean up imports and remove duplicates - IMPROVED VERSION
   transformed = cleanupImports(transformed);
   
   // Remove duplicate function definitions
@@ -57,23 +56,102 @@ export async function transform(code: string): Promise<string> {
 
 function cleanupImports(code: string): string {
   const lines = code.split('\n');
-  const imports: string[] = [];
+  const imports = new Map<string, string>();
   const rest: string[] = [];
-  const seenImports = new Set<string>();
   
   lines.forEach(line => {
-    if (line.trim().startsWith('import ')) {
-      const normalizedImport = line.trim().replace(/\s+/g, ' ');
-      if (!seenImports.has(normalizedImport)) {
-        seenImports.add(normalizedImport);
-        imports.push(line);
+    const trimmedLine = line.trim();
+    
+    if (trimmedLine.startsWith('import ')) {
+      // Extract the import source (what's being imported from)
+      const fromMatch = trimmedLine.match(/from\s+['"]([^'"]+)['"]/);
+      const importMatch = trimmedLine.match(/import\s+(.+?)\s+from/);
+      
+      if (fromMatch && importMatch) {
+        const source = fromMatch[1];
+        const importPart = importMatch[1].trim();
+        
+        if (imports.has(source)) {
+          // Merge imports from the same source
+          const existingImport = imports.get(source)!;
+          const mergedImport = mergeImports(existingImport, line, source);
+          imports.set(source, mergedImport);
+        } else {
+          imports.set(source, line);
+        }
+      } else {
+        // Handle simple imports like "import React from 'react'"
+        const simpleMatch = trimmedLine.match(/import\s+(\w+)\s+from\s+['"]([^'"]+)['"]/);
+        if (simpleMatch) {
+          const [, importName, source] = simpleMatch;
+          if (imports.has(source)) {
+            // Check if it's the same import
+            const existing = imports.get(source)!;
+            if (!existing.includes(importName)) {
+              // Different import from same source, merge them
+              const mergedImport = mergeImports(existing, line, source);
+              imports.set(source, mergedImport);
+            }
+            // If it's exactly the same import, skip it (duplicate)
+          } else {
+            imports.set(source, line);
+          }
+        } else {
+          // Keep non-standard imports as-is, but check for exact duplicates
+          const normalizedImport = trimmedLine.replace(/\s+/g, ' ');
+          let isDuplicate = false;
+          for (const existingImport of imports.values()) {
+            if (existingImport.trim().replace(/\s+/g, ' ') === normalizedImport) {
+              isDuplicate = true;
+              break;
+            }
+          }
+          if (!isDuplicate) {
+            imports.set(`__non_standard_${imports.size}`, line);
+          }
+        }
       }
     } else {
       rest.push(line);
     }
   });
   
-  return [...imports, '', ...rest].join('\n');
+  // Convert map back to array and join
+  const cleanedImports = Array.from(imports.values());
+  return [...cleanedImports, '', ...rest].join('\n');
+}
+
+function mergeImports(existingImport: string, newImport: string, source: string): string {
+  try {
+    // Extract import parts
+    const existingMatch = existingImport.match(/import\s+(.+?)\s+from/);
+    const newMatch = newImport.match(/import\s+(.+?)\s+from/);
+    
+    if (!existingMatch || !newMatch) {
+      return existingImport; // Keep existing if we can't parse
+    }
+    
+    const existingPart = existingMatch[1].trim();
+    const newPart = newMatch[1].trim();
+    
+    // Handle different import styles
+    if (existingPart.includes('{') && newPart.includes('{')) {
+      // Both are named imports
+      const existingNamed = existingPart.replace(/[{}]/g, '').split(',').map(s => s.trim());
+      const newNamed = newPart.replace(/[{}]/g, '').split(',').map(s => s.trim());
+      const merged = [...new Set([...existingNamed, ...newNamed])];
+      return `import { ${merged.join(', ')} } from '${source}';`;
+    } else if (!existingPart.includes('{') && !newPart.includes('{')) {
+      // Both are default imports - keep existing if they're the same
+      return existingPart === newPart ? existingImport : existingImport;
+    } else {
+      // Mixed import types - more complex merging needed
+      return existingImport; // Keep existing for now
+    }
+  } catch (error) {
+    console.warn('Error merging imports:', error);
+    return existingImport;
+  }
 }
 
 function removeDuplicateFunctions(code: string): string {

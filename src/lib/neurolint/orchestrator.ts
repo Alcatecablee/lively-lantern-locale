@@ -6,8 +6,9 @@ import * as layer5 from "./layers/layer-5-nextjs";
 import * as layer6 from "./layers/layer-6-testing";
 import { transformWithAST } from "./ast/orchestrator";
 import { NeuroLintLayerResult } from "./types";
+import { CodeValidator } from "./validation/codeValidator";
 
-// Enhanced orchestrator with AST-based transformations and fallbacks
+// Enhanced orchestrator with AST-based transformations and validation
 const layers = [
   {
     fn: layer1.transform,
@@ -66,6 +67,7 @@ export async function NeuroLintOrchestrator(
       const previous = current;
       let next = current;
       let usedAST = false;
+      let wasReverted = false;
       
       // Try AST transform first if supported and enabled
       if (useAST && layer.astSupported && layer.astLayerName) {
@@ -82,17 +84,31 @@ export async function NeuroLintOrchestrator(
         next = await layer.fn(current, filePath);
       }
       
+      // Validate the transformation
+      const validation = CodeValidator.compareBeforeAfter(previous, next);
+      if (validation.shouldRevert) {
+        console.warn(`Reverting ${layer.name} transformation: ${validation.reason}`);
+        next = previous; // Revert to previous state
+        wasReverted = true;
+      }
+      
       const executionTime = Date.now() - startTime;
       const changeCount = calculateChanges(previous, next);
+      
+      const improvements = detectImprovements(previous, next, usedAST);
+      if (wasReverted) {
+        improvements.push('Prevented code corruption');
+      }
       
       results.push({
         name: layer.name,
         description: layer.description,
         code: next,
-        success: true,
+        success: !wasReverted,
         executionTime,
         changeCount,
-        improvements: detectImprovements(previous, next, usedAST),
+        improvements,
+        message: wasReverted ? `Transformation reverted: ${validation.reason}` : undefined,
       });
       current = next;
     } catch (e: any) {

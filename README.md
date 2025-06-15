@@ -1,73 +1,50 @@
-# Welcome to your Lovable project
+Comprehensive Automated Fixing System
+NeuroLint is a multi layer automated code fixing system designed to detect and solve common issues in React/Next.js codebases. It’s modular, fast, and ready to be extended by the engineering community.
 
-## Project info
+🚀 Quick Start
+# Run all fixes automatically
+npm run fix all
 
-**URL**: https://lovable.dev/projects/c4cfd032-7b38-48b8-978c-a088ef6ac16c
+# Preview what would be fixed (dry run)
+npm run fix dry run
 
-## How can I edit this code?
+# Run with detailed output
+npm run fix verbose
 
-There are several ways of editing your application.
+# Run individual layers
+npm run fix layer 1  # Configuration fixes
+npm run fix layer 2  # Pattern fixes
+npm run fix layer 3  # Component fixes
+npm run fix layer 4  # Hydration fixes
+🔧 System Architecture
+Layer 1: Configuration Fixes   Modernizes configs and dependencies.
+Layer 2: Bulk Pattern Fixes   Cleans up code, solves HTML/entity/import issues.
+Layer 3: Component Specific Fixes   Ensures React/TS component best practices.
+Layer 4: Hydration/SSR Fixes   Guards against SSR errors, adds NoSSR patterns.
+📊 Usage Examples
+# Preview changes without applying them
+npm run fix dry run
 
-**Use Lovable**
+# Skip specific layers
+node scripts/fix master.js   skip layers 1,2
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c4cfd032-7b38-48b8-978c-a088ef6ac16c) and start prompting.
+# Verbose output for debugging
+npm run fix verbose
+🛡️ Safety Features
+Dry Run Mode & backups
+Incremental, layer by layer execution
+Error recovery and build validation
+🎯 Common Fix Patterns
+HTML Entities: &quot; → "
+Missing Key Props: <div> → <div key={item.id}>
+Button Variants: <Button> → <Button variant="default">
+TS Config: "target": "es5" → "target": "ES2020"
+SSR Guards: localStorage → typeof window !== "undefined" && localStorage
+📈 Performance
+Each layer runs in seconds. Complete runs usually finish in under a minute, making this suitable for CI or local workflows.
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/c4cfd032-7b38-48b8-978c-a088ef6ac16c) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+🔧 Customization and Contributing
+Find the layer to extend or fix (see src/lib/neurolint/layers/).
+Add new logic or patterns as needed.
+Test with dry run and backup features.
+Submit a PR and update this documentation!

@@ -44,7 +44,9 @@ function performCodeBasedTransforms(code: string): Promise<string> {
     return Promise.resolve(fixTSConfigContent(code));
   } else if (code.includes('nextConfig') || code.includes('module.exports')) {
     return Promise.resolve(fixNextConfigContent(code));
-  } else if (code.includes('"scripts"') && code.includes('"dependencies"')) {
+  } else if (
+    code.includes('"scripts"')
+  ) {
     return Promise.resolve(fixPackageJsonContent(code));
   }
   

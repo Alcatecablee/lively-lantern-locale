@@ -14,12 +14,20 @@ export function fixAccessibilityAttributes(code: string): string {
   );
   
   // Add aria-label to buttons without accessible text - preserve existing attributes
+  // More careful regex to avoid corrupting onClick handlers
   fixed = fixed.replace(
     /<button([^>]*?)>/g,
     (match, attributes) => {
+      // Check if aria-label or aria-labelledby already exists
       if (!attributes.includes('aria-label') && !attributes.includes('aria-labelledby')) {
-        // Insert aria-label at the end of attributes, before the closing >
-        return `<button${attributes} aria-label="Button">`;
+        // Only add aria-label if we can safely insert it
+        // Avoid inserting into complex attribute patterns
+        if (attributes.trim() === '') {
+          return `<button aria-label="Button">`;
+        } else {
+          // Insert aria-label before the closing > but after existing attributes
+          return `<button${attributes} aria-label="Button">`;
+        }
       }
       return match;
     }

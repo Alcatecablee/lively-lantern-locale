@@ -14,7 +14,7 @@ import { LayerSelector } from './LayerSelector';
 
 export function TestRunner() {
   const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<TestResult[]>([]);
+  const [results, setResults] = useState<TestResultWithLayers[]>([]);
   const [currentTest, setCurrentTest] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [useAST, setUseAST] = useState(true);
@@ -24,19 +24,25 @@ export function TestRunner() {
   // Store per-layer pipeline output for each test
   const [pipelineStates, setPipelineStates] = useState<string[][]>([]);
 
+  // We need to store the enabledLayers used for each test run, so we update TestResult type below
+  type TestResultWithLayers = TestResult & { pipeline: string[]; testEnabledLayers: number[] };
+
   const runAllTests = async () => {
     setIsRunning(true);
     setResults([]);
     setProgress(0);
     setPipelineStates([]);
 
-    const testResults: TestResult[] = [];
+    const testResults: TestResultWithLayers[] = [];
     const layerPipelines: string[][] = [];
 
     for (let i = 0; i < TEST_CASES.length; i++) {
       const testCase = TEST_CASES[i];
       setCurrentTest(testCase.name);
       setProgress((i / TEST_CASES.length) * 100);
+
+      // Capture enabledLayers for this test run
+      const testEnabledLayers = [...enabledLayers];
 
       const startTime = Date.now();
       try {
@@ -45,7 +51,7 @@ export function TestRunner() {
           testCase.input,
           undefined,
           useAST,
-          enabledLayers
+          testEnabledLayers
         );
         const validation = validateTestResult(testCase, transformed);
         const executionTime = Date.now() - startTime;
@@ -57,7 +63,9 @@ export function TestRunner() {
           detectedFixes: validation.detectedFixes,
           missingFixes: validation.missingFixes,
           executionTime,
-          // Optionally could attach layers here
+          // Store per-test pipeline and enabled layers
+          pipeline: layerOutputs,
+          testEnabledLayers,
         });
         layerPipelines.push(layerOutputs);
       } catch (error) {
@@ -68,7 +76,9 @@ export function TestRunner() {
           passed: false,
           detectedFixes: [],
           missingFixes: testCase.expectedFixes,
-          executionTime
+          executionTime,
+          pipeline: [testCase.input],
+          testEnabledLayers,
         });
         layerPipelines.push([testCase.input]);
       }
@@ -178,18 +188,20 @@ export function TestRunner() {
                   {result.testCase.description}
                 </p>
                 {/* Pipeline diffs */}
-                {pipelineStates[index] && pipelineStates[index].length > 1 && (
+                {result.pipeline && result.pipeline.length > 1 && (
                   <div className="mb-4">
                     <div className="flex flex-col md:flex-row gap-2">
-                      {pipelineStates[index].map((codeSnap, i) => (
+                      {result.pipeline.map((codeSnap, i) => (
                         <div key={i} className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs">
-                              {i === 0 ? "Original" : `After L${enabledLayers[i - 1]}`}
+                              {i === 0
+                                ? "Original"
+                                : `After L${result.testEnabledLayers[i - 1]}`}
                             </Badge>
                             {i > 0 && (
                               <span className="text-xs text-muted-foreground">
-                                {LAYER_LIST.find(l => l.id === enabledLayers[i - 1])?.name}
+                                {LAYER_LIST.find(l => l.id === result.testEnabledLayers[i - 1])?.name}
                               </span>
                             )}
                           </div>

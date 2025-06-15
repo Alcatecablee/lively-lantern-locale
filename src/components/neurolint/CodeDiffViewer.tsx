@@ -1,7 +1,7 @@
 
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, FilePlus, Copy as CopyIcon, ArrowDown } from "lucide-react";
+import { FileText, FilePlus, Copy as CopyIcon, ArrowDown, Download } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { copyToClipboard } from "@/lib/neurolint/clipboard";
 
@@ -50,6 +50,38 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
     });
   };
 
+  const handleDownloadOriginal = () => {
+    const blob = new Blob([original], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'original-code.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({
+      title: "Original code downloaded!",
+      description: "The original code has been saved to your downloads.",
+    });
+  };
+
+  const handleDownloadTransformed = () => {
+    const blob = new Blob([transformed], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transformed-code.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast({
+      title: "Fixed code downloaded!",
+      description: "The transformed code has been saved to your downloads.",
+    });
+  };
+
   return (
     <div className="h-[85vh] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden shadow-cursor-glass group transition-all font-mono backdrop-blur-xl flex flex-col">
       {/* Header */}
@@ -69,15 +101,26 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
               <span className="text-sm font-medium text-green-200">Transformed</span>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="hover:bg-green-500/20 text-green-300 h-6 w-6"
-              aria-label="Copy transformed code"
-              onClick={handleCopyTransformed}
-            >
-              <CopyIcon className="w-3 h-3" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hover:bg-green-500/20 text-green-300 h-6 w-6"
+                aria-label="Copy transformed code"
+                onClick={handleCopyTransformed}
+              >
+                <CopyIcon className="w-3 h-3" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hover:bg-green-500/20 text-green-300 h-6 w-6"
+                aria-label="Download transformed code"
+                onClick={handleDownloadTransformed}
+              >
+                <Download className="w-3 h-3" />
+              </Button>
+            </div>
           </div>
           <div className="flex-1 p-4 overflow-auto bg-[#141a14] min-h-0">
             <pre className="text-sm text-green-100 whitespace-pre-wrap">
@@ -100,15 +143,26 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
               <div className="w-2 h-2 bg-red-400 rounded-full"></div>
               <span className="text-sm font-medium text-red-200">Original</span>
             </div>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="hover:bg-red-500/20 text-red-300 h-6 w-6"
-              aria-label="Copy original code"
-              onClick={handleCopyOriginal}
-            >
-              <CopyIcon className="w-3 h-3" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hover:bg-red-500/20 text-red-300 h-6 w-6"
+                aria-label="Copy original code"
+                onClick={handleCopyOriginal}
+              >
+                <CopyIcon className="w-3 h-3" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="hover:bg-red-500/20 text-red-300 h-6 w-6"
+                aria-label="Download original code"
+                onClick={handleDownloadOriginal}
+              >
+                <Download className="w-3 h-3" />
+              </Button>
+            </div>
           </div>
           <div className="flex-1 p-4 overflow-auto bg-[#1a1416] min-h-0">
             <pre className="text-sm text-red-100 whitespace-pre-wrap">

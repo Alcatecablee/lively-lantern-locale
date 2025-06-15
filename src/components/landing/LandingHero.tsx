@@ -25,7 +25,7 @@ export function LandingHero() {
       </div>
       <Button
         className="w-full max-w-xs py-4 text-lg rounded-xl bg-[#292939] hover:bg-[#434455] mb-8 shadow-cursor-glass active:scale-98 transition-all touch-manipulation text-white border border-[#342d66]"
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/app")}
         size="lg"
       >
         <ArrowRight className="mr-2" />

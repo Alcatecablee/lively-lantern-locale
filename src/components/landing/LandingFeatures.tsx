@@ -4,37 +4,37 @@ import { Badge } from "@/components/ui/badge";
 
 const LAYERS = [
   {
-    name: "Configuration Optimization (LIVE)",
+    name: "ConfigMaster",
     description:
       "Modernizes TypeScript, Next.js, and package.json configs for maximum compatibility and best practices.",
     status: "live",
   },
   {
-    name: "Project Entities Refactor",
+    name: "PatternCleanse",
     description:
       "Cleans and restructures code entities for maintainability and clarity.",
     status: "soon",
   },
   {
-    name: "Component Enhancement",
+    name: "ReactRepair",
     description:
       "Improves React components with smart rewrites, import fixing, and missing key detection.",
     status: "soon",
   },
   {
-    name: "Hydration & Runtime Fixes",
+    name: "HydraFix",
     description:
       "Detects and fixes hydration and SSR bugs for flawless React/Next.js deployments.",
     status: "soon",
   },
   {
-    name: "Next.js Optimization",
+    name: "NextGuard",
     description:
       "Enforces Next.js conventions and integrates optimization strategies automatically.",
     status: "soon",
   },
   {
-    name: "Testing Validation",
+    name: "TestReady",
     description:
       "Ensures components and configs are test-ready with basic static analysis.",
     status: "soon",
@@ -126,3 +126,4 @@ export function LandingFeatures() {
     </section>
   );
 }
+

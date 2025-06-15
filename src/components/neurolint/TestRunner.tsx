@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -9,8 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlayCircle, CheckCircle, XCircle, Clock, Code, Zap, Settings } from 'lucide-react';
-import { NeuroLintOrchestrator } from '@/lib/neurolint/orchestrator';
+import { NeuroLintOrchestrator, LAYER_LIST } from '@/lib/neurolint/orchestrator';
 import { TEST_CASES, validateTestResult, TestResult } from '@/lib/neurolint/testSuite';
+import { LayerSelector } from './LayerSelector';
 
 export function TestRunner() {
   const [isRunning, setIsRunning] = useState(false);
@@ -18,13 +18,20 @@ export function TestRunner() {
   const [currentTest, setCurrentTest] = useState<string>('');
   const [progress, setProgress] = useState(0);
   const [useAST, setUseAST] = useState(true);
+  // Track enabled layers
+  const [enabledLayers, setEnabledLayers] = useState(LAYER_LIST.map(l => l.id));
+
+  // Store per-layer pipeline output for each test
+  const [pipelineStates, setPipelineStates] = useState<string[][]>([]);
 
   const runAllTests = async () => {
     setIsRunning(true);
     setResults([]);
     setProgress(0);
+    setPipelineStates([]);
 
     const testResults: TestResult[] = [];
+    const layerPipelines: string[][] = [];
 
     for (let i = 0; i < TEST_CASES.length; i++) {
       const testCase = TEST_CASES[i];
@@ -32,9 +39,14 @@ export function TestRunner() {
       setProgress((i / TEST_CASES.length) * 100);
 
       const startTime = Date.now();
-      
       try {
-        const { transformed } = await NeuroLintOrchestrator(testCase.input, undefined, useAST);
+        // Pass enabledLayers to orchestrator
+        const { transformed, layers, layerOutputs } = await NeuroLintOrchestrator(
+          testCase.input,
+          undefined,
+          useAST,
+          enabledLayers
+        );
         const validation = validateTestResult(testCase, transformed);
         const executionTime = Date.now() - startTime;
 
@@ -44,8 +56,10 @@ export function TestRunner() {
           passed: validation.passed,
           detectedFixes: validation.detectedFixes,
           missingFixes: validation.missingFixes,
-          executionTime
+          executionTime,
+          // Optionally could attach layers here
         });
+        layerPipelines.push(layerOutputs);
       } catch (error) {
         const executionTime = Date.now() - startTime;
         testResults.push({
@@ -56,9 +70,10 @@ export function TestRunner() {
           missingFixes: testCase.expectedFixes,
           executionTime
         });
+        layerPipelines.push([testCase.input]);
       }
-
       setResults([...testResults]);
+      setPipelineStates([...layerPipelines]);
     }
 
     setProgress(100);
@@ -83,14 +98,26 @@ export function TestRunner() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Layer selector UI */}
+          <div className="my-3 flex flex-col sm:flex-row gap-3 items-center">
+            <LayerSelector enabledLayers={enabledLayers} setEnabledLayers={setEnabledLayers} />
+            <Button
+              variant="outline"
+              onClick={() => setEnabledLayers(LAYER_LIST.map(l => l.id))}
+              disabled={enabledLayers.length === LAYER_LIST.length}
+              className="ml-auto"
+            >
+              All Layers
+            </Button>
+          </div>
           <div className="flex items-center gap-4 mb-4">
             <Button 
               onClick={runAllTests} 
-              disabled={isRunning}
+              disabled={isRunning || enabledLayers.length === 0}
               className="flex items-center gap-2"
             >
               <PlayCircle className="w-4 h-4" />
-              {isRunning ? 'Running Tests...' : 'Run All Tests'}
+              {isRunning ? 'Running Tests...' : `Run ${enabledLayers.length === LAYER_LIST.length ? "All" : "Selected"} Layer${enabledLayers.length !== 1 ? "s" : ""} Tests`}
             </Button>
             
             <Button
@@ -150,6 +177,32 @@ export function TestRunner() {
                 <p className="text-sm text-muted-foreground mb-4">
                   {result.testCase.description}
                 </p>
+                {/* Pipeline diffs */}
+                {pipelineStates[index] && pipelineStates[index].length > 1 && (
+                  <div className="mb-4">
+                    <div className="flex flex-col md:flex-row gap-2">
+                      {pipelineStates[index].map((codeSnap, i) => (
+                        <div key={i} className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {i === 0 ? "Original" : `After L${enabledLayers[i - 1]}`}
+                            </Badge>
+                            {i > 0 && (
+                              <span className="text-xs text-muted-foreground">
+                                {LAYER_LIST.find(l => l.id === enabledLayers[i - 1])?.name}
+                              </span>
+                            )}
+                          </div>
+                          <ScrollArea className="h-28 rounded border bg-muted p-1">
+                            <pre className="text-xs whitespace-pre-wrap break-all">
+                              <code>{codeSnap}</code>
+                            </pre>
+                          </ScrollArea>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <Tabs defaultValue="results">
                   <TabsList>

@@ -1,10 +1,9 @@
-
 export interface TestCase {
   name: string;
   description: string;
   input: string;
   expectedFixes: string[];
-  category: 'basic' | 'entities' | 'hydration' | 'accessibility' | 'duplicates' | 'nextjs';
+  category: 'basic' | 'entities' | 'hydration' | 'accessibility' | 'duplicates' | 'nextjs' | 'jsx-integrity';
 }
 
 export interface TestResult {
@@ -14,6 +13,7 @@ export interface TestResult {
   detectedFixes: string[];
   missingFixes: string[];
   executionTime: number;
+  jsxIntegrity?: boolean;
 }
 
 export const TEST_CASES: TestCase[] = [
@@ -135,6 +135,32 @@ function EntityTest() {
       'Added use client directive',
       'Added missing imports'
     ]
+  },
+
+  {
+    name: "JSX Integrity Test",
+    description: "Tests that JSX elements remain valid after transformation",
+    category: 'jsx-integrity',
+    input: `function ComplexComponent() {
+  const [count, setCount] = useState(0);
+  
+  return (
+    <div className="container">
+      <button onClick={() => setCount(count + 1)}>
+        Count: {count}
+      </button>
+      <div>
+        {Array.from({length: 3}).map((_, index) => (
+          <span key={index}>Item {index}</span>
+        ))}
+      </div>
+    </div>
+  );
+}`,
+    expectedFixes: [
+      'Added use client directive',
+      'Added missing imports'
+    ]
   }
 ];
 
@@ -159,6 +185,21 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
     'Converted var to const': !transformedCode.includes('var ') && transformedCode.includes('const ')
   };
 
+  // JSX integrity checks
+  const jsxCorruptionPatterns = [
+    /onClick=\{[^}]*\)\s*=>\s*\(\)\s*=>/g, // Malformed onClick handlers
+    /return\s+"[^"]*className/g, // JSX turned into strings
+    /\(\s*e:\s*React\.MouseEvent\s*\)\s*=>\s*\(\)\s*=>/g, // Corrupted event handlers
+  ];
+
+  let hasJSXCorruption = false;
+  for (const pattern of jsxCorruptionPatterns) {
+    if (pattern.test(transformedCode)) {
+      hasJSXCorruption = true;
+      break;
+    }
+  }
+
   testCase.expectedFixes.forEach(expectedFix => {
     if (checks[expectedFix as keyof typeof checks]) {
       detectedFixes.push(expectedFix);
@@ -167,7 +208,8 @@ export function validateTestResult(testCase: TestCase, transformedCode: string):
     }
   });
 
-  const passed = missingFixes.length === 0;
+  // Fail the test if JSX was corrupted, regardless of other fixes
+  const passed = missingFixes.length === 0 && !hasJSXCorruption;
   
   return { passed, detectedFixes, missingFixes };
 }

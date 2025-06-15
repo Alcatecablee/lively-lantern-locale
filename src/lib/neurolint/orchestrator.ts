@@ -3,9 +3,9 @@ import * as layer2 from "./layers/layer-2-entities";
 import * as layer3 from "./layers/layer-3-components";
 import * as layer4 from "./layers/layer-4-hydration";
 import * as layer5 from "./layers/layer-5-nextjs";
-import * as layer6 from "./layers/layer-6-testing";
 import { transformWithAST } from "./ast/orchestrator";
 import { NeuroLintLayerResult } from "./types";
+import { validateJSXIntegrity } from "./validation/jsx-validator";
 
 // Enhanced orchestrator with AST-based transformations and fallbacks
 const layers = [
@@ -39,13 +39,8 @@ const layers = [
     fn: layer5.transform,
     name: "Next.js App Router Optimization",
     description: "Fixes 'use client' placement, import corruption, and App Router patterns.",
-    astSupported: false,
-  },
-  {
-    fn: layer6.transform,
-    name: "Testing & Validation Enhancement",
-    description: "Adds error boundaries, prop validation, loading states, and performance optimizations.",
-    astSupported: false,
+    astSupported: true,
+    astLayerName: "layer-5-nextjs",
   },
 ];
 
@@ -82,6 +77,14 @@ export async function NeuroLintOrchestrator(
         next = await layer.fn(current, filePath);
       }
       
+      // Validate JSX integrity after transformation
+      const jsxValidation = validateJSXIntegrity(previous, next);
+      if (!jsxValidation.isValid) {
+        console.warn(`JSX validation failed for ${layer.name}:`, jsxValidation.errors);
+        // Revert to previous code if JSX was corrupted
+        next = previous;
+      }
+      
       const executionTime = Date.now() - startTime;
       const changeCount = calculateChanges(previous, next);
       
@@ -89,7 +92,7 @@ export async function NeuroLintOrchestrator(
         name: layer.name,
         description: layer.description,
         code: next,
-        success: true,
+        success: jsxValidation.isValid,
         executionTime,
         changeCount,
         improvements: detectImprovements(previous, next, usedAST),

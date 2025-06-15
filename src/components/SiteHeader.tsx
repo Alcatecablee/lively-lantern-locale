@@ -1,10 +1,11 @@
+
 import { Link, useLocation } from "react-router-dom";
 
 export function SiteHeader() {
   const location = useLocation();
   return (
     <header className="sticky top-0 z-40 w-full bg-black/80 border-b border-[#292939] backdrop-blur-lg px-4 py-2 flex items-center justify-between">
-      <div className="flex items-center gap-2">
+      <Link to="/" className="flex items-center gap-2">
         <img
           src="/lovable-uploads/e4414bf6-9b0f-4b32-812b-7ae83d8c6a85.png"
           alt="NeuroLint logo"
@@ -15,7 +16,7 @@ export function SiteHeader() {
         <span className="font-bold text-white text-2xl tracking-tight bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent select-none">
           NeuroLint
         </span>
-      </div>
+      </Link>
       <nav className="flex gap-2 sm:gap-4">
         <Link
           to="/app"

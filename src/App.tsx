@@ -25,6 +25,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/test" element={<TestSuite />} />
               <Route path="/landing" element={<Landing />} />
+              <Route path="/docs" element={<import('./pages/Docs').then(m => m.default)} /> 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

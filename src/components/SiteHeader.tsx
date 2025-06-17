@@ -1,28 +1,130 @@
-import { Link, useLocation } from "react-router-dom";
-export function SiteHeader() {
-  const location = useLocation();
-  return <header className="sticky top-0 z-40 w-full bg-black/80 border-b border-[#292939] backdrop-blur-lg px-4 py-2 flex items-center justify-between">
-      <Link to="/" className="flex items-center gap-2">
-        <img src="/lovable-uploads/e4414bf6-9b0f-4b32-812b-7ae83d8c6a85.png" alt="NeuroLint logo" className="w-9 h-9 sm:w-10 sm:h-10" draggable={false} loading="eager" />
-        
-      </Link>
-      <nav className="flex gap-2 sm:gap-4">
-        <Link to="/app" className={`text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400
-           ${location.pathname === "/app" ? "bg-[#22242B]" : ""}`}>
-          Workflow
-        </Link>
-        <Link to="/landing" className={`text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400
-           ${location.pathname === "/landing" || location.pathname === "/" ? "bg-[#22242B]" : ""}`}>
-          Landing
-        </Link>
-        <Link to="/docs" className={`text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400
-           ${location.pathname === "/docs" ? "bg-[#22242B]" : ""}`}>
-          Docs
-        </Link>
-        <Link to="/test" className={`text-gray-300 hover:text-white font-medium transition-colors px-2 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400
-           ${location.pathname === "/test" ? "bg-[#22242B]" : ""}`}>
-          Test Lab
-        </Link>
-      </nav>
-    </header>;
-}
+
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Brain, Menu, X } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { SignInButton } from "@/components/auth/SignInButton";
+import { UserButton } from "@/components/auth/UserButton";
+
+export const SiteHeader = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, loading } = useAuth();
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  return (
+    <header className="relative z-50 w-full border-b border-gray-800 bg-black/20 backdrop-blur-lg">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <Brain className="h-8 w-8 text-purple-400" />
+              <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                NeuroLint
+              </span>
+            </Link>
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link to="/app" className="text-gray-300 hover:text-white transition-colors">
+              App
+            </Link>
+            <Link to="/docs" className="text-gray-300 hover:text-white transition-colors">
+              Docs
+            </Link>
+            <Link to="/pricing" className="text-gray-300 hover:text-white transition-colors">
+              Pricing
+            </Link>
+            <Link to="/test" className="text-gray-300 hover:text-white transition-colors">
+              Test Suite
+            </Link>
+            {isAuthenticated && (
+              <Link to="/billing" className="text-gray-300 hover:text-white transition-colors">
+                Billing
+              </Link>
+            )}
+          </nav>
+
+          {/* Auth Section */}
+          <div className="hidden md:flex items-center space-x-4">
+            {loading ? (
+              <div className="w-8 h-8 rounded-full bg-gray-700 animate-pulse" />
+            ) : isAuthenticated ? (
+              <UserButton />
+            ) : (
+              <SignInButton />
+            )}
+          </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleMenu}
+              className="text-gray-300 hover:text-white"
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-800 bg-black/40 backdrop-blur-lg">
+              <Link
+                to="/app"
+                className="block px-3 py-2 text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                App
+              </Link>
+              <Link
+                to="/docs"
+                className="block px-3 py-2 text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Docs
+              </Link>
+              <Link
+                to="/pricing"
+                className="block px-3 py-2 text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Pricing
+              </Link>
+              <Link
+                to="/test"
+                className="block px-3 py-2 text-gray-300 hover:text-white transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Test Suite
+              </Link>
+              {isAuthenticated && (
+                <Link
+                  to="/billing"
+                  className="block px-3 py-2 text-gray-300 hover:text-white transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Billing
+                </Link>
+              )}
+              <div className="px-3 py-2">
+                {loading ? (
+                  <div className="w-8 h-8 rounded-full bg-gray-700 animate-pulse" />
+                ) : isAuthenticated ? (
+                  <UserButton />
+                ) : (
+                  <SignInButton />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+};

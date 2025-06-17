@@ -1345,6 +1345,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string | null
+          description: string | null
+          id: string
+          payment_type: string | null
+          paypal_payment_id: string
+          status: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          payment_type?: string | null
+          paypal_payment_id: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          id?: string
+          payment_type?: string | null
+          paypal_payment_id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_metrics: {
         Row: {
           component: string | null
@@ -1987,6 +2034,94 @@ export type Database = {
         }
         Relationships: []
       }
+      transformations: {
+        Row: {
+          changes_count: number | null
+          created_at: string
+          error_message: string | null
+          execution_time_ms: number | null
+          file_name: string | null
+          guest_session_id: string | null
+          id: string
+          is_guest: boolean | null
+          layers_used: number[] | null
+          original_code_length: number | null
+          success: boolean | null
+          transformed_code_length: number | null
+          user_id: string | null
+        }
+        Insert: {
+          changes_count?: number | null
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          file_name?: string | null
+          guest_session_id?: string | null
+          id?: string
+          is_guest?: boolean | null
+          layers_used?: number[] | null
+          original_code_length?: number | null
+          success?: boolean | null
+          transformed_code_length?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          changes_count?: number | null
+          created_at?: string
+          error_message?: string | null
+          execution_time_ms?: number | null
+          file_name?: string | null
+          guest_session_id?: string | null
+          id?: string
+          is_guest?: boolean | null
+          layers_used?: number[] | null
+          original_code_length?: number | null
+          success?: boolean | null
+          transformed_code_length?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transformations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_analytics: {
+        Row: {
+          date: string
+          id: string
+          total_execution_time_ms: number | null
+          transformations_count: number | null
+          user_id: string | null
+        }
+        Insert: {
+          date?: string
+          id?: string
+          total_execution_time_ms?: number | null
+          transformations_count?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          date?: string
+          id?: string
+          total_execution_time_ms?: number | null
+          transformations_count?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_analytics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_tracking: {
         Row: {
           analyses_count: number | null
@@ -2147,6 +2282,42 @@ export type Database = {
         }
         Relationships: []
       }
+      users: {
+        Row: {
+          clerk_id: string
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          monthly_limit: number | null
+          monthly_transformations_used: number | null
+          plan_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          clerk_id: string
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          monthly_limit?: number | null
+          monthly_transformations_used?: number | null
+          plan_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          clerk_id?: string
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          monthly_limit?: number | null
+          monthly_transformations_used?: number | null
+          plan_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       analysis_projects_with_profiles: {
@@ -2212,12 +2383,20 @@ export type Database = {
           owner_name: string
         }[]
       }
+      increment_monthly_usage: {
+        Args: { clerk_user_id: string }
+        Returns: boolean
+      }
       is_admin: {
         Args: { user_id?: string }
         Returns: boolean
       }
       make_user_admin: {
         Args: { user_email: string }
+        Returns: undefined
+      }
+      reset_monthly_usage: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       track_learning_event: {

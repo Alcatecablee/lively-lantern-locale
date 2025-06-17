@@ -54,14 +54,14 @@ export function PayPalSubscription({ plan, onSuccess, onCancel }: PayPalSubscrip
 
       if (error) throw error;
 
-      // Record the subscription
+      // Record the subscription using the correct table structure
       await supabase.from('subscriptions').insert({
         user_id: user?.id,
-        plan_type: plan,
+        plan: plan, // Use 'plan' instead of 'plan_type'
         paypal_subscription_id: data.subscriptionID,
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        amount_cents: planData.price * 100,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        amount: planData.price,
       });
 
       toast({

@@ -11,7 +11,7 @@ export function ClerkProvider({ children }: ClerkProviderProps) {
     <ClerkAuthProvider
       publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
       appearance={{
-        baseTheme: 'dark',
+        baseTheme: undefined, // Remove the 'dark' string that's causing the error
         variables: {
           colorPrimary: '#7c3aed',
         },

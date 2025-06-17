@@ -22,12 +22,6 @@ export function useAuth() {
 
   useEffect(() => {
     if (isSignedIn && user) {
-      // Set Clerk ID for RLS
-      supabase.rpc('set_config', {
-        parameter: 'app.current_user_clerk_id',
-        value: user.id
-      });
-
       syncUser();
     } else {
       setUserData(null);
@@ -47,7 +41,7 @@ export function useAuth() {
         .single();
 
       if (existingUser) {
-        setUserData(existingUser);
+        setUserData(existingUser as UserData);
       } else {
         // Create new user
         const { data: newUser, error: createError } = await supabase
@@ -68,7 +62,7 @@ export function useAuth() {
             variant: "destructive"
           });
         } else {
-          setUserData(newUser);
+          setUserData(newUser as UserData);
         }
       }
     } catch (error) {

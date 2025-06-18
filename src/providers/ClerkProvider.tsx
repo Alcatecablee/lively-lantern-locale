@@ -9,9 +9,9 @@ interface ClerkProviderProps {
 export function ClerkProvider({ children }: ClerkProviderProps) {
   return (
     <ClerkAuthProvider
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}
+      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''}
       appearance={{
-        baseTheme: undefined, // Remove the 'dark' string that's causing the error
+        baseTheme: undefined,
         variables: {
           colorPrimary: '#7c3aed',
         },

@@ -1,0 +1,32 @@
+
+{
+  "name": "neurolint-cli",
+  "version": "1.0.0",
+  "description": "NeuroLint CLI - Automated code fixing for React/Next.js projects",
+  "main": "index.js",
+  "bin": {
+    "neurolint": "./neurolint-cli.js"
+  },
+  "scripts": {
+    "build": "node build.js",
+    "test": "node test.js"
+  },
+  "keywords": [
+    "code-fixing",
+    "react",
+    "nextjs",
+    "typescript",
+    "linting",
+    "automation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.0.0",
+    "glob": "^10.3.0",
+    "chalk": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

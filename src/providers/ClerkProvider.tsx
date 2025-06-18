@@ -7,9 +7,17 @@ interface ClerkProviderProps {
 }
 
 export function ClerkProvider({ children }: ClerkProviderProps) {
+  const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+  // If no Clerk key is provided, render children without Clerk provider
+  if (!publishableKey) {
+    console.warn('VITE_CLERK_PUBLISHABLE_KEY is not set. Authentication features will be disabled.');
+    return <>{children}</>;
+  }
+
   return (
     <ClerkAuthProvider
-      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''}
+      publishableKey={publishableKey}
       appearance={{
         baseTheme: undefined,
         variables: {

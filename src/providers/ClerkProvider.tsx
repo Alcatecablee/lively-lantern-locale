@@ -1,5 +1,5 @@
 
-import { ClerkProvider as ClerkAuthProvider } from '@clerk/nextjs';
+import { ClerkProvider as ClerkAuthProvider } from '@clerk/clerk-react';
 import { ReactNode } from 'react';
 
 interface ClerkProviderProps {

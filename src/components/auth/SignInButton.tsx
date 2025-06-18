@@ -1,5 +1,5 @@
 
-import { SignInButton as ClerkSignInButton } from '@clerk/nextjs';
+import { SignInButton as ClerkSignInButton } from '@clerk/clerk-react';
 import { Button } from '@/components/ui/button';
 import { LogIn } from 'lucide-react';
 

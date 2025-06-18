@@ -1,11 +1,11 @@
 
-import { UserButton as ClerkUserButton } from '@clerk/nextjs';
+import { UserButton as ClerkUserButton } from '@clerk/clerk-react';
 
 export function UserButton() {
   return (
     <ClerkUserButton
       appearance={{
-        baseTheme: undefined, // Remove the 'dark' string that's causing the error
+        baseTheme: undefined,
         elements: {
           avatarBox: 'w-8 h-8',
         },

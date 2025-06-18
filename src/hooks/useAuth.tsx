@@ -1,5 +1,4 @@
-
-import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs';
+import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';

@@ -271,6 +271,7 @@ export type Database = {
           response_data: Json | null
           response_time_ms: number | null
           status_code: number | null
+          user_id: string | null
         }
         Insert: {
           api_key_id: string
@@ -282,6 +283,7 @@ export type Database = {
           response_data?: Json | null
           response_time_ms?: number | null
           status_code?: number | null
+          user_id?: string | null
         }
         Update: {
           api_key_id?: string
@@ -293,6 +295,7 @@ export type Database = {
           response_data?: Json | null
           response_time_ms?: number | null
           status_code?: number | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1840,30 +1843,39 @@ export type Database = {
       team_analysis_history: {
         Row: {
           analysis_type: string | null
+          diff: string | null
           id: string
           metrics: Json | null
+          original_code: string | null
           performed_by: string | null
           project_id: string | null
           shared_at: string | null
           team_id: string | null
+          transformed_code: string | null
         }
         Insert: {
           analysis_type?: string | null
+          diff?: string | null
           id?: string
           metrics?: Json | null
+          original_code?: string | null
           performed_by?: string | null
           project_id?: string | null
           shared_at?: string | null
           team_id?: string | null
+          transformed_code?: string | null
         }
         Update: {
           analysis_type?: string | null
+          diff?: string | null
           id?: string
           metrics?: Json | null
+          original_code?: string | null
           performed_by?: string | null
           project_id?: string | null
           shared_at?: string | null
           team_id?: string | null
+          transformed_code?: string | null
         }
         Relationships: [
           {
@@ -2001,6 +2013,7 @@ export type Database = {
           name: string
           owner_id: string | null
           settings: Json | null
+          style_profile: Json | null
           subscription_id: string | null
           subscription_plan: string | null
           subscription_status: string | null
@@ -2014,6 +2027,7 @@ export type Database = {
           name: string
           owner_id?: string | null
           settings?: Json | null
+          style_profile?: Json | null
           subscription_id?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null
@@ -2027,6 +2041,7 @@ export type Database = {
           name?: string
           owner_id?: string | null
           settings?: Json | null
+          style_profile?: Json | null
           subscription_id?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null

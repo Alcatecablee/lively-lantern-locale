@@ -1,17 +1,18 @@
-import * as React from "react";
-import * as MenubarPrimitive from "@radix-ui/react-menubar";
-import { Check, ChevronRight, Circle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import * as MenubarPrimitive from "@radix-ui/react-menubar"
+import { Check, ChevronRight, Circle } from "lucide-react"
 
-const MenubarMenu = MenubarPrimitive.Menu;
+import { cn } from "@/lib/utils"
 
-const MenubarGroup = MenubarPrimitive.Group;
+const MenubarMenu = MenubarPrimitive.Menu
 
-const MenubarPortal = MenubarPrimitive.Portal;
+const MenubarGroup = MenubarPrimitive.Group
 
-const MenubarSub = MenubarPrimitive.Sub;
+const MenubarPortal = MenubarPrimitive.Portal
 
-const MenubarRadioGroup = MenubarPrimitive.RadioGroup;
+const MenubarSub = MenubarPrimitive.Sub
+
+const MenubarRadioGroup = MenubarPrimitive.RadioGroup
 
 const Menubar = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Root>,
@@ -45,7 +46,7 @@ MenubarTrigger.displayName = MenubarPrimitive.Trigger.displayName
 
 const MenubarSubTrigger = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubTrigger> & {}
+  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.SubTrigger> & {
     inset?: boolean
   }
 >(({ className, inset, children, ...props }, ref) => (
@@ -106,7 +107,7 @@ MenubarContent.displayName = MenubarPrimitive.Content.displayName
 
 const MenubarItem = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Item> & {}
+  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Item> & {
     inset?: boolean
   }
 >(({ className, inset, ...props }, ref) => (
@@ -169,7 +170,7 @@ MenubarRadioItem.displayName = MenubarPrimitive.RadioItem.displayName
 
 const MenubarLabel = React.forwardRef<
   React.ElementRef<typeof MenubarPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Label> & {}
+  React.ComponentPropsWithoutRef<typeof MenubarPrimitive.Label> & {
     inset?: boolean
   }
 >(({ className, inset, ...props }, ref) => (
@@ -207,10 +208,10 @@ const MenubarShortcut = ({
         "ml-auto text-xs tracking-widest text-muted-foreground",
         className
       )}
-      {...props
+      {...props}
     />
   )
-
+}
 MenubarShortcut.displayname = "MenubarShortcut"
 
 export {
@@ -230,3 +231,4 @@ export {
   MenubarGroup,
   MenubarSub,
   MenubarShortcut,
+}

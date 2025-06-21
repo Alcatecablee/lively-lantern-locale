@@ -271,7 +271,6 @@ export type Database = {
           response_data: Json | null
           response_time_ms: number | null
           status_code: number | null
-          user_id: string | null
         }
         Insert: {
           api_key_id: string
@@ -283,7 +282,6 @@ export type Database = {
           response_data?: Json | null
           response_time_ms?: number | null
           status_code?: number | null
-          user_id?: string | null
         }
         Update: {
           api_key_id?: string
@@ -295,7 +293,6 @@ export type Database = {
           response_data?: Json | null
           response_time_ms?: number | null
           status_code?: number | null
-          user_id?: string | null
         }
         Relationships: [
           {
@@ -1619,59 +1616,6 @@ export type Database = {
         }
         Relationships: []
       }
-      style_profile_rules: {
-        Row: {
-          auto_fixable: boolean | null
-          category: string
-          created_at: string | null
-          fix_pattern: string | null
-          id: string
-          is_active: boolean | null
-          message: string
-          pattern: string
-          profile_id: string | null
-          rule_type: string
-          severity: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          auto_fixable?: boolean | null
-          category: string
-          created_at?: string | null
-          fix_pattern?: string | null
-          id?: string
-          is_active?: boolean | null
-          message: string
-          pattern: string
-          profile_id?: string | null
-          rule_type: string
-          severity?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          auto_fixable?: boolean | null
-          category?: string
-          created_at?: string | null
-          fix_pattern?: string | null
-          id?: string
-          is_active?: boolean | null
-          message?: string
-          pattern?: string
-          profile_id?: string | null
-          rule_type?: string
-          severity?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "style_profile_rules_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "team_style_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       subscriptions: {
         Row: {
           amount: number | null
@@ -1896,39 +1840,30 @@ export type Database = {
       team_analysis_history: {
         Row: {
           analysis_type: string | null
-          diff: string | null
           id: string
           metrics: Json | null
-          original_code: string | null
           performed_by: string | null
           project_id: string | null
           shared_at: string | null
           team_id: string | null
-          transformed_code: string | null
         }
         Insert: {
           analysis_type?: string | null
-          diff?: string | null
           id?: string
           metrics?: Json | null
-          original_code?: string | null
           performed_by?: string | null
           project_id?: string | null
           shared_at?: string | null
           team_id?: string | null
-          transformed_code?: string | null
         }
         Update: {
           analysis_type?: string | null
-          diff?: string | null
           id?: string
           metrics?: Json | null
-          original_code?: string | null
           performed_by?: string | null
           project_id?: string | null
           shared_at?: string | null
           team_id?: string | null
-          transformed_code?: string | null
         }
         Relationships: [
           {
@@ -2057,59 +1992,6 @@ export type Database = {
           },
         ]
       }
-      team_style_profiles: {
-        Row: {
-          accessibility_patterns: Json | null
-          coding_style: Json | null
-          component_patterns: Json | null
-          created_at: string | null
-          file_organization: Json | null
-          id: string
-          naming_patterns: Json | null
-          performance_patterns: Json | null
-          state_management: Json | null
-          team_id: string | null
-          testing_approach: Json | null
-          updated_at: string | null
-        }
-        Insert: {
-          accessibility_patterns?: Json | null
-          coding_style?: Json | null
-          component_patterns?: Json | null
-          created_at?: string | null
-          file_organization?: Json | null
-          id?: string
-          naming_patterns?: Json | null
-          performance_patterns?: Json | null
-          state_management?: Json | null
-          team_id?: string | null
-          testing_approach?: Json | null
-          updated_at?: string | null
-        }
-        Update: {
-          accessibility_patterns?: Json | null
-          coding_style?: Json | null
-          component_patterns?: Json | null
-          created_at?: string | null
-          file_organization?: Json | null
-          id?: string
-          naming_patterns?: Json | null
-          performance_patterns?: Json | null
-          state_management?: Json | null
-          team_id?: string | null
-          testing_approach?: Json | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_style_profiles_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       teams: {
         Row: {
           created_at: string | null
@@ -2119,7 +2001,6 @@ export type Database = {
           name: string
           owner_id: string | null
           settings: Json | null
-          style_profile: Json | null
           subscription_id: string | null
           subscription_plan: string | null
           subscription_status: string | null
@@ -2133,7 +2014,6 @@ export type Database = {
           name: string
           owner_id?: string | null
           settings?: Json | null
-          style_profile?: Json | null
           subscription_id?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null
@@ -2147,7 +2027,6 @@ export type Database = {
           name?: string
           owner_id?: string | null
           settings?: Json | null
-          style_profile?: Json | null
           subscription_id?: string | null
           subscription_plan?: string | null
           subscription_status?: string | null
@@ -2463,29 +2342,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "analysis_projects_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      memberships: {
-        Row: {
-          team_id: string | null
-          user_id: string | null
-        }
-        Insert: {
-          team_id?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          team_id?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_members_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"

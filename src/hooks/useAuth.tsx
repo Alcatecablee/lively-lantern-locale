@@ -1,145 +1,123 @@
-import { useState, useEffect, createContext, useContext } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  isLoading: boolean;
-  signOut: () => Promise<void>;
-  isAdmin: boolean;
+import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+export interface UserData {
+  id: string;
+  clerk_id: string;
+  email: string;
+  full_name: string | null;
+  plan_type: 'free' | 'pro' | 'enterprise';
+  monthly_transformations_used: number;
+  monthly_limit: number;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+export function useAuth() {
+  const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  
+  // Only use Clerk hooks if the key is available
+  const clerkUser = publishableKey ? useUser() : { isSignedIn: false, user: null };
+  const clerkAuth = publishableKey ? useClerkAuth() : { signOut: () => Promise.resolve() };
+  
+  const { isSignedIn, user } = clerkUser;
+  const { signOut } = clerkAuth;
+  
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
-    let currentUserId: string | null = null;
+    if (!publishableKey) {
+      setLoading(false);
+      return;
+    }
 
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!mounted) return;
+    if (isSignedIn && user) {
+      syncUser();
+    } else {
+      setUserData(null);
+      setLoading(false);
+    }
+  }, [isSignedIn, user, publishableKey]);
 
-        console.debug('Auth state change:', event, session);
+  const syncUser = async () => {
+    if (!user) return;
 
-        // Immediately reset admin state when user changes
-        const newUserId = session?.user?.id || null;
-        if (currentUserId !== newUserId) {
-          console.debug('User changed from', currentUserId, 'to', newUserId, '- resetting admin state');
-          currentUserId = newUserId;
-          if (mounted) {
-            setIsAdmin(false); // Always reset admin state first
-          }
-        }
+    try {
+      // First, try to get existing user
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('clerk_id', user.id)
+        .single();
 
-        setSession(session);
-        setUser(session?.user ?? null);
+      if (existingUser) {
+        setUserData(existingUser as UserData);
+      } else {
+        // Create new user
+        const { data: newUser, error: createError } = await supabase
+          .from('users')
+          .insert({
+            clerk_id: user.id,
+            email: user.primaryEmailAddress?.emailAddress || '',
+            full_name: user.fullName,
+          })
+          .select()
+          .single();
 
-        if (session?.user) {
-          // Check admin status after setting user (non-blocking)
-          checkAdminStatus(session.user.id);
+        if (createError) {
+          console.error('Error creating user:', createError);
+          toast({
+            title: "Error",
+            description: "Failed to create user account",
+            variant: "destructive"
+          });
         } else {
-          if (mounted) {
-            setIsAdmin(false);
-          }
-        }
-
-        if (mounted) {
-          setIsLoading(false); // Always set loading to false regardless of admin check
+          setUserData(newUser as UserData);
         }
       }
-    );
-
-    // Then get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (!mounted) return;
-
-      if (error) {
-        console.error('Error getting session:', error);
-      }
-
-      // Set initial user and reset admin state
-      const newUserId = session?.user?.id || null;
-      currentUserId = newUserId;
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsAdmin(false); // Always start with false
-
-      if (session?.user) {
-        // Check admin status (non-blocking)
-        checkAdminStatus(session.user.id);
-      }
-
-      setIsLoading(false); // Always set loading to false
-    });
-
-    const checkAdminStatus = async (userId: string) => {
-      try {
-        console.debug('Checking admin status for user:', userId);
-
-        // Use the security definer function to check admin status
-        const { data, error } = await supabase
-          .rpc('is_admin', { user_id: userId });
-
-        console.debug('Admin check result:', { data, error, userId });
-
-        if (mounted && currentUserId === userId) {
-          const adminStatus = data === true;
-          setIsAdmin(adminStatus);
-          console.debug('User', userId, 'is admin:', adminStatus);
-        } else {
-          console.debug('Skipping admin status update - user changed or component unmounted');
-        }
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        // Don't block the app if admin check fails
-        if (mounted && currentUserId === userId) {
-          setIsAdmin(false);
-        }
-      }
-    };
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const signOut = async () => {
-    // Reset admin state immediately when signing out
-    setIsAdmin(false);
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error('Error signing out:', error);
+    } catch (error) {
+      console.error('Error syncing user:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const value = {
-    user,
-    session,
-    isLoading,
-    signOut,
-    isAdmin
+  const canUseTransformation = () => {
+    if (!userData) return true; // Allow usage when not authenticated
+    if (userData.plan_type !== 'free') return true;
+    return userData.monthly_transformations_used < userData.monthly_limit;
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const incrementUsage = async () => {
+    if (!user) return false;
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+    try {
+      const { data, error } = await supabase.rpc('increment_monthly_usage', {
+        clerk_user_id: user.id
+      });
+
+      if (!error && data) {
+        // Refresh user data
+        syncUser();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error incrementing usage:', error);
+      return false;
+    }
+  };
+
+  return {
+    isAuthenticated: publishableKey ? isSignedIn : false,
+    user: userData,
+    clerkUser: user,
+    loading,
+    signOut,
+    canUseTransformation,
+    incrementUsage,
+    syncUser,
+  };
+}

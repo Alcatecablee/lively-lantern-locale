@@ -1,12 +1,13 @@
-import { NeuroLint } from "@/components/NeuroLint";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  return (
-    <ErrorBoundary>
-      <NeuroLint />
-    </ErrorBoundary>
-  );
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate("/landing", { replace: true });
+  }, [navigate]);
+  return null;
 };
 
 export default Index;

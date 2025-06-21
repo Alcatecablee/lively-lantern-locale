@@ -1,3 +1,4 @@
+
 #!/usr/bin/env node
 
 const fs = require('fs');
@@ -99,7 +100,7 @@ program
 
     for (const test of testCases) {
       try {
-        const result = await processCode(test.input, 'test.tsx', [1,2,3,4,5,6]);
+        const result = await processCode(test.input, 'test.tsx', [1,2,3,4]);
         
         if (result.transformed.includes(test.expected)) {
           passed++;
@@ -134,7 +135,7 @@ program
     console.log(chalk.blue('🚀 Initializing NeuroLint...'));
     
     const config = {
-      layers: [1, 2, 3, 4, 5, 6],
+      layers: [1, 2, 3, 4],
       exclude: [
         "node_modules/**",
         "dist/**", 
@@ -217,7 +218,7 @@ async function processFile(filePath, layers, options) {
 }
 
 // Simplified version of your orchestrator logic
-async function processCode(code, filePath, layers = [1,2,3,4,5,6]) {
+async function processCode(code, filePath, layers = [1,2,3,4]) {
   let transformed = code;
   const results = [];
   

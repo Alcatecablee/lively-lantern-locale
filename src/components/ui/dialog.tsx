@@ -1,15 +1,16 @@
-import * as React from "react";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+import { X } from "lucide-react"
 
-const Dialog = DialogPrimitive.Root;
+import { cn } from "@/lib/utils"
 
-const DialogTrigger = DialogPrimitive.Trigger;
+const Dialog = DialogPrimitive.Root
 
-const DialogPortal = DialogPrimitive.Portal;
+const DialogTrigger = DialogPrimitive.Trigger
 
-const DialogClose = DialogPrimitive.Close;
+const DialogPortal = DialogPrimitive.Portal
+
+const DialogClose = DialogPrimitive.Close
 
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,

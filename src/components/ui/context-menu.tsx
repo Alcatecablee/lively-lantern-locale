@@ -1,23 +1,24 @@
-import * as React from "react";
-import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
-import { Check, ChevronRight, Circle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import * as ContextMenuPrimitive from "@radix-ui/react-context-menu"
+import { Check, ChevronRight, Circle } from "lucide-react"
 
-const ContextMenu = ContextMenuPrimitive.Root;
+import { cn } from "@/lib/utils"
 
-const ContextMenuTrigger = ContextMenuPrimitive.Trigger;
+const ContextMenu = ContextMenuPrimitive.Root
 
-const ContextMenuGroup = ContextMenuPrimitive.Group;
+const ContextMenuTrigger = ContextMenuPrimitive.Trigger
 
-const ContextMenuPortal = ContextMenuPrimitive.Portal;
+const ContextMenuGroup = ContextMenuPrimitive.Group
 
-const ContextMenuSub = ContextMenuPrimitive.Sub;
+const ContextMenuPortal = ContextMenuPrimitive.Portal
 
-const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup;
+const ContextMenuSub = ContextMenuPrimitive.Sub
+
+const ContextMenuRadioGroup = ContextMenuPrimitive.RadioGroup
 
 const ContextMenuSubTrigger = React.forwardRef<
   React.ElementRef<typeof ContextMenuPrimitive.SubTrigger>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubTrigger> & {}
+  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.SubTrigger> & {
     inset?: boolean
   }
 >(({ className, inset, children, ...props }, ref) => (
@@ -70,7 +71,7 @@ ContextMenuContent.displayName = ContextMenuPrimitive.Content.displayName
 
 const ContextMenuItem = React.forwardRef<
   React.ElementRef<typeof ContextMenuPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Item> & {}
+  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Item> & {
     inset?: boolean
   }
 >(({ className, inset, ...props }, ref) => (
@@ -134,7 +135,7 @@ ContextMenuRadioItem.displayName = ContextMenuPrimitive.RadioItem.displayName
 
 const ContextMenuLabel = React.forwardRef<
   React.ElementRef<typeof ContextMenuPrimitive.Label>,
-  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Label> & {}
+  React.ComponentPropsWithoutRef<typeof ContextMenuPrimitive.Label> & {
     inset?: boolean
   }
 >(({ className, inset, ...props }, ref) => (
@@ -172,10 +173,10 @@ const ContextMenuShortcut = ({
         "ml-auto text-xs tracking-widest text-muted-foreground",
         className
       )}
-      {...props
+      {...props}
     />
   )
-
+}
 ContextMenuShortcut.displayName = "ContextMenuShortcut"
 
 export {
@@ -194,3 +195,4 @@ export {
   ContextMenuSubContent,
   ContextMenuSubTrigger,
   ContextMenuRadioGroup,
+}

@@ -1,3 +1,4 @@
+
 import * as layer1 from "./layers/layer-1-config";
 import * as layer2 from "./layers/layer-2-entities";
 import * as layer3 from "./layers/layer-3-components";
@@ -48,13 +49,20 @@ export async function NeuroLintOrchestrator(
   layers: NeuroLintLayerResult[];
   layerOutputs: string[]; // add before/after for each layer
 }> {
+  console.log(`🚀 NeuroLint starting with layers: [${layerIds.join(', ')}], useAST: ${useAST}`);
+  
   let current = code;
   const results: NeuroLintLayerResult[] = [];
   const layerOutputs: string[] = [code];
   
   // Only run enabled layers (preserve execution order)
-  for (const layer of LAYER_LIST.filter(l => layerIds.includes(l.id))) {
+  const enabledLayers = LAYER_LIST.filter(l => layerIds.includes(l.id));
+  console.log(`📋 Processing ${enabledLayers.length} enabled layers:`, enabledLayers.map(l => `${l.id}:${l.name}`));
+  
+  for (const layer of enabledLayers) {
     const startTime = Date.now();
+    console.log(`🔄 Processing Layer ${layer.id}: ${layer.name}`);
+    
     try {
       const previous = current;
       let next = current;
@@ -63,21 +71,25 @@ export async function NeuroLintOrchestrator(
 
       // For AST-based layers, attempt AST transform if enabled
       if (layer.astSupported && useAST) {
+        console.log(`🧠 Attempting AST transform for Layer ${layer.id}`);
         const astResult = await transformWithAST(current, `layer-${layer.id}-${layer.name.toLowerCase().replace(/\s/g, '-')}`);
         next = astResult.code;
         usedAST = astResult.success;
+        
         if (!astResult.success && astResult.usedFallback === false) {
+          console.log(`⚠️ AST transform failed for Layer ${layer.id}, falling back to regex`);
           // fallback to non-AST transform if AST transform fails hard
           next = await layer.fn(current, filePath);
         }
       } else {
+        console.log(`🔧 Using regex transform for Layer ${layer.id}`);
         next = await layer.fn(current, filePath);
       }
 
       // Validate transformation on non-config layers
       const validation = CodeValidator.compareBeforeAfter(previous, next);
       if (validation.shouldRevert) {
-        console.warn(`Reverting ${layer.name} transformation: ${validation.reason}`);
+        console.warn(`❌ Reverting Layer ${layer.id} transformation: ${validation.reason}`);
         next = previous; // Revert to previous state
         wasReverted = true;
       }
@@ -88,6 +100,8 @@ export async function NeuroLintOrchestrator(
       if (wasReverted) {
         improvements.push('Prevented code corruption');
       }
+      
+      console.log(`✅ Layer ${layer.id} completed: ${changeCount} changes, ${executionTime}ms, success: ${!wasReverted}`);
       
       results.push({
         name: layer.name,
@@ -103,6 +117,8 @@ export async function NeuroLintOrchestrator(
       layerOutputs.push(next); // Store output after this layer
     } catch (e: any) {
       const executionTime = Date.now() - startTime;
+      console.error(`❌ Layer ${layer.id} failed:`, e.message);
+      
       results.push({
         name: layer.name,
         description: layer.description,
@@ -116,12 +132,14 @@ export async function NeuroLintOrchestrator(
     }
   }
 
+  console.log(`🏁 NeuroLint completed: ${results.length} layers processed`);
   return { transformed: current, layers: results, layerOutputs };
 }
 
 function detectImprovements(before: string, after: string, usedAST: boolean = false): string[] {
   const improvements: string[] = [];
   if (before !== after) improvements.push('Layer transformation applied');
+  if (usedAST) improvements.push('Used AST-based transformation');
   return improvements;
 }
 

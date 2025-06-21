@@ -30,12 +30,31 @@ const HTML_ENTITIES: [RegExp, string][] = [
   [/&bull;/g, "•"],
   [/&deg;/g, "°"],
   [/&#8209;/g, "-"],
+  // Additional common entities
+  [/&minus;/g, "−"],
+  [/&times;/g, "×"],
+  [/&divide;/g, "÷"],
+  [/&plusmn;/g, "±"],
+  [/&frac14;/g, "¼"],
+  [/&frac12;/g, "½"],
+  [/&frac34;/g, "¾"],
+  [/&sup1;/g, "¹"],
+  [/&sup2;/g, "²"],
+  [/&sup3;/g, "³"],
+  [/&laquo;/g, "«"],
+  [/&raquo;/g, "»"],
+  [/&lsquo;/g, "'"],
+  [/&rsquo;/g, "'"],
+  [/&ldquo;/g, """],
+  [/&rdquo;/g, """],
+  [/&hellip;/g, "…"],
+  [/&middot;/g, "·"],
 ];
 
 export async function transform(code: string): Promise<string> {
   let transformed = code;
   
-  // First, apply HTML entity fixes
+  // Apply HTML entity fixes
   for (const [pattern, replacement] of HTML_ENTITIES) {
     transformed = transformed.replace(pattern, replacement);
   }

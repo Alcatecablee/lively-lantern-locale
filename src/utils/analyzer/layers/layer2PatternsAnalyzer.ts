@@ -1,6 +1,7 @@
 import { BaseAnalyzer } from '../baseAnalyzer';
 import { CodeIssue } from '@/types/analysis';
 import * as ts from 'typescript';
+
 /**
  * Layer 2: Bulk Pattern Fixes
  * - Remove unused imports
@@ -10,81 +11,140 @@ import * as ts from 'typescript';
  * - Fix common React patterns
  */
 export class Layer2PatternsAnalyzer extends BaseAnalyzer {
+  // Comprehensive HTML entity mapping
+  private static HTML_ENTITY_MAP: { [key: string]: string } = {
+    '&quot;': '"',
+    '&#x27;': "'",
+    '&apos;': "'",
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&#36;': '$',
+    '&#x24;': '$',
+    '&euro;': '€',
+    '&#8364;': '€',
+    '&#x20AC;': '€',
+    '&pound;': '£',
+    '&#163;': '£',
+    '&yen;': '¥',
+    '&#165;': '¥',
+    '&ndash;': '–',
+    '&#8211;': '–',
+    '&mdash;': '—',
+    '&#8212;': '—',
+    '&#8217;': "'",
+    '&#64;': '@',
+    '&nbsp;': ' ',
+    '&copy;': '©',
+    '&reg;': '®',
+    '&trade;': '™',
+    '&sect;': '§',
+    '&para;': '¶',
+    '&bull;': '•',
+    '&deg;': '°',
+    '&#8209;': '-',
+    '&minus;': '−',
+    '&times;': '×',
+    '&divide;': '÷',
+    '&plusmn;': '±',
+    '&frac14;': '¼',
+    '&frac12;': '½',
+    '&frac34;': '¾',
+    '&sup1;': '¹',
+    '&sup2;': '²',
+    '&sup3;': '³',
+    '&laquo;': '«',
+    '&raquo;': '»',
+    '&lsquo;': ''',
+    '&rsquo;': ''',
+    '&ldquo;': '"',
+    '&rdquo;': '"',
+    '&hellip;': '…',
+    '&middot;': '·',
+  };
+
   analyze(fileName: string, content: string): CodeIssue[] {
     const issues: CodeIssue[] = [];
+    
     // Skip configuration files for pattern analysis
     if (fileName.endsWith('.json') || fileName.endsWith('.config.js')) {
       return issues;
     }
+    
     // Check for HTML entity corruption
     issues.push(...this.checkHtmlEntityCorruption(fileName, content));
+    
     // Check for problematic patterns
     issues.push(...this.checkProblematicPatterns(fileName, content));
+    
     // Check for import issues
     if (fileName.endsWith('.ts') || fileName.endsWith('.tsx') || fileName.endsWith('.js') || fileName.endsWith('.jsx')) {
       issues.push(...this.checkImportIssues(fileName, content));
     }
+    
     // Check React-specific patterns
     if (fileName.endsWith('.tsx') || fileName.endsWith('.jsx')) {
       issues.push(...this.checkReactPatterns(fileName, content));
     }
+    
     return issues;
   }
+
   private checkHtmlEntityCorruption(fileName: string, content: string): CodeIssue[] {
     const issues: CodeIssue[] = [];
     const lines = content.split('\n');
+    
     lines.forEach((line, index) => {
       const lineNum = index + 1;
-      // Check for HTML entity quotes
-      if (line.includes('"')) {
-        issues.push({
-          id: this.generateId('html-entity-quotes', fileName, lineNum, 1, 'HTML entity quotes'),
-          type: 'corruption',
-          severity: 'high',
-          message: 'HTML entity corruption detected: " should be "',
-          line: lineNum,
-          column: line.indexOf('"') + 1,
-          file: fileName,
-          rule: 'html-entity-quotes',
-          category: 'corruption'
-        });
-      }
-      // Check for HTML entity apostrophes
-      if (line.includes(''')) {
-        issues.push({
-          id: this.generateId('html-entity-apostrophes', fileName, lineNum, 1, 'HTML entity apostrophes'),
-          type: 'corruption',
-          severity: 'high',
-          message: 'HTML entity corruption detected: ' should be \'',
-          line: lineNum,
-          column: line.indexOf(''') + 1,
-          file: fileName,
-          rule: 'html-entity-apostrophes',
-          category: 'corruption'
-        });
-      }
-      // Check for HTML entity ampersands
-      if (line.includes('&')) {
-        issues.push({
-          id: this.generateId('html-entity-ampersands', fileName, lineNum, 1, 'HTML entity ampersands'),
-          type: 'corruption',
-          severity: 'medium',
-          message: 'HTML entity corruption detected: & should be &',
-          line: lineNum,
-          column: line.indexOf('&') + 1,
-          file: fileName,
-          rule: 'html-entity-ampersands',
-          category: 'corruption'
-        });
-      }
+      
+      // Check for each HTML entity in our comprehensive map
+      Object.entries(Layer2PatternsAnalyzer.HTML_ENTITY_MAP).forEach(([entity, replacement]) => {
+        if (line.includes(entity)) {
+          const entityType = this.getEntityType(entity);
+          issues.push({
+            id: this.generateId(`html-entity-${entityType}`, fileName, lineNum, line.indexOf(entity) + 1, `HTML entity ${entity}`),
+            type: 'corruption',
+            severity: 'high',
+            message: `HTML entity corruption detected: ${entity} should be ${replacement}`,
+            line: lineNum,
+            column: line.indexOf(entity) + 1,
+            file: fileName,
+            rule: `html-entity-${entityType}`,
+            category: 'corruption',
+            fixable: true,
+            autoFixable: true,
+            layer: 2,
+            suggestion: `Replace ${entity} with ${replacement}`,
+            example: line.replace(new RegExp(entity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement)
+          });
+        }
+      });
     });
+    
     return issues;
   }
+
+  private getEntityType(entity: string): string {
+    if (entity.includes('quot') || entity.includes('27')) return 'quotes';
+    if (entity.includes('amp')) return 'ampersand';
+    if (entity.includes('lt')) return 'less-than';
+    if (entity.includes('gt')) return 'greater-than';
+    if (entity.includes('36') || entity.includes('24')) return 'dollar';
+    if (entity.includes('euro')) return 'euro';
+    if (entity.includes('pound')) return 'pound';
+    if (entity.includes('copy')) return 'copyright';
+    if (entity.includes('trade')) return 'trademark';
+    if (entity.includes('reg')) return 'registered';
+    return 'misc';
+  }
+
   private checkProblematicPatterns(fileName: string, content: string): CodeIssue[] {
     const issues: CodeIssue[] = [];
     const lines = content.split('\n');
+    
     lines.forEach((line, index) => {
       const lineNum = index + 1;
+      
       // Check for any type assertions
       if (line.includes('// @ts-ignore
 ')) {
@@ -107,6 +167,7 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
 /g, '// @ts-ignore\n')
         });
       }
+      
       // Check for console.log in production files
       if (line.includes('console.debug(') && !fileName.includes('test') && !fileName.includes('spec')) {
         issues.push({
@@ -124,6 +185,7 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
           example: line.replace(/console\.log\(/g, 'console.debug(')
         });
       }
+      
       // Check for React.Fragment verbose syntax
       if (line.includes('<React.Fragment>')) {
         issues.push({
@@ -142,16 +204,20 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
         });
       }
     });
+    
     return issues;
   }
+
   private checkImportIssues(fileName: string, content: string): CodeIssue[] {
     const issues: CodeIssue[] = [];
     try {
       const parsed = this.parseFile(fileName, content);
       const sourceFile = parsed.sourceFile;
+      
       // Check for potentially unused imports
       const imports = this.parser.findImportDeclarations(sourceFile);
       const bodyText = sourceFile.getFullText();
+      
       imports.forEach(importDecl => {
         if (importDecl.importClause) {
           // Check default imports
@@ -179,6 +245,7 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
               });
             }
           }
+          
           // Check named imports
           if (importDecl.importClause.namedBindings && ts.isNamedImports(importDecl.importClause.namedBindings)) {
             importDecl.importClause.namedBindings.elements.forEach(element => {
@@ -207,27 +274,34 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
           }
         }
       });
+      
       // Check for missing imports for commonly used but unimported items
       this.checkMissingImports(sourceFile, fileName, issues);
     } catch (error) {
       // Skip files that can't be parsed
     }
+    
     return issues;
   }
+
   private checkReactPatterns(fileName: string, content: string): CodeIssue[] {
     const issues: CodeIssue[] = [];
     try {
       const parsed = this.parseFile(fileName, content);
       const sourceFile = parsed.sourceFile;
+      
       // Check for missing key props in map functions
       this.checkMissingKeyProps(sourceFile, fileName, issues);
+      
       // Check for React import patterns
       this.checkReactImportPatterns(sourceFile, fileName, issues);
     } catch (error) {
       // Skip files that can't be parsed
     }
+    
     return issues;
   }
+
   private checkMissingKeyProps(sourceFile: ts.SourceFile, fileName: string, issues: CodeIssue[]): void {
     const mapCalls = this.findMapCallsInJSX(sourceFile);
     mapCalls.forEach(mapCall => {
@@ -251,6 +325,7 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
       }
     });
   }
+
   private findMapCallsInJSX(sourceFile: ts.SourceFile): ts.Node[] {
     const mapCalls: ts.Node[] = [];
     function visit(node: ts.Node) {
@@ -272,11 +347,13 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
     visit(sourceFile);
     return mapCalls;
   }
+
   private hasKeyProp(node: ts.Node): boolean {
     // This is a simplified check - in practice, would need more sophisticated AST analysis
     const nodeText = node.getFullText();
     return nodeText.includes('key=');
   }
+
   private checkReactImportPatterns(sourceFile: ts.SourceFile, fileName: string, issues: CodeIssue[]): void {
     const imports = this.parser.findImportDeclarations(sourceFile);
     imports.forEach(importDecl => {
@@ -304,6 +381,7 @@ export class Layer2PatternsAnalyzer extends BaseAnalyzer {
       }
     });
   }
+
   private checkMissingImports(sourceFile: ts.SourceFile, fileName: string, issues: CodeIssue[]): void {
     const content = sourceFile.getFullText();
     // Common patterns that need imports

@@ -1,11 +1,13 @@
-import * as React from "react"
+import * as React from "react";
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+  type UseEmblaCarouselType,
+} from "embla-carousel-react"
 
 type CarouselApi = UseEmblaCarouselType[1]
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
@@ -28,10 +30,10 @@ type CarouselContextProps = {
   canScrollNext: boolean
 } & CarouselProps
 
-const CarouselContext = React.createContext<CarouselContextProps | null>(null)
+const CarouselContext = React.createContext<CarouselContextProps | null>(null);
 
 function useCarousel() {
-  const context = React.useContext(CarouselContext)
+  const context = React.useContext(CarouselContext);
 
   if (!context) {
     throw new Error("useCarousel must be used within a <Carousel />")
@@ -83,8 +85,8 @@ const Carousel = React.forwardRef<
       api?.scrollNext()
     }, [api])
 
-    const handleKeyDown = React.useCallback(
-      (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const handleKeyDown = React.useCallback(;
+      (event: React.KeyboardEvent<HTMLDivElement>) => {}
         if (event.key === "ArrowLeft") {
           event.preventDefault()
           scrollPrev()
@@ -144,7 +146,6 @@ const Carousel = React.forwardRef<
         </div>
       </CarouselContext.Provider>
     )
-  }
 )
 Carousel.displayName = "Carousel"
 
@@ -257,4 +258,3 @@ export {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
-}

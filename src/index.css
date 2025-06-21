@@ -1,107 +1,240 @@
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom dark Cursor.com inspired design system. */
-
 @layer base {
   :root {
-    --background: 235 17% 15%; /* dark blue-gray */
-    --foreground: 220 13% 91%;
+    --background: 216 6% 4%; /* #0a0a0a */
+    --foreground: 0 0% 100%; /* #ffffff */
+    --card: 216 6% 10%; /* #1a1a1a */
+    --card-foreground: 0 0% 100%; /* #ffffff */
+    --popover: 216 6% 10%; /* #1a1a1a */
+    --popover-foreground: 0 0% 100%; /* #ffffff */
+    --primary: 217 91% 60%; /* #3b82f6 */
+    --primary-foreground: 0 0% 100%; /* #ffffff */
+    --secondary: 216 6% 15%; /* #262626 */
+    --secondary-foreground: 0 0% 100%; /* #ffffff */
+    --muted: 216 6% 15%; /* #262626 */
+    --muted-foreground: 0 0% 64%; /* #a1a1aa */
+    --accent: 216 6% 15%; /* #262626 */
+    --accent-foreground: 0 0% 100%; /* #ffffff */
+    --destructive: 0 84% 60%; /* #ef4444 */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
+    --border: 0 0% 20%; /* #333333 */
+    --input: 0 0% 20%; /* #333333 */
+    --ring: 217 91% 60%; /* #3b82f6 */
+    --radius: 0.75rem;
 
-    --card: 235 16% 19%;
-    --card-foreground: 220 13% 91%;
-
-    --popover: 235 18% 18%;
-    --popover-foreground: 220 13% 91%;
-
-    --primary: 229 84% 61%;
-    --primary-foreground: 229 84% 95%;
-
-    --secondary: 227 22% 26%;
-    --secondary-foreground: 229 84% 85%;
-
-    --muted: 222 12% 21%;
-    --muted-foreground: 222 11% 73%;
-
-    --accent: 229 100% 63%;
-    --accent-foreground: 229 100% 95%;
-
-    --destructive: 353 100% 68%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 235 10% 25%;
-    --input: 235 12% 25%;
-    --ring: 229 84% 61%;
-
-    --radius: 0.6rem;
-
-    --sidebar-background: 235 17% 13%;
-    --sidebar-foreground: 220 13% 90%;
-    --sidebar-primary: 229 84% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 229 100% 63%;
-    --sidebar-accent-foreground: 229 100% 95%;
-    --sidebar-border: 234 10% 26%;
-    --sidebar-ring: 229 84% 61%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 235 17% 15%;
-    --foreground: 220 13% 91%;
-    --card: 235 16% 19%;
-    --card-foreground: 220 13% 91%;
-    --popover: 235 18% 18%;
-    --popover-foreground: 220 13% 91%;
-
-    --primary: 229 84% 61%;
-    --primary-foreground: 229 84% 95%;
-    --secondary: 227 22% 26%;
-    --secondary-foreground: 229 84% 85%;
-
-    --muted: 222 12% 21%;
-    --muted-foreground: 222 11% 73%;
-    --accent: 229 100% 63%;
-    --accent-foreground: 229 100% 95%;
-
-    --destructive: 353 100% 65%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-
-    --border: 235 13% 27%;
-    --input: 235 13% 27%;
-    --ring: 229 84% 61%;
-    --sidebar-background: 235 17% 13%;
-    --sidebar-foreground: 220 13% 90%;
-    --sidebar-primary: 229 84% 60%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 229 100% 63%;
-    --sidebar-accent-foreground: 229 100% 95%;
-    --sidebar-border: 234 10% 26%;
-    --sidebar-ring: 229 84% 61%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
-  body {
-    @apply bg-background text-foreground font-sans transition-colors;
-    background: linear-gradient(135deg, #24262d 0%, #17181c 100%);
-    min-height: 100vh;
-  }
-
-  #root {
-    @apply min-h-screen;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
 
-  .font-sans {
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  body {
+    @apply bg-cursor-bg text-cursor-text-primary font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+    line-height: 1.6;
+    background-color: #0a0a0a;
   }
-  .font-mono {
-    font-family: 'JetBrains Mono', 'Fira Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-cursor-surface;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cursor-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-cursor-text-muted;
+  }
+
+  /* Selection styles */
+  ::selection {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #ffffff;
+  }
+
+  /* Focus styles */
+  .focus-visible {
+    @apply outline-none ring-2 ring-cursor-accent-blue ring-offset-2 ring-offset-cursor-bg;
   }
 }
 
+@layer components {
+  /* Button Components */
+  .btn-cursor-primary {
+    @apply inline-flex items-center justify-center rounded-lg text-white font-semibold transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cursor-accent-blue focus:ring-offset-2 focus:ring-offset-cursor-bg;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  
+  .btn-cursor-primary:hover {
+    box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+  }
+  
+  .btn-cursor-secondary {
+    @apply inline-flex items-center justify-center rounded-lg bg-cursor-surface border border-cursor-border text-cursor-text-primary font-semibold transition-all duration-200 hover:bg-cursor-card hover:border-cursor-text-muted focus:outline-none focus:ring-2 focus:ring-cursor-accent-blue focus:ring-offset-2 focus:ring-offset-cursor-bg;
+  }
+  
+  .btn-cursor-ghost {
+    @apply inline-flex items-center justify-center rounded-lg text-cursor-text-secondary font-medium transition-all duration-200 hover:text-cursor-text-primary hover:bg-cursor-surface focus:outline-none focus:ring-2 focus:ring-cursor-accent-blue focus:ring-offset-2 focus:ring-offset-cursor-bg;
+  }
+  
+  /* Card Components */
+  .card-cursor {
+    @apply bg-cursor-surface border border-cursor-border rounded-xl shadow-cursor-lg;
+  }
+  
+  .card-cursor-hover {
+    @apply bg-cursor-surface border border-cursor-border rounded-xl shadow-cursor-lg transition-all duration-300 hover:shadow-cursor-xl hover:border-cursor-text-muted hover:-translate-y-1;
+  }
+  
+  /* Input Components */
+  .input-cursor {
+    @apply w-full rounded-lg bg-cursor-surface border border-cursor-border px-4 py-3 text-cursor-text-primary placeholder-cursor-text-muted transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-cursor-accent-blue focus:border-cursor-accent-blue;
+  }
+  
+  /* Navigation Components */
+  .nav-cursor {
+    @apply fixed top-0 left-0 right-0 z-50 bg-cursor-bg/80 backdrop-blur-xl border-b border-cursor-border transition-all duration-300;
+  }
+  
+  .nav-cursor-scrolled {
+    @apply bg-cursor-bg/95 shadow-cursor-lg;
+  }
+  
+  /* Text Components */
+  .text-gradient-cursor {
+    @apply bg-gradient-to-r from-cursor-accent-blue via-cursor-accent-purple to-cursor-accent-pink bg-clip-text text-transparent;
+  }
+  
+  /* Animation Components */
+  .animate-fade-up {
+    animation: fade-up 0.6s ease-out forwards;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out forwards;
+  }
+
+  /* Gradient Background Classes */
+  .bg-gradient-cursor-blue {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  }
+
+  .bg-gradient-cursor-purple {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  }
+
+  .bg-gradient-cursor-pink {
+    background: linear-gradient(135deg, #ec4899, #be185d);
+  }
+
+  .bg-gradient-cursor-green {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+
+  .bg-gradient-cursor-multi {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+  }
+
+  /* Divider */
+  .divider-cursor {
+    @apply border-t border-cursor-border/50;
+  }
+}
+
+@layer utilities {
+  /* Layout Utilities */
+  .section-padding {
+    @apply py-24 lg:py-32;
+  }
+  
+  .container-cursor {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Spacing Utilities */
+  .space-y-cursor > * + * {
+    @apply mt-6;
+  }
+  
+  /* Glass Effect */
+  .glass-cursor {
+    @apply bg-cursor-surface/80 backdrop-blur-xl border border-cursor-border/50;
+  }
+  
+  /* Gradient Backgrounds */
+  .bg-gradient-cursor-radial {
+    background: radial-gradient(circle at center, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  }
+
+  /* Color definitions for Cursor theme */
+  .cursor-bg { @apply bg-[#0a0a0a]; }
+  .cursor-surface { @apply bg-[#111111]; }
+  .cursor-card { @apply bg-[#1a1a1a]; }
+  .cursor-border { @apply border-[#262626]; }
+  .cursor-text-primary { @apply text-[#ffffff]; }
+  .cursor-text-secondary { @apply text-[#a3a3a3]; }
+  .cursor-text-muted { @apply text-[#525252]; }
+  .cursor-accent-blue { @apply text-[#3b82f6]; }
+  .cursor-accent-purple { @apply text-[#8b5cf6]; }
+  .cursor-accent-pink { @apply text-[#ec4899]; }
+  .cursor-accent-green { @apply text-[#10b981]; }
+}

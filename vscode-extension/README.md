@@ -1,16 +1,22 @@
+# NeuroLint VS Code Extension
 
-# NeuroLint VSCode Extension
-
-Automated code fixing for React/Next.js projects using AI-powered transformations, directly in your VSCode editor.
+> **⚠️ BETA NOTICE**: This extension is currently in beta. While core features are implemented and tested, you may encounter bugs or incomplete features.
 
 ## Features
 
-- **Transform Current File**: Apply NeuroLint transformations to the currently open file
-- **Transform Selection**: Transform only the selected code
-- **Transform Workspace**: Bulk transform multiple files in your workspace
-- **Layer Selection**: Choose which transformation layers to apply
-- **Diff Preview**: Preview changes before applying them
-- **Real-time Progress**: See transformation progress with detailed feedback
+### Currently Implemented
+- ✅ Code analysis and fix suggestions
+- ✅ Quick fixes for common issues
+- ✅ Configuration management
+- ✅ Layer selection interface
+- ✅ Basic diff preview
+
+### Coming Soon
+- 🔄 Real-time suggestions
+- 🔄 Interactive fix application
+- 🔄 Custom rule editor
+- 🔄 Team configuration sharing
+- 🔄 Advanced diff visualization
 
 ## Supported File Types
 
@@ -28,30 +34,52 @@ Automated code fixing for React/Next.js projects using AI-powered transformation
 
 ## Usage
 
-### Transform Current File
-- Right-click in the editor → "Transform Current File"
-- Or use Command Palette: `Ctrl+Shift+P` → "NeuroLint: Transform Current File"
+### Quick Start
+1. Open a React/Next.js project
+2. Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
+3. Type "NeuroLint" to see available commands
 
-### Transform Selection
-- Select code in the editor
-- Right-click → "Transform Selection"
-- Or use Command Palette: `Ctrl+Shift+P` → "NeuroLint: Transform Selection"
+### Available Commands
+- `NeuroLint: Fix Current File`
+- `NeuroLint: Fix Project`
+- `NeuroLint: Show Layer Selector`
+- `NeuroLint: Show Diff Preview`
 
-### Configure Layers
-- Click the "NeuroLint" button in the status bar
-- Or use Command Palette: `Ctrl+Shift+P` → "NeuroLint: Select Transformation Layers"
+### Keyboard Shortcuts
+- Fix Current File: `Ctrl+Alt+N` (`Cmd+Alt+N` on macOS)
+- Show Layer Selector: `Ctrl+Alt+L` (`Cmd+Alt+L` on macOS)
 
-### Transform Multiple Files
-- Use Command Palette: `Ctrl+Shift+P` → "NeuroLint: Transform Workspace Files"
-- Select files from the quick pick menu
+## Features in Detail
+
+### Code Analysis
+- Real-time code analysis
+- Inline problem indicators
+- Quick fix suggestions
+
+### Layer Selection
+- Visual layer selection interface
+- Layer-specific fixes
+- Custom layer combinations
+
+### Diff Preview
+- Side-by-side diff view
+- Accept/reject changes
+- Batch fix application
 
 ## Configuration
 
-Open VSCode settings and search for "NeuroLint":
+### Extension Settings
+```json
+{
+  "neurolint.enableAutoFix": true,
+  "neurolint.layers": [1, 2, 3, 4, 5, 6],
+  "neurolint.showInlineHints": true,
+  "neurolint.createBackups": true
+}
+```
 
-- `neurolint.enabledLayers`: Array of layer IDs to enable (default: [1,2,3,4])
-- `neurolint.useAST`: Use AST-based transformations when available (default: true)
-- `neurolint.showDiffPreview`: Show diff preview before applying changes (default: true)
+### Project Configuration
+The extension uses your project's `neurolint.config.json`. If not present, it will use default settings.
 
 ## Requirements
 
@@ -60,14 +88,11 @@ Open VSCode settings and search for "NeuroLint":
 
 ## Installation
 
-1. Install from VSCode Marketplace
-2. Or install manually:
-   ```bash
-   cd vscode-extension
-   npm install
-   npm run compile
-   code --install-extension neurolint-vscode-1.0.0.vsix
-   ```
+1. Download from VS Code Marketplace (coming soon)
+2. Or install from VSIX file:
+   - Download latest release
+   - Install via VS Code Extensions view
+   - Run `code --install-extension neurolint-vscode.vsix`
 
 ## Development
 
@@ -78,6 +103,51 @@ npm run compile
 # Press F5 in VSCode to launch Extension Development Host
 ```
 
+## Troubleshooting
+
+### Common Issues
+
+#### Extension Not Activating
+- Ensure you're in a React/Next.js project
+- Check if `neurolint.config.json` exists
+- Verify file types are supported
+
+#### Fixes Not Applying
+- Check extension settings
+- Verify file permissions
+- Look for error messages in Output panel
+
+#### Performance Issues
+- Disable real-time analysis
+- Reduce active layers
+- Check workspace size
+
+### Getting Help
+- Check Output panel (`View -> Output -> NeuroLint`)
+- Review error messages
+- Submit issues on GitHub
+
+## Planned Features
+
+### v1.1.0
+- Real-time suggestions
+- Enhanced diff preview
+- Custom rule editor
+
+### v1.2.0
+- Team configuration sharing
+- Advanced visualization
+- Performance improvements
+
+### v2.0.0
+- AI-powered suggestions
+- Real-time collaboration
+- Advanced customization
+
+## Contributing
+
+We welcome contributions! See our [Contributing Guide](../CONTRIBUTING.md).
+
 ## License
 
-MIT
+MIT License - see [LICENSE](../LICENSE) for details.

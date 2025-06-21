@@ -1,4 +1,3 @@
-
 import * as vscode from 'vscode';
 import { NeuroLintOrchestrator, LAYER_LIST } from './neurolint/orchestrator';
 import { NeuroLintLayerResult } from './neurolint/types';
@@ -22,7 +21,7 @@ export class NeuroLintProvider {
         progress?: vscode.Progress<{message?: string; increment?: number}>
     ): Promise<TransformResult> {
         const config = vscode.workspace.getConfiguration('neurolint');
-        const enabledLayers = config.get<number[]>('enabledLayers', [1, 2, 3, 4]);
+        const enabledLayers = config.get<number[]>('enabledLayers', [1, 2, 3, 4, 5, 6]);
         const useAST = config.get<boolean>('useAST', true);
 
         if (progress) {

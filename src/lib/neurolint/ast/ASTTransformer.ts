@@ -1,7 +1,6 @@
-
 import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
-import generate from '@babel/generator';
+import * as generator from '@babel/generator';
 import * as t from '@babel/types';
 
 export interface ASTTransformOptions {
@@ -93,7 +92,7 @@ export class ASTTransformer {
 
   generate(ast: t.Node): string {
     try {
-      const result = generate(ast, {
+      const result = generator.default(ast, {
         retainLines: false,
         compact: false,
         comments: this.options.preserveComments,

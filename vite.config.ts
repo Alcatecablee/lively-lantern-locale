@@ -1,38 +1,49 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   server: {
-    host: "::",
-    port: 8080,
+    host: "localhost",
+    port: 8081,
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
+    hmr: {
+      overlay: true
+    }
   },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-  },
-  define: {
-    // Define process global for Node.js packages in browser
-    'process.env': {},
-    'process.env.NODE_ENV': JSON.stringify(mode),
-    global: 'globalThis',
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
   },
   optimizeDeps: {
-    // Pre-bundle these Node.js packages to avoid issues
     include: [
-      '@babel/types',
-      '@babel/parser',
-      '@babel/traverse',
-      '@babel/generator'
-    ]
+      'react', 
+      'react-dom',
+      'react/jsx-runtime',
+      '@radix-ui/react-icons',
+      'lucide-react',
+      '@/components/ui/*'
+    ],
+    exclude: ['@supabase/supabase-js']
+  },
+  build: {
+    sourcemap: true,
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress certain warnings that might be causing issues
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
+        warn(warning);
+      },
+    },
+  },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   }
-}));
+}); 

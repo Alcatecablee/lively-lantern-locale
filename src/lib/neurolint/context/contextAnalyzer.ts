@@ -106,7 +106,7 @@ export class ContextAnalyzer {
       if (!context.dependencies.includes('next/head')) {
         recommendations.push('Add Next.js Head component for SEO');
       }
-      if (context.features.includes('browser-storage') && !code.includes("'use client'")) {
+      if (context.features.includes('browser-storage')) {
         recommendations.push("Add 'use client' directive for browser APIs");
       }
     }

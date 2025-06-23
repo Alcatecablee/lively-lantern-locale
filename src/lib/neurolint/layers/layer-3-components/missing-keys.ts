@@ -20,10 +20,9 @@ export function fixMissingKeyProps(code: string): string {
     },
   );
 
-  // Pattern 2: items.map(item => <li>{item.name}</li>)
-  // Improved to allow for extra spacing and parentheses around the argument
+  // Pattern 2: items.map(item => <li>{item.name}</li>) - Fixed to handle without trailing parenthesis
   fixed = fixed.replace(
-    /\.map\(\s*(?:\(?\s*([a-zA-Z0-9_]+)\s*\)?)\s*=>\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)/g,
+    /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*\(\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)\s*\)/g,
     (match, item, component, props, children) => {
       if (
         props.includes("key=") ||
@@ -36,7 +35,26 @@ export function fixMissingKeyProps(code: string): string {
         return match;
       }
       const keyValue = `{${item}.id || Math.random()}`;
-      return `<${component} key=${keyValue}${props}>${children}</${component}>`;
+      return `.map(${item} => (<${component} key=${keyValue}${props}>${children}</${component}>))`;
+    },
+  );
+
+  // Pattern 2b: Basic form without extra parentheses
+  fixed = fixed.replace(
+    /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)/g,
+    (match, item, component, props, children) => {
+      if (
+        props.includes("key=") ||
+        match.includes("onClick=") ||
+        props.includes("onClick=") ||
+        ["button", "input", "a", "textarea", "form", "select"].includes(
+          component,
+        )
+      ) {
+        return match;
+      }
+      const keyValue = `{${item}.id || Math.random()}`;
+      return `.map(${item} => <${component} key=${keyValue}${props}>${children}</${component}>)`;
     },
   );
 

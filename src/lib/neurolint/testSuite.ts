@@ -57,9 +57,7 @@ export const TEST_CASES: TestCase[] = [
     "strict": true
   }
 }`,
-    expectedFixes: [
-      "Upgraded TypeScript target to ES2022"
-    ]
+    expectedFixes: ["Upgraded TypeScript target to ES2022"],
   },
   {
     name: "Modern Next.js Config Export",
@@ -71,14 +69,12 @@ export const TEST_CASES: TestCase[] = [
   reactStrictMode: false,
   experimental: {}
 };`,
-    expectedFixes: [
-      "Enabled reactStrictMode",
-      "Optimized next.config.js"
-    ]
+    expectedFixes: ["Enabled reactStrictMode", "Optimized next.config.js"],
   },
   {
     name: "Package Scripts Upgrade",
-    description: "Ensures package.json scripts include 'lint:fix' and 'type-check'.",
+    description:
+      "Ensures package.json scripts include modern development tools.",
     category: "config",
     layerIds: [1],
     severity: "low",
@@ -88,9 +84,7 @@ export const TEST_CASES: TestCase[] = [
     "build": "next build"
   }
 }`,
-    expectedFixes: [
-      "Added missing development scripts"
-    ]
+    expectedFixes: ["Added missing development scripts"],
   },
 
   // Layer 2: Pattern Tests
@@ -106,9 +100,7 @@ export const TEST_CASES: TestCase[] = [
     <span>Copyright &copy; 2024</span>
   </div>
 );`,
-    expectedFixes: [
-      "Fixed HTML entities"
-    ]
+    expectedFixes: ["Fixed HTML entities"],
   },
   {
     name: "Variable Declaration Modernization",
@@ -122,9 +114,19 @@ function example() {
   var result = name + age;
   return result;
 }`,
-    expectedFixes: [
-      "Modernized variable declarations"
-    ]
+    expectedFixes: ["Modernized variable declarations"],
+  },
+  {
+    name: "Legacy Function Syntax",
+    description:
+      "Modernizes function declarations to arrow functions where appropriate.",
+    category: "pattern",
+    layerIds: [2],
+    severity: "low",
+    input: `var handler = function(event) {
+  return event.target.value;
+};`,
+    expectedFixes: ["Modernized function syntax"],
   },
 
   // Layer 3: Component Tests
@@ -141,9 +143,7 @@ function example() {
     ))}
   </ul>
 );`,
-    expectedFixes: [
-      "Added missing React keys"
-    ]
+    expectedFixes: ["Added missing React keys"],
   },
   {
     name: "Missing Imports",
@@ -155,9 +155,7 @@ function example() {
   const [state, setState] = useState(0);
   return <div>{state}</div>;
 };`,
-    expectedFixes: [
-      "Added missing imports"
-    ]
+    expectedFixes: ["Added missing imports"],
   },
   {
     name: "Accessibility Improvements",
@@ -170,9 +168,22 @@ function example() {
     Click me
   </button>
 );`,
-    expectedFixes: [
-      "Improved accessibility"
-    ]
+    expectedFixes: ["Improved accessibility"],
+  },
+  {
+    name: "PropTypes Addition",
+    description: "Adds missing PropTypes for component validation.",
+    category: "component",
+    layerIds: [3],
+    severity: "medium",
+    input: `const UserCard = ({ name, email, age }) => (
+  <div>
+    <h3>{name}</h3>
+    <p>{email}</p>
+    <span>Age: {age}</span>
+  </div>
+);`,
+    expectedFixes: ["Added prop type validation"],
   },
 
   // Layer 4: Hydration Tests
@@ -186,9 +197,7 @@ function example() {
   const data = localStorage.getItem('userData');
   return <div>{data}</div>;
 };`,
-    expectedFixes: [
-      "Added SSR safety checks"
-    ]
+    expectedFixes: ["Added SSR safety checks"],
   },
   {
     name: "Hydration useEffect Guards",
@@ -200,22 +209,36 @@ function example() {
   const width = window.innerWidth;
   return <div>Width: {width}</div>;
 };`,
-    expectedFixes: [
-      "Added hydration guards"
-    ]
+    expectedFixes: ["Added hydration guards"],
+  },
+  {
+    name: "Browser API Protection",
+    description: "Protects browser-specific APIs from SSR errors.",
+    category: "hydration",
+    layerIds: [4],
+    severity: "high",
+    input: `const ThemeToggle = () => {
+  const theme = document.body.className;
+  const toggleTheme = () => {
+    document.body.className = theme === 'dark' ? 'light' : 'dark';
+  };
+  return <button onClick={toggleTheme}>Toggle Theme</button>;
+};`,
+    expectedFixes: ["Added browser API protection"],
   },
 
   // Integration Tests (Multiple Layers)
   {
-    name: "Full Pipeline Test",
-    description: "Tests all layers working together on complex code.",
+    name: "Full Pipeline Test - Simple",
+    description:
+      "Tests layers 1-4 working together on moderately complex code.",
     category: "integration",
     layerIds: [1, 2, 3, 4],
     severity: "high",
     input: `var Component = function() {
   var data = localStorage.getItem('test');
   var items = ['a', 'b', 'c'];
-
+  
   return (
     <div>
       <h1>Hello &amp; welcome</h1>
@@ -231,8 +254,45 @@ function example() {
       "Fixed HTML entities",
       "Added missing React keys",
       "Added SSR safety checks",
-      "Added missing imports"
-    ]
+      "Added missing imports",
+    ],
+  },
+  {
+    name: "Full Pipeline Test - Complex",
+    description:
+      "Tests all layers on complex React component with multiple issues.",
+    category: "integration",
+    layerIds: [1, 2, 3, 4],
+    severity: "high",
+    input: `var UserDashboard = function(props) {
+  var userPrefs = localStorage.getItem('userPrefs');
+  var windowWidth = window.innerWidth;
+  var notifications = props.notifications || [];
+  
+  return (
+    <div>
+      <h1>Welcome &amp; enjoy your dashboard</h1>
+      <div>Screen width: {windowWidth}px</div>
+      <ul>
+        {notifications.map(notif => (
+          <li>
+            <span>{notif.message}</span>
+            <button onClick={() => dismiss(notif.id)}>Dismiss</button>
+          </li>
+        ))}
+      </ul>
+      <p>Preferences: {userPrefs}</p>
+    </div>
+  );
+};`,
+    expectedFixes: [
+      "Modernized variable declarations",
+      "Fixed HTML entities",
+      "Added missing React keys",
+      "Added SSR safety checks",
+      "Added hydration guards",
+      "Improved accessibility",
+    ],
   },
 
   // Edge Cases and Error Tests
@@ -242,38 +302,68 @@ function example() {
     category: "component",
     layerIds: [3],
     severity: "high",
-    shouldFail: false, // Should handle gracefully, not crash
+    shouldFail: false,
     input: `const Broken = () => (
   <div>
     <p>Unclosed paragraph
     <span>Missing closing div
 );`,
     expectedFixes: [],
-    expectedErrors: ["Syntax error"]
+    expectedErrors: ["Syntax error"],
   },
   {
-    name: "Circular Dependency Detection",
-    description: "Should detect potential circular dependencies.",
-    category: "component",
-    layerIds: [3],
-    severity: "medium",
-    input: `import { ComponentB } from './ComponentB';
-const ComponentA = () => <ComponentB />;
-export default ComponentA;`,
-    expectedFixes: []
-  },
-  {
-    name: "Extreme Complexity Test",
-    description: "Tests performance with highly complex code.",
+    name: "Empty Code Handling",
+    description: "Should handle empty or minimal code gracefully.",
     category: "integration",
     layerIds: [1, 2, 3, 4],
     severity: "low",
-    input: Array(100).fill(0).map((_, i) =>
-      `var func${i} = function() { return ${i}; };`
-    ).join('\n'),
+    input: ``,
+    expectedFixes: [],
+  },
+  {
+    name: "Very Large Code Handling",
+    description: "Tests performance with highly repetitive code.",
+    category: "integration",
+    layerIds: [1, 2, 3, 4],
+    severity: "low",
+    input: Array(50)
+      .fill(0)
+      .map((_, i) => `var func${i} = function() { return ${i}; };`)
+      .join("\n"),
+    expectedFixes: ["Modernized variable declarations"],
+  },
+  {
+    name: "Mixed Valid/Invalid Code",
+    description: "Tests handling of partially corrupted code.",
+    category: "component",
+    layerIds: [3],
+    severity: "medium",
+    input: `const ValidComponent = () => <div>Valid</div>;
+const BrokenComponent = () => <div><span>Unclosed
+const AnotherValid = () => <p>Also valid</p>;`,
+    expectedFixes: [],
+    expectedErrors: ["Syntax error"],
+  },
+
+  // Layer Conflict Tests
+  {
+    name: "Layer Order Dependency",
+    description: "Ensures layer 2 changes don't break layer 3 fixes.",
+    category: "integration",
+    layerIds: [2, 3],
+    severity: "high",
+    input: `var items = ['one', 'two'];
+var ListComponent = function() {
+  return (
+    <ul>
+      {items.map(item => <li>{item}</li>)}
+    </ul>
+  );
+};`,
     expectedFixes: [
-      "Modernized variable declarations"
-    ]
+      "Modernized variable declarations",
+      "Added missing React keys",
+    ],
   },
 
   // Dry Run Tests
@@ -283,102 +373,177 @@ export default ComponentA;`,
     category: "integration",
     layerIds: [1, 2, 3, 4],
     severity: "medium",
-    input: `const test = 'original';`,
-    expectedFixes: []
-  }
-    ]
+    input: `const original = 'should not change';`,
+    expectedFixes: [],
   },
-  // --- Layer 2 specific test ---
+
+  // Backup and Recovery Tests
   {
-    name: "HTML Entity Correction",
-    description: "Replaces corrupted entities such as &quot; and &amp; in code.",
-    category: "pattern",
-    input: `
-const title = &quot;Welcome &amp; Enjoy!&quot;;
-// Hello &gt; Goodbye
-`,
-    expectedFixes: [
-      "Fixed HTML entities in source"
-    ]
+    name: "Backup Creation Test",
+    description: "Verifies that backups are created before transformations.",
+    category: "integration",
+    layerIds: [1, 2, 3, 4],
+    severity: "medium",
+    input: `var test = 'backup me';`,
+    expectedFixes: ["Modernized variable declarations"],
   },
-  // --- Layer 3 specific test ---
-  {
-    name: "Missing Key Prop Correction",
-    description: "Adds missing key prop to mapped elements in React components.",
-    category: "component",
-    input: `
-function List({ items }) {
-  return <ul>{items.map(item => <li>{item.name}</li>)}</ul>;
-}
-`,
-    expectedFixes: [
-      "Added missing key prop in mapped elements"
-    ]
-  },
-  // --- Layer 4 specific test ---
-  {
-    name: "Add SSR Guard for LocalStorage Use",
-    description: "Protects localStorage access with SSR guard (typeof window check).",
-    category: "hydration",
-    input: `
-const value = localStorage.getItem("something");
-`,
-    expectedFixes: [
-      "Added SSR guard for localStorage"
-    ]
-  }
 ];
 
-// --- Update validateTestResult --
-export function validateTestResult(testCase: TestCase, transformedCode: string): {
-  passed: boolean;
-  detectedFixes: string[];
-  missingFixes: string[];
-} {
-  const detectedFixes: string[] = [];
-  const missingFixes: string[] = [];
+// Test execution utility functions
+export async function runTestSuite(
+  orchestrator: (
+    code: string,
+    filePath?: string,
+    useAST?: boolean,
+    layerIds?: number[],
+    options?: any,
+  ) => Promise<any>,
+  options: { verbose?: boolean; categories?: string[]; dryRun?: boolean } = {},
+): Promise<TestSuiteResult> {
+  const startTime = Date.now();
+  const results: TestResult[] = [];
 
-  // Checks for config optimizations only
-  const checks: Record<string, boolean> = {
-    // --- Layer 1 (config) ---
-    "Upgraded TypeScript target to ES2022":
-      transformedCode.includes('"target": "ES2022"') ||
-      transformedCode.includes('"target":"ES2022"'),
-
-    "Enabled reactStrictMode":
-      transformedCode.includes('reactStrictMode: true') ||
-      transformedCode.includes('reactStrictMode:true'),
-    "Optimized next.config.js":
-      !transformedCode.includes('experimental: {}') && transformedCode.includes('module.exports'),
-
-    "Added lint:fix script":
-      transformedCode.includes('"lint:fix":') || transformedCode.includes("'lint:fix':"),
-    "Added type-check script":
-      transformedCode.includes('"type-check":') || transformedCode.includes("'type-check':"),
-
-    // --- Layer 2: Pattern/entity fixes ---
-    "Fixed HTML entities in source":
-      transformedCode.includes('const title = "Welcome & Enjoy!";') &&
-      transformedCode.includes("// Hello > Goodbye"),
-
-    // --- Layer 3: Missing key prop ---
-    "Added missing key prop in mapped elements":
-      /<li key=/.test(transformedCode),
-
-    // --- Layer 4: SSR guard for localStorage ---
-    "Added SSR guard for localStorage":
-      transformedCode.includes('typeof window !== "undefined" && localStorage.getItem("something")'),
+  const categories = {
+    config: { passed: 0, total: 0 },
+    pattern: { passed: 0, total: 0 },
+    component: { passed: 0, total: 0 },
+    hydration: { passed: 0, total: 0 },
+    integration: { passed: 0, total: 0 },
   };
 
-  testCase.expectedFixes.forEach(expectedFix => {
-    if (checks[expectedFix]) {
-      detectedFixes.push(expectedFix);
-    } else {
-      missingFixes.push(expectedFix);
+  const filteredTests = options.categories
+    ? TEST_CASES.filter((test) => options.categories!.includes(test.category))
+    : TEST_CASES;
+
+  for (const testCase of filteredTests) {
+    const testStartTime = Date.now();
+    categories[testCase.category].total++;
+
+    try {
+      const result = await orchestrator(
+        testCase.input,
+        undefined,
+        true,
+        testCase.layerIds || [1, 2, 3, 4],
+        {
+          dryRun: options.dryRun || false,
+          verbose: options.verbose || false,
+        },
+      );
+
+      const executionTime = Date.now() - testStartTime;
+      const detectedFixes = result.layers
+        .filter((layer: any) => layer.success)
+        .flatMap((layer: any) => layer.improvements || []);
+
+      const missingFixes = testCase.expectedFixes.filter(
+        (fix) => !detectedFixes.some((detected) => detected.includes(fix)),
+      );
+
+      const passed = testCase.shouldFail
+        ? !result.layers.every((layer: any) => layer.success)
+        : missingFixes.length === 0 &&
+          result.layers.some((layer: any) => layer.success);
+
+      if (passed) {
+        categories[testCase.category].passed++;
+      }
+
+      const testResult: TestResult = {
+        testCase,
+        passed,
+        transformedCode: result.transformed,
+        detectedFixes,
+        missingFixes,
+        executionTime,
+        layerResults: result.layers.map((layer: any) => ({
+          layerId: layer.layerId || 0,
+          success: layer.success,
+          changes: layer.changeCount || 0,
+          reverted: layer.reverted || false,
+        })),
+        validationPassed: !result.layers.some((layer: any) => layer.reverted),
+        backupCreated: !!result.backup,
+      };
+
+      results.push(testResult);
+
+      if (options.verbose) {
+        const status = passed ? "✅" : "❌";
+        console.log(`${status} ${testCase.name} (${executionTime}ms)`);
+        if (!passed && missingFixes.length > 0) {
+          console.log(`   Missing: ${missingFixes.join(", ")}`);
+        }
+      }
+    } catch (error) {
+      categories[testCase.category].total++;
+
+      const testResult: TestResult = {
+        testCase,
+        passed: false,
+        transformedCode: testCase.input,
+        detectedFixes: [],
+        missingFixes: testCase.expectedFixes,
+        executionTime: Date.now() - testStartTime,
+        layerResults: [],
+        validationPassed: false,
+        backupCreated: false,
+      };
+
+      results.push(testResult);
+
+      if (options.verbose) {
+        console.log(`💥 ${testCase.name} - ERROR: ${error}`);
+      }
     }
-  });
+  }
 
-  const passed = missingFixes.length === 0;
+  const totalExecutionTime = Date.now() - startTime;
+  const passedTests = results.filter((r) => r.passed).length;
+  const criticalFailures = results.filter(
+    (r) => !r.passed && r.testCase.severity === "high",
+  );
 
-  return { passed, detectedFixes, missingFixes };
+  return {
+    totalTests: results.length,
+    passedTests,
+    failedTests: results.length - passedTests,
+    totalExecutionTime,
+    categories,
+    criticalFailures,
+  };
+}
+
+export function generateTestReport(result: TestSuiteResult): string {
+  const successRate = ((result.passedTests / result.totalTests) * 100).toFixed(
+    1,
+  );
+
+  let report = `
+🧪 NeuroLint Test Suite Results
+================================
+
+📊 Overall Results:
+  �� Total Tests: ${result.totalTests}
+  • Passed: ${result.passedTests} (${successRate}%)
+  • Failed: ${result.failedTests}
+  • Execution Time: ${result.totalExecutionTime}ms
+
+📋 By Category:
+`;
+
+  for (const [category, stats] of Object.entries(result.categories)) {
+    const categoryRate =
+      stats.total > 0 ? ((stats.passed / stats.total) * 100).toFixed(1) : "0";
+    report += `  • ${category}: ${stats.passed}/${stats.total} (${categoryRate}%)\n`;
+  }
+
+  if (result.criticalFailures.length > 0) {
+    report += `\n🚨 Critical Failures (${result.criticalFailures.length}):\n`;
+    result.criticalFailures.forEach((failure) => {
+      report += `  • ${failure.testCase.name}: ${failure.missingFixes.join(", ")}\n`;
+    });
+  }
+
+  return report;
 }

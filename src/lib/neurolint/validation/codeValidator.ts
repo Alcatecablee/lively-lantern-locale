@@ -21,20 +21,40 @@ export class CodeValidator {
     let corruptionDetected = false;
     let ast: any = null;
 
-    try {
-      // Try to parse the code to check for syntax errors
-      ast = parser.parse(code, {
-        sourceType: "module",
-        plugins: ["typescript", "jsx", "decorators-legacy"],
-        allowImportExportEverywhere: true,
-        allowReturnOutsideFunction: true,
-        strictMode: false,
-        errorRecovery: true,
-      });
-    } catch (error) {
-      isValid = false;
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      errors.push(`Syntax error: ${errorMsg}`);
+    // Don't try to parse JSON files with Babel parser
+    const isJsonLike =
+      code.trim().startsWith("{") &&
+      (code.includes('"compilerOptions"') ||
+        code.includes('"scripts"') ||
+        code.includes('"dependencies"'));
+
+    if (!isJsonLike) {
+      try {
+        // Try to parse the code to check for syntax errors
+        ast = parser.parse(code, {
+          sourceType: "module",
+          plugins: ["typescript", "jsx", "decorators-legacy"],
+          allowImportExportEverywhere: true,
+          allowReturnOutsideFunction: true,
+          strictMode: false,
+          errorRecovery: true,
+        });
+      } catch (error) {
+        isValid = false;
+        const errorMsg =
+          error instanceof Error ? error.message : "Unknown error";
+        errors.push(`Syntax error: ${errorMsg}`);
+      }
+    } else {
+      // For JSON-like files, just validate JSON syntax
+      try {
+        JSON.parse(code);
+      } catch (error) {
+        isValid = false;
+        const errorMsg =
+          error instanceof Error ? error.message : "Unknown error";
+        errors.push(`JSON syntax error: ${errorMsg}`);
+      }
     }
 
     // Enhanced corruption pattern detection

@@ -32,6 +32,7 @@ const App = () => (
             <SiteHeader />
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/landing" element={<Landing />} />
               <Route path="/app" element={<AppPage />} />
               <Route path="/test" element={<TestSuite />} />
               <Route path="/docs" element={<Docs />} />

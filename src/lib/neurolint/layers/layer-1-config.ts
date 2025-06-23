@@ -42,25 +42,15 @@ async function performFileBasedTransforms(filePath: string): Promise<string> {
 }
 
 function performCodeBasedTransforms(code: string): Promise<string> {
-  // For demo purposes, detect file type from content
-  console.log("Layer 1 Config: Processing code:", code.substring(0, 100));
-
+  // Detect file type from content and apply appropriate transformations
   if (code.includes('"compilerOptions"') || code.includes("compilerOptions")) {
-    console.log("Layer 1: Detected TypeScript config");
-    const result = fixTSConfigContent(code);
-    console.log("Layer 1: Result:", result.substring(0, 100));
-    return Promise.resolve(result);
+    return Promise.resolve(fixTSConfigContent(code));
   } else if (code.includes("nextConfig") || code.includes("module.exports")) {
-    console.log("Layer 1: Detected Next.js config");
     return Promise.resolve(fixNextConfigContent(code));
   } else if (code.includes('"scripts"')) {
-    console.log("Layer 1: Detected package.json");
-    const result = fixPackageJsonContent(code);
-    console.log("Layer 1: Package result:", result.substring(0, 100));
-    return Promise.resolve(result);
+    return Promise.resolve(fixPackageJsonContent(code));
   }
 
-  console.log("Layer 1: No config detected, returning unchanged");
   return Promise.resolve(code);
 }
 

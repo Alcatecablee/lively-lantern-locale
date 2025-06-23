@@ -17,28 +17,9 @@ export async function transform(
   code: string,
   filePath?: string,
 ): Promise<string> {
-  // If we have a file path, we can do actual file operations
-  if (filePath) {
-    return await performFileBasedTransforms(filePath);
-  }
-
-  // Otherwise, work with the code content directly
-  const result = await performCodeBasedTransforms(code);
+  // Work with the code content directly - no file system operations
+  const result = await performCodeBasedTransforms(code, filePath);
   return result;
-}
-
-async function performFileBasedTransforms(filePath: string): Promise<string> {
-  const fileName = path.basename(filePath);
-
-  if (fileName === "tsconfig.json") {
-    return fixTSConfig(filePath);
-  } else if (fileName === "next.config.js") {
-    return fixNextConfig(filePath);
-  } else if (fileName === "package.json") {
-    return fixPackageJson(filePath);
-  }
-
-  return fs.readFileSync(filePath, "utf8");
 }
 
 function performCodeBasedTransforms(code: string): Promise<string> {

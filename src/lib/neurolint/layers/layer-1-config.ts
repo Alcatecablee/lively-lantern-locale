@@ -43,12 +43,15 @@ async function performFileBasedTransforms(filePath: string): Promise<string> {
 
 function performCodeBasedTransforms(code: string): Promise<string> {
   // Detect file type from content and apply appropriate transformations
-  if (code.includes('"compilerOptions"') || code.includes("compilerOptions")) {
-    return Promise.resolve(fixTSConfigContent(code));
-  } else if (code.includes("nextConfig") || code.includes("module.exports")) {
-    return Promise.resolve(fixNextConfigContent(code));
+  if (code.includes('"compilerOptions"')) {
+    const result = fixTSConfigContent(code);
+    return Promise.resolve(result);
+  } else if (code.includes("module.exports") || code.includes("nextConfig")) {
+    const result = fixNextConfigContent(code);
+    return Promise.resolve(result);
   } else if (code.includes('"scripts"')) {
-    return Promise.resolve(fixPackageJsonContent(code));
+    const result = fixPackageJsonContent(code);
+    return Promise.resolve(result);
   }
 
   return Promise.resolve(code);

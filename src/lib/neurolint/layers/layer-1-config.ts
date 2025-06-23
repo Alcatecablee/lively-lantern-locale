@@ -1,5 +1,4 @@
-import * as fs from "fs";
-import * as path from "path";
+// Browser-compatible config layer - no Node.js dependencies
 
 interface TSConfig {
   compilerOptions?: Record<string, any>;

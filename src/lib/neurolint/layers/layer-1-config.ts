@@ -55,33 +55,7 @@ function performCodeBasedTransforms(
   return Promise.resolve(code);
 }
 
-function fixTSConfig(filePath: string): string {
-  const content = fs.readFileSync(filePath, "utf8");
-  const tsConfig: TSConfig = JSON.parse(content);
-
-  // Update compiler options with modern settings
-  tsConfig.compilerOptions = {
-    ...tsConfig.compilerOptions,
-    target: "ES2022", // Updated from ES2020 to ES2022
-    lib: ["dom", "dom.iterable", "es6", "ES2022"],
-    downlevelIteration: true,
-    allowSyntheticDefaultImports: true,
-    esModuleInterop: true,
-    forceConsistentCasingInFileNames: true,
-    strict: true,
-    noEmit: true,
-    incremental: true,
-    skipLibCheck: true,
-    isolatedModules: true,
-    jsx: "preserve",
-    baseUrl: ".",
-    paths: {
-      "@/*": ["./src/*"],
-    },
-  };
-
-  return JSON.stringify(tsConfig, null, 2);
-}
+// Removed fixTSConfig - using fixTSConfigContent instead
 
 function fixTSConfigContent(content: string): string {
   try {

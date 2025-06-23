@@ -1,5 +1,4 @@
-import * as fs from "fs";
-import * as path from "path";
+// Browser-compatible config layer - no Node.js dependencies
 
 interface TSConfig {
   compilerOptions?: Record<string, any>;
@@ -18,34 +17,32 @@ export async function transform(
   code: string,
   filePath?: string,
 ): Promise<string> {
-  // If we have a file path, we can do actual file operations
-  if (filePath) {
-    return await performFileBasedTransforms(filePath);
-  }
-
-  // Otherwise, work with the code content directly
-  const result = await performCodeBasedTransforms(code);
+  // Work with the code content directly - no file system operations
+  const result = await performCodeBasedTransforms(code, filePath);
   return result;
 }
 
-async function performFileBasedTransforms(filePath: string): Promise<string> {
-  const fileName = path.basename(filePath);
+function performCodeBasedTransforms(
+  code: string,
+  filePath?: string,
+): Promise<string> {
+  // Detect file type from content or file path
+  const fileName = filePath ? filePath.split("/").pop() || "" : "";
 
-  if (fileName === "tsconfig.json") {
-    return fixTSConfig(filePath);
-  } else if (fileName === "next.config.js") {
-    return fixNextConfig(filePath);
-  } else if (fileName === "package.json") {
-    return fixPackageJson(filePath);
-  }
-
-  return fs.readFileSync(filePath, "utf8");
-}
-
-function performCodeBasedTransforms(code: string): Promise<string> {
-  // Detect file type from content and apply appropriate transformations
-  if (code.includes('"compilerOptions"')) {
+  if (fileName === "tsconfig.json" || code.includes('"compilerOptions"')) {
     const result = fixTSConfigContent(code);
+    return Promise.resolve(result);
+  } else if (
+    fileName === "next.config.js" ||
+    (code.includes("module.exports") && code.includes("nextConfig"))
+  ) {
+    const result = fixNextConfigContent(code);
+    return Promise.resolve(result);
+  } else if (
+    fileName === "package.json" ||
+    (code.includes('"scripts"') && code.includes('"dependencies"'))
+  ) {
+    const result = fixPackageJsonContent(code);
     return Promise.resolve(result);
   } else if (code.includes("module.exports") || code.includes("nextConfig")) {
     const result = fixNextConfigContent(code);
@@ -58,33 +55,7 @@ function performCodeBasedTransforms(code: string): Promise<string> {
   return Promise.resolve(code);
 }
 
-function fixTSConfig(filePath: string): string {
-  const content = fs.readFileSync(filePath, "utf8");
-  const tsConfig: TSConfig = JSON.parse(content);
-
-  // Update compiler options with modern settings
-  tsConfig.compilerOptions = {
-    ...tsConfig.compilerOptions,
-    target: "ES2022", // Updated from ES2020 to ES2022
-    lib: ["dom", "dom.iterable", "es6", "ES2022"],
-    downlevelIteration: true,
-    allowSyntheticDefaultImports: true,
-    esModuleInterop: true,
-    forceConsistentCasingInFileNames: true,
-    strict: true,
-    noEmit: true,
-    incremental: true,
-    skipLibCheck: true,
-    isolatedModules: true,
-    jsx: "preserve",
-    baseUrl: ".",
-    paths: {
-      "@/*": ["./src/*"],
-    },
-  };
-
-  return JSON.stringify(tsConfig, null, 2);
-}
+// Removed fixTSConfig - using fixTSConfigContent instead
 
 function fixTSConfigContent(content: string): string {
   try {
@@ -126,10 +97,7 @@ function fixTSConfigContent(content: string): string {
   }
 }
 
-function fixNextConfig(filePath: string): string {
-  const content = fs.readFileSync(filePath, "utf8");
-  return fixNextConfigContent(content);
-}
+// Removed fixNextConfig - using fixNextConfigContent instead
 
 function fixNextConfigContent(content: string): string {
   // Remove deprecated appDir option and add modern config, including reactStrictMode: true
@@ -178,10 +146,7 @@ module.exports = nextConfig;`;
   return optimizedConfig;
 }
 
-function fixPackageJson(filePath: string): string {
-  const content = fs.readFileSync(filePath, "utf8");
-  return fixPackageJsonContent(content);
-}
+// Removed fixPackageJson - using fixPackageJsonContent instead
 
 function fixPackageJsonContent(content: string): string {
   try {

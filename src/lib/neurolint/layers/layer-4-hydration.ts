@@ -31,28 +31,44 @@ function addMountedStates(code: string): string {
 
   // Handle window access patterns that need useEffect protection
   if (code.includes("window.") && !code.includes("useEffect")) {
-    // Add useEffect import if missing
-    if (
-      !fixed.includes("useEffect") &&
-      (fixed.includes("useState") || fixed.includes("import"))
-    ) {
-      fixed = fixed.replace(
-        /import { useState } from 'react'/,
-        "import { useState, useEffect } from 'react'",
-      );
-      fixed = fixed.replace(/import React/, "import React, { useEffect }");
-    }
+    let needsStateImport = false;
+    let needsEffectImport = false;
 
     // Wrap window access in useEffect
     const windowPattern = /const\s+(\w+)\s*=\s*window\.(\w+);/g;
     fixed = fixed.replace(windowPattern, (match, varName, windowProp) => {
       const capitalizedVar = varName.charAt(0).toUpperCase() + varName.slice(1);
+      needsStateImport = true;
+      needsEffectImport = true;
       return `const [${varName}, set${capitalizedVar}] = useState(null);
 
   useEffect(() => {
     set${capitalizedVar}(window.${windowProp});
   }, []);`;
     });
+
+    // Add imports if we introduced hooks
+    if (needsStateImport || needsEffectImport) {
+      const hooks = [];
+      if (needsStateImport) hooks.push("useState");
+      if (needsEffectImport) hooks.push("useEffect");
+
+      // Check if there's already a React import
+      if (fixed.includes("import { useState } from 'react'")) {
+        fixed = fixed.replace(
+          /import { useState } from 'react'/,
+          `import { ${hooks.join(", ")} } from 'react'`,
+        );
+      } else if (fixed.includes("import React")) {
+        fixed = fixed.replace(
+          /import React/,
+          `import React, { ${hooks.join(", ")} }`,
+        );
+      } else {
+        // Add new import at the top
+        fixed = `import { ${hooks.join(", ")} } from 'react';\n\n` + fixed;
+      }
+    }
   }
 
   // Handle document access patterns

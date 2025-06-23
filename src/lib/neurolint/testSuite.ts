@@ -286,17 +286,6 @@ export default ComponentA;`,
     input: `const test = 'original';`,
     expectedFixes: []
   }
-    category: "config",
-    input: `{
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build"
-  }
-}
-`,
-    expectedFixes: [
-      "Added lint:fix script",
-      "Added type-check script"
     ]
   },
   // --- Layer 2 specific test ---

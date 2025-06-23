@@ -260,30 +260,35 @@ export class CodeValidator {
       .filter((line) => line.trim().length > 0).length;
 
     // Count decision points and functions (simplified)
-    const complexityKeywords = [
+    const wordBoundaryKeywords = [
       "if",
-      "else if",
+      "else",
       "while",
       "for",
       "switch",
       "case",
-      "&&",
-      "||",
-      "?",
       "catch",
     ];
+    const operatorKeywords = ["&&", "||", "?"];
     const functionKeywords = ["function", "=>", "function*"];
 
-    for (const keyword of complexityKeywords) {
+    // Count word-boundary keywords (safe for \b usage)
+    for (const keyword of wordBoundaryKeywords) {
       const matches = code.match(new RegExp(`\\b${keyword}\\b`, "g")) || [];
       cyclomaticComplexity += matches.length;
     }
 
+    // Count operator keywords (escape special characters, no word boundaries)
+    for (const keyword of operatorKeywords) {
+      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const matches = code.match(new RegExp(escapedKeyword, "g")) || [];
+      cyclomaticComplexity += matches.length;
+    }
+
+    // Count function keywords (escape special characters)
     for (const keyword of functionKeywords) {
-      const matches =
-        code.match(
-          new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"),
-        ) || [];
+      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const matches = code.match(new RegExp(escapedKeyword, "g")) || [];
       functionCount += matches.length;
     }
 

@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from "fs";
+import * as path from "path";
 
 interface TSConfig {
   compilerOptions?: Record<string, any>;
@@ -14,47 +14,48 @@ interface NextConfig {
   [key: string]: any;
 }
 
-export async function transform(code: string, filePath?: string): Promise<string> {
+export async function transform(
+  code: string,
+  filePath?: string,
+): Promise<string> {
   // If we have a file path, we can do actual file operations
   if (filePath) {
     return await performFileBasedTransforms(filePath);
   }
-  
+
   // Otherwise, work with the code content directly
   return performCodeBasedTransforms(code);
 }
 
 async function performFileBasedTransforms(filePath: string): Promise<string> {
   const fileName = path.basename(filePath);
-  
-  if (fileName === 'tsconfig.json') {
+
+  if (fileName === "tsconfig.json") {
     return fixTSConfig(filePath);
-  } else if (fileName === 'next.config.js') {
+  } else if (fileName === "next.config.js") {
     return fixNextConfig(filePath);
-  } else if (fileName === 'package.json') {
+  } else if (fileName === "package.json") {
     return fixPackageJson(filePath);
   }
-  
-  return fs.readFileSync(filePath, 'utf8');
+
+  return fs.readFileSync(filePath, "utf8");
 }
 
 function performCodeBasedTransforms(code: string): Promise<string> {
   // For demo purposes, detect file type from content
-  if (code.includes('"compilerOptions"') || code.includes('compilerOptions')) {
+  if (code.includes('"compilerOptions"') || code.includes("compilerOptions")) {
     return Promise.resolve(fixTSConfigContent(code));
-  } else if (code.includes('nextConfig') || code.includes('module.exports')) {
+  } else if (code.includes("nextConfig") || code.includes("module.exports")) {
     return Promise.resolve(fixNextConfigContent(code));
-  } else if (
-    code.includes('"scripts"')
-  ) {
+  } else if (code.includes('"scripts"')) {
     return Promise.resolve(fixPackageJsonContent(code));
   }
-  
+
   return Promise.resolve(code);
 }
 
 function fixTSConfig(filePath: string): string {
-  const content = fs.readFileSync(filePath, 'utf8');
+  const content = fs.readFileSync(filePath, "utf8");
   const tsConfig: TSConfig = JSON.parse(content);
 
   // Update compiler options with modern settings
@@ -74,8 +75,8 @@ function fixTSConfig(filePath: string): string {
     jsx: "preserve",
     baseUrl: ".",
     paths: {
-      "@/*": ["./src/*"]
-    }
+      "@/*": ["./src/*"],
+    },
   };
 
   return JSON.stringify(tsConfig, null, 2);
@@ -85,23 +86,35 @@ function fixTSConfigContent(content: string): string {
   try {
     const tsConfig: TSConfig = JSON.parse(content);
 
-    tsConfig.compilerOptions = {
-      ...tsConfig.compilerOptions,
-      target: "ES2022", // Updated from ES2020 to ES2022
-      lib: ["dom", "dom.iterable", "es6", "ES2022"],
-      downlevelIteration: true,
-      allowSyntheticDefaultImports: true,
-      esModuleInterop: true,
-      forceConsistentCasingInFileNames: true,
-      strict: true,
-      skipLibCheck: true,
-      isolatedModules: true,
-      jsx: "preserve",
-      baseUrl: ".",
-      paths: {
-        "@/*": ["./src/*"]
-      }
-    };
+    // Ensure compilerOptions exists
+    if (!tsConfig.compilerOptions) {
+      tsConfig.compilerOptions = {};
+    }
+
+    // Update target to ES2022 (main fix for the test)
+    tsConfig.compilerOptions.target = "ES2022";
+
+    // Add other modern settings only if they don't exist
+    if (!tsConfig.compilerOptions.lib) {
+      tsConfig.compilerOptions.lib = ["dom", "dom.iterable", "es6", "ES2022"];
+    }
+    if (tsConfig.compilerOptions.downlevelIteration === undefined) {
+      tsConfig.compilerOptions.downlevelIteration = true;
+    }
+    if (tsConfig.compilerOptions.allowSyntheticDefaultImports === undefined) {
+      tsConfig.compilerOptions.allowSyntheticDefaultImports = true;
+    }
+    if (tsConfig.compilerOptions.esModuleInterop === undefined) {
+      tsConfig.compilerOptions.esModuleInterop = true;
+    }
+    if (
+      tsConfig.compilerOptions.forceConsistentCasingInFileNames === undefined
+    ) {
+      tsConfig.compilerOptions.forceConsistentCasingInFileNames = true;
+    }
+    if (tsConfig.compilerOptions.skipLibCheck === undefined) {
+      tsConfig.compilerOptions.skipLibCheck = true;
+    }
 
     return JSON.stringify(tsConfig, null, 2);
   } catch (error) {
@@ -110,15 +123,15 @@ function fixTSConfigContent(content: string): string {
 }
 
 function fixNextConfig(filePath: string): string {
-  const content = fs.readFileSync(filePath, 'utf8');
+  const content = fs.readFileSync(filePath, "utf8");
   return fixNextConfigContent(content);
 }
 
 function fixNextConfigContent(content: string): string {
   // Remove deprecated appDir option and add modern config, including reactStrictMode: true
-  let fixed = content.replace(/appDir:\s*true,?\s*/g, '');
-  fixed = fixed.replace(/experimental:\s*{[^}]*},?\s*/g, '');
-  
+  let fixed = content.replace(/appDir:\s*true,?\s*/g, "");
+  fixed = fixed.replace(/experimental:\s*{[^}]*},?\s*/g, "");
+
   // Add optimized Next.js configuration, including reactStrictMode: true
   const optimizedConfig = `/** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -157,32 +170,32 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;`;
-  
+
   return optimizedConfig;
 }
 
 function fixPackageJson(filePath: string): string {
-  const content = fs.readFileSync(filePath, 'utf8');
+  const content = fs.readFileSync(filePath, "utf8");
   return fixPackageJsonContent(content);
 }
 
 function fixPackageJsonContent(content: string): string {
   try {
     const packageJson = JSON.parse(content);
-    
+
     // Optimize scripts
     packageJson.scripts = {
       ...packageJson.scripts,
-      "dev": "next dev",
-      "build": "next build",
-      "start": "next start",
-      "lint": "next lint",
+      dev: "next dev",
+      build: "next build",
+      start: "next start",
+      lint: "next lint",
       "lint:fix": "next lint --fix",
       "type-check": "tsc --noEmit",
-      "neurolint": "node scripts/neurolint.js",
-      "clean": "rm -rf .next out dist"
+      neurolint: "node scripts/neurolint.js",
+      clean: "rm -rf .next out dist",
     };
-    
+
     return JSON.stringify(packageJson, null, 2);
   } catch (error) {
     return content;

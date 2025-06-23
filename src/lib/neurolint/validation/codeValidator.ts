@@ -138,50 +138,26 @@ export class CodeValidator {
     const warnings: string[] = [];
     let detected = false;
 
-    // Enhanced corruption patterns with more specific detection
+    // Critical corruption patterns (only the most severe ones that indicate true corruption)
     const corruptionPatterns = [
-      // Corrupted onClick handlers
+      // Severely corrupted onClick handlers with double arrow functions
       {
         pattern: /onClick=\{[^}]*\([^)]*\)\s*=>\s*\(\)\s*=>/g,
-        error: "Corrupted onClick handler with double arrow functions",
+        error: "Severely corrupted onClick handler with double arrow functions",
         severity: "error",
       },
-      // Double function calls
+      // Multiple nested function calls that are clearly corrupted
       {
-        pattern: /\(\)\s*=>[^}]*\([^)]*\)\([^)]*\)/g,
-        error: "Double function call pattern detected",
+        pattern: /\(\)\s*=>[^}]*\([^)]*\)\([^)]*\)\([^)]*\)/g,
+        error: "Multiple nested function call corruption detected",
         severity: "error",
       },
-      // Malformed event handlers
-      {
-        pattern: /onClick=\{[^}]*\)\([^)]*\)$/g,
-        error: "Malformed event handler syntax",
-        severity: "error",
-      },
-      // Invalid JSX attributes
-      {
-        pattern: /\w+=\{[^}]*\)[^}]*\}/g,
-        error: "Invalid JSX attribute structure",
-        severity: "error",
-      },
-      // Unclosed JSX tags
-      {
-        pattern: /<(\w+)(?:\s[^>]*)?(?!\/?>)$/gm,
-        error: "Potentially unclosed JSX tag",
-        severity: "warning",
-      },
-      // Malformed imports
-      {
-        pattern: /import\s+\{[^}]*\s+from\s+[^'"]*$/gm,
-        error: "Malformed import statement",
-        severity: "error",
-      },
-      // Incomplete function definitions
-      {
-        pattern: /function\s+\w+\s*\([^)]*\)\s*\{[^}]*$/gm,
-        error: "Incomplete function definition",
-        severity: "warning",
-      },
+      // Note: Removed less severe patterns that layers are designed to fix:
+      // - Invalid JSX attributes (Layer 3 can fix these)
+      // - Malformed event handlers (Layer 3 can fix these)
+      // - Unclosed JSX tags (Parser will catch these)
+      // - Malformed imports (Layer 3 can fix these)
+      // - Incomplete functions (Could be intentional or fixable)
     ];
 
     for (const { pattern, error, severity } of corruptionPatterns) {

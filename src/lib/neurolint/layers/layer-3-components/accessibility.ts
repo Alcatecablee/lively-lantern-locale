@@ -11,15 +11,18 @@ export function fixAccessibilityAttributes(code: string): string {
 
   // Add aria-label to buttons without existing aria attributes
   fixed = fixed.replace(
-    /<button([^>]*?)>(.*?)<\/button>/g,
+    /<button([^>]*?)>(.*?)<\/button>/gs,
     (match, attributes, content) => {
       // Don't modify if already has aria attributes
-      if (attributes.includes("aria-") || attributes.includes("aria=")) {
+      if (attributes.includes("aria-")) {
         return match;
       }
 
-      // Extract text content for aria-label
-      const textContent = content.replace(/<[^>]*>/g, "").trim();
+      // Extract text content for aria-label (handle multiline)
+      const textContent = content
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
       if (textContent) {
         return `<button${attributes} aria-label="${textContent}">${content}</button>`;
       }

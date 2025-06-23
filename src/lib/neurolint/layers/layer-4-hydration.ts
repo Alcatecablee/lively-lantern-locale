@@ -44,13 +44,13 @@ function addMountedStates(code: string): string {
     }
 
     // Wrap window access in useEffect
-    const windowPattern = /(const\s+\w+\s*=\s*window\.[^;]+;)/g;
-    fixed = fixed.replace(windowPattern, (match) => {
-      const varName = match.match(/const\s+(\w+)/)?.[1] || "value";
-      return `const [${varName}, set${varName.charAt(0).toUpperCase() + varName.slice(1)}] = useState(null);
+    const windowPattern = /const\s+(\w+)\s*=\s*window\.(\w+);/g;
+    fixed = fixed.replace(windowPattern, (match, varName, windowProp) => {
+      const capitalizedVar = varName.charAt(0).toUpperCase() + varName.slice(1);
+      return `const [${varName}, set${capitalizedVar}] = useState(null);
 
   useEffect(() => {
-    set${varName.charAt(0).toUpperCase() + varName.slice(1)}(window.${varName.replace("const ", "").replace(" =", "")});
+    set${capitalizedVar}(window.${windowProp});
   }, []);`;
     });
   }

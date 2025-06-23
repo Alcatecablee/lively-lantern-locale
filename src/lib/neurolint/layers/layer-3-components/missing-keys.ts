@@ -108,14 +108,26 @@ export function fixMissingKeyProps(code: string): string {
     },
   );
 
-  // Handle case with parentheses around JSX: .map(item => (<li>...</li>))
-  fixed = fixed.replace(
-    /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*\(\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)\s*\)/g,
-    (match, item, component, props, children) => {
-      if (props.includes("key=")) return match;
-      return `.map(${item} => (<${component} key={${item}.id || Math.random()}${props}>${children}</${component}>))`;
-    },
-  );
+  // Handle case with parentheses around JSX: .map(item => (<li>...</li>)) - be very careful
+  try {
+    fixed = fixed.replace(
+      /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*\(\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)\s*\)/g,
+      (match, item, component, props, children) => {
+        // Don't modify if already has key or if syntax looks complex
+        if (
+          props.includes("key=") ||
+          match.includes("onClick=") ||
+          children.includes("{")
+        ) {
+          return match;
+        }
+        return `.map(${item} => (<${component} key={${item}.id || Math.random()}${props}>${children}</${component}>))`;
+      },
+    );
+  } catch (e) {
+    // If regex fails, return original to prevent corruption
+    return code;
+  }
 
   return fixed;
 }

@@ -9,27 +9,36 @@ export function fixAccessibilityAttributes(code: string): string {
     return match;
   });
 
-  // Add aria-label to buttons without existing aria attributes
-  fixed = fixed.replace(
-    /<button([^>]*?)>(.*?)<\/button>/gs,
-    (match, attributes, content) => {
-      // Don't modify if already has aria attributes
-      if (attributes.includes("aria-")) {
-        return match;
-      }
+  // Add aria-label to buttons without existing aria attributes (be very careful with JSX)
+  try {
+    fixed = fixed.replace(
+      /<button(\s[^>]*?)>([\s\S]*?)<\/button>/g,
+      (match, attributes, content) => {
+        // Don't modify if already has aria attributes or if it would break syntax
+        if (
+          attributes.includes("aria-") ||
+          (match.includes("{") && !match.includes("}"))
+        ) {
+          return match;
+        }
 
-      // Extract text content for aria-label (handle multiline)
-      const textContent = content
-        .replace(/<[^>]*>/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (textContent) {
-        return `<button${attributes} aria-label="${textContent}">${content}</button>`;
-      }
+        // Extract simple text content only
+        const textContent = content
+          .replace(/<[^>]*>/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (textContent && textContent.length > 0 && textContent.length < 50) {
+          // Only add if it's simple text content
+          return `<button${attributes} aria-label="${textContent}">${content}</button>`;
+        }
 
-      return `<button${attributes} aria-label="Button">${content}</button>`;
-    },
-  );
+        return match; // Don't modify complex buttons
+      },
+    );
+  } catch (e) {
+    // If regex fails, return original
+    return code;
+  }
 
   // Add role and aria-label to interactive elements
   fixed = fixed.replace(/<div([^>]*?)onClick/g, (match, attributes) => {

@@ -10,23 +10,33 @@ export function fixComponentPropTypes(code: string): string {
     !fixed.includes("interface") &&
     !fixed.includes("type Props")
   ) {
-    const [fullMatch, componentName, props] = arrowComponentMatch;
-    const propNames = props.split(",").map((p) => p.trim());
+    try {
+      const [fullMatch, componentName, props] = arrowComponentMatch;
+      const propNames = props
+        .split(",")
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
 
-    const interfaceDefinition = `interface ${componentName}Props {
+      if (propNames.length > 0) {
+        const interfaceDefinition = `interface ${componentName}Props {
   ${propNames.map((prop) => `${prop}: string;`).join("\n  ")}
 }
 
 `;
 
-    fixed =
-      interfaceDefinition +
-      fixed.replace(
-        fullMatch,
-        `const ${componentName} = ({ ${props} }: ${componentName}Props) =>`,
-      );
+        fixed =
+          interfaceDefinition +
+          fixed.replace(
+            fullMatch,
+            `const ${componentName} = ({ ${props} }: ${componentName}Props) =>`,
+          );
+      }
 
-    return fixed;
+      return fixed;
+    } catch (e) {
+      // If anything goes wrong, return original
+      return code;
+    }
   }
 
   // Handle regular function components: function ComponentName({ props })

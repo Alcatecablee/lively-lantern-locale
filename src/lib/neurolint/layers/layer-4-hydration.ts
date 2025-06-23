@@ -31,17 +31,8 @@ function addMountedStates(code: string): string {
 
   // Handle window access patterns that need useEffect protection
   if (code.includes("window.") && !code.includes("useEffect")) {
-    // Add useEffect import if missing
-    if (
-      !fixed.includes("useEffect") &&
-      (fixed.includes("useState") || fixed.includes("import"))
-    ) {
-      fixed = fixed.replace(
-        /import { useState } from 'react'/,
-        "import { useState, useEffect } from 'react'",
-      );
-      fixed = fixed.replace(/import React/, "import React, { useEffect }");
-    }
+    let needsStateImport = false;
+    let needsEffectImport = false;
 
     // Wrap window access in useEffect
     const windowPattern = /const\s+(\w+)\s*=\s*window\.(\w+);/g;

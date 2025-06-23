@@ -10,6 +10,7 @@ import {
 } from "./types";
 import { CodeValidator } from "./validation/codeValidator";
 import { BackupManager } from "./backup/backupManager";
+import { DiagnosticMonitor } from "./diagnostics/monitor";
 
 const LAYER_LIST = [
   {
@@ -269,11 +270,21 @@ export async function NeuroLintOrchestrator(
   }
 
   const totalTime = Date.now() - startTime;
+  const overallSuccess = failedLayers === 0 && revertedLayers === 0;
+
+  // Record execution for diagnostics
+  DiagnosticMonitor.recordExecution(results, totalTime, overallSuccess);
 
   if (options.verbose) {
     console.log(
       `🏁 Orchestration complete: ${totalTime}ms, ${totalChanges} total changes`,
     );
+
+    // Show live diagnostics in verbose mode
+    if (results.length > 0) {
+      const liveReport = DiagnosticMonitor.createRealTimeReport();
+      console.log("\n" + liveReport);
+    }
   }
 
   return {

@@ -86,9 +86,9 @@ export async function NeuroLintOrchestrator(
     }
   }
 
-  // Validate initial code
+  // Validate initial code (but allow processing invalid code to fix it)
   const initialValidation = CodeValidator.validate(code);
-  if (!initialValidation.isValid && !options.allowInvalidInput) {
+  if (!initialValidation.isValid && options.allowInvalidInput === false) {
     return {
       transformed: code,
       layers: [

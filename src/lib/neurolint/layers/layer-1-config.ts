@@ -97,10 +97,7 @@ function fixTSConfigContent(content: string): string {
   }
 }
 
-function fixNextConfig(filePath: string): string {
-  const content = fs.readFileSync(filePath, "utf8");
-  return fixNextConfigContent(content);
-}
+// Removed fixNextConfig - using fixNextConfigContent instead
 
 function fixNextConfigContent(content: string): string {
   // Remove deprecated appDir option and add modern config, including reactStrictMode: true

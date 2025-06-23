@@ -45,29 +45,16 @@ async function performFileBasedTransforms(filePath: string): Promise<string> {
 function performCodeBasedTransforms(code: string): Promise<string> {
   // Detect file type from content and apply appropriate transformations
   if (code.includes('"compilerOptions"')) {
-    console.log("🔧 Config Layer: Detected TypeScript config");
     const result = fixTSConfigContent(code);
-    console.log(
-      "🔧 Config Layer: Input target:",
-      code.includes('"target": "es5"') ? "es5" : "unknown",
-    );
-    console.log(
-      "🔧 Config Layer: Output target:",
-      result.includes('"target": "ES2022"') ? "ES2022" : "unchanged",
-    );
     return Promise.resolve(result);
   } else if (code.includes("module.exports") || code.includes("nextConfig")) {
-    console.log("🔧 Config Layer: Detected Next.js config");
     const result = fixNextConfigContent(code);
     return Promise.resolve(result);
   } else if (code.includes('"scripts"')) {
-    console.log("🔧 Config Layer: Detected package.json");
     const result = fixPackageJsonContent(code);
-    console.log("🔧 Config Layer: Added scripts?", result.includes("lint:fix"));
     return Promise.resolve(result);
   }
 
-  console.log("🔧 Config Layer: No config detected, returning unchanged");
   return Promise.resolve(code);
 }
 

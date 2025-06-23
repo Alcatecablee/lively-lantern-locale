@@ -6,18 +6,18 @@ export function fixMissingKeyProps(code: string): string {
     /\.map\(\s*\(([^,)]+)(?:\s*,\s*([^)]+))?\)\s*=>\s*<(\w+)([^>]*)>(.*?)<\/\3>/gs,
     (match, item, index, component, props, children) => {
       if (
-        props.includes('key=') ||
-        match.includes('onClick=') ||
-        props.includes('onClick=') ||
-        ['button', 'input', 'a', 'textarea', 'form', 'select'].includes(component)
+        props.includes("key=") ||
+        match.includes("onClick=") ||
+        props.includes("onClick=") ||
+        ["button", "input", "a", "textarea", "form", "select"].includes(
+          component,
+        )
       ) {
         return match;
       }
-      const keyValue = index
-        ? `{${index}}`
-        : `{${item}.id || Math.random()}`;
+      const keyValue = index ? `{${index}}` : `{${item}.id || Math.random()}`;
       return `<${component} key=${keyValue}${props}>${children}</${component}>`;
-    }
+    },
   );
 
   // Pattern 2: items.map(item => <li>{item.name}</li>)
@@ -26,16 +26,18 @@ export function fixMissingKeyProps(code: string): string {
     /\.map\(\s*(?:\(?\s*([a-zA-Z0-9_]+)\s*\)?)\s*=>\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)/g,
     (match, item, component, props, children) => {
       if (
-        props.includes('key=') ||
-        match.includes('onClick=') ||
-        props.includes('onClick=') ||
-        ['button', 'input', 'a', 'textarea', 'form', 'select'].includes(component)
+        props.includes("key=") ||
+        match.includes("onClick=") ||
+        props.includes("onClick=") ||
+        ["button", "input", "a", "textarea", "form", "select"].includes(
+          component,
+        )
       ) {
         return match;
       }
       const keyValue = `{${item}.id || Math.random()}`;
       return `<${component} key=${keyValue}${props}>${children}</${component}>`;
-    }
+    },
   );
 
   // Pattern 3: concise arrow function with no parentheses in .map single expression
@@ -43,16 +45,18 @@ export function fixMissingKeyProps(code: string): string {
     /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<(\w+)([^>]*)>(.*?)<\/\2>/gs,
     (match, item, component, props, children) => {
       if (
-        props.includes('key=') ||
-        match.includes('onClick=') ||
-        props.includes('onClick=') ||
-        ['button', 'input', 'a', 'textarea', 'form', 'select'].includes(component)
+        props.includes("key=") ||
+        match.includes("onClick=") ||
+        props.includes("onClick=") ||
+        ["button", "input", "a", "textarea", "form", "select"].includes(
+          component,
+        )
       ) {
         return match;
       }
       const keyValue = `{${item}.id || Math.random()}`;
       return `<${component} key=${keyValue}${props}>${children}</${component}>`;
-    }
+    },
   );
 
   // Pattern 4: self-closing tags in .map
@@ -60,16 +64,18 @@ export function fixMissingKeyProps(code: string): string {
     /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<(\w+)([^>]*)\/>/g,
     (match, item, component, props) => {
       if (
-        props.includes('key=') ||
-        match.includes('onClick=') ||
-        props.includes('onClick=') ||
-        ['button', 'input', 'a', 'textarea', 'form', 'select'].includes(component)
+        props.includes("key=") ||
+        match.includes("onClick=") ||
+        props.includes("onClick=") ||
+        ["button", "input", "a", "textarea", "form", "select"].includes(
+          component,
+        )
       ) {
         return match;
       }
       const keyValue = `{${item}.id || Math.random()}`;
       return `<${component} key=${keyValue}${props}/>`;
-    }
+    },
   );
 
   // Pattern 5: map with parentheses arrow function returning JSX in parens
@@ -77,18 +83,18 @@ export function fixMissingKeyProps(code: string): string {
     /\.map\(\s*\(([^,)]+)(?:\s*,\s*([^)]+))?\)\s*=>\s*\(\s*<(\w+)([^>]*)>(.*?)<\/\3>\s*\)/gs,
     (match, item, index, component, props, children) => {
       if (
-        props.includes('key=') ||
-        match.includes('onClick=') ||
-        props.includes('onClick=') ||
-        ['button', 'input', 'a', 'textarea', 'form', 'select'].includes(component)
+        props.includes("key=") ||
+        match.includes("onClick=") ||
+        props.includes("onClick=") ||
+        ["button", "input", "a", "textarea", "form", "select"].includes(
+          component,
+        )
       ) {
         return match;
       }
-      const keyValue = index
-        ? `{${index}}`
-        : `{${item}.id || Math.random()}`;
+      const keyValue = index ? `{${index}}` : `{${item}.id || Math.random()}`;
       return `<${component} key=${keyValue}${props}>${children}</${component}>`;
-    }
+    },
   );
 
   // Additional catch-all: specifically for concise .map(item => <li>{...}</li>)
@@ -97,10 +103,31 @@ export function fixMissingKeyProps(code: string): string {
   fixed = fixed.replace(
     /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*<li([^>]*)>([\s\S]*?)<\/li>\s*\)/g,
     (match, item, props, children) => {
-      if (props.includes('key=')) return match;
+      if (props.includes("key=")) return match;
       return `.map(${item} => <li key={${item}.id || Math.random()}${props}>${children}</li>)`;
-    }
+    },
   );
+
+  // Handle case with parentheses around JSX: .map(item => (<li>...</li>)) - be very careful
+  try {
+    fixed = fixed.replace(
+      /\.map\(\s*([a-zA-Z0-9_]+)\s*=>\s*\(\s*<(\w+)([^>]*)>([\s\S]*?)<\/\2>\s*\)\s*\)/g,
+      (match, item, component, props, children) => {
+        // Don't modify if already has key or if syntax looks complex
+        if (
+          props.includes("key=") ||
+          match.includes("onClick=") ||
+          children.includes("{")
+        ) {
+          return match;
+        }
+        return `.map(${item} => (<${component} key={${item}.id || Math.random()}${props}>${children}</${component}>))`;
+      },
+    );
+  } catch (e) {
+    // If regex fails, return original to prevent corruption
+    return code;
+  }
 
   return fixed;
 }

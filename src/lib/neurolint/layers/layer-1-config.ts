@@ -146,10 +146,7 @@ module.exports = nextConfig;`;
   return optimizedConfig;
 }
 
-function fixPackageJson(filePath: string): string {
-  const content = fs.readFileSync(filePath, "utf8");
-  return fixPackageJsonContent(content);
-}
+// Removed fixPackageJson - using fixPackageJsonContent instead
 
 function fixPackageJsonContent(content: string): string {
   try {

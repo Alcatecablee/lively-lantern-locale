@@ -22,10 +22,27 @@ export async function transform(
   return result;
 }
 
-function performCodeBasedTransforms(code: string): Promise<string> {
-  // Detect file type from content and apply appropriate transformations
-  if (code.includes('"compilerOptions"')) {
+function performCodeBasedTransforms(
+  code: string,
+  filePath?: string,
+): Promise<string> {
+  // Detect file type from content or file path
+  const fileName = filePath ? filePath.split("/").pop() || "" : "";
+
+  if (fileName === "tsconfig.json" || code.includes('"compilerOptions"')) {
     const result = fixTSConfigContent(code);
+    return Promise.resolve(result);
+  } else if (
+    fileName === "next.config.js" ||
+    (code.includes("module.exports") && code.includes("nextConfig"))
+  ) {
+    const result = fixNextConfigContent(code);
+    return Promise.resolve(result);
+  } else if (
+    fileName === "package.json" ||
+    (code.includes('"scripts"') && code.includes('"dependencies"'))
+  ) {
+    const result = fixPackageJsonContent(code);
     return Promise.resolve(result);
   } else if (code.includes("module.exports") || code.includes("nextConfig")) {
     const result = fixNextConfigContent(code);

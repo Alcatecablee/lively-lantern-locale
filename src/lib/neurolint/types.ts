@@ -18,7 +18,7 @@ export interface NeuroLintOptions {
   verbose?: boolean;
   skipLayers?: number[];
   targetFiles?: string[];
-  allowInvalidInput?: boolean;
+  allowInvalidInput?: boolean; // defaults to true - allow processing corrupted code to fix it
   failFast?: boolean;
   createBackups?: boolean;
   maxRetries?: number;

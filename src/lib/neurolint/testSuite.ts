@@ -530,10 +530,10 @@ export function validateTestResult(
   for (const expectedFix of testCase.expectedFixes) {
     let fixDetected = false;
 
-    // Layer-specific fix detection
+    // Layer-specific fix detection - be more precise
     if (
       expectedFix.includes("TypeScript target") &&
-      transformedCode.includes("ES2022")
+      transformedCode.includes('"target": "ES2022"')
     ) {
       fixDetected = true;
     } else if (
@@ -542,51 +542,91 @@ export function validateTestResult(
     ) {
       fixDetected = true;
     } else if (
-      expectedFix.includes("HTML entities") &&
-      !transformedCode.includes("&amp;") &&
-      !transformedCode.includes("&copy;")
+      expectedFix.includes("development scripts") &&
+      (transformedCode.includes("lint:fix") ||
+        transformedCode.includes("type-check"))
     ) {
       fixDetected = true;
-    } else if (
-      expectedFix.includes("variable declarations") &&
-      transformedCode.includes("const ") &&
-      !transformedCode.includes("var ")
-    ) {
-      fixDetected = true;
-    } else if (
-      expectedFix.includes("React keys") &&
-      transformedCode.includes("key=")
-    ) {
-      fixDetected = true;
-    } else if (
-      expectedFix.includes("missing imports") &&
-      (transformedCode.includes("import React") ||
-        transformedCode.includes("import { useState"))
-    ) {
-      fixDetected = true;
-    } else if (
-      expectedFix.includes("accessibility") &&
-      transformedCode.includes("aria-")
-    ) {
-      fixDetected = true;
-    } else if (
-      expectedFix.includes("SSR safety") &&
-      transformedCode.includes("typeof window")
-    ) {
-      fixDetected = true;
-    } else if (
-      expectedFix.includes("hydration guards") &&
-      transformedCode.includes("useEffect")
-    ) {
-      fixDetected = true;
-    } else if (
-      expectedFix.includes("browser API") &&
-      transformedCode.includes("typeof document")
-    ) {
-      fixDetected = true;
-    } else if (transformedCode !== testCase.input) {
-      // Generic: if code changed and we expect this fix, consider it detected
-      fixDetected = true;
+    } else if (expectedFix.includes("HTML entities")) {
+      // Check if entities were actually converted
+      const hasAmp =
+        testCase.input.includes("&amp;") && !transformedCode.includes("&amp;");
+      const hasCopy =
+        testCase.input.includes("&copy;") &&
+        !transformedCode.includes("&copy;");
+      const hasLt =
+        testCase.input.includes("&lt;") && !transformedCode.includes("&lt;");
+      const hasGt =
+        testCase.input.includes("&gt;") && !transformedCode.includes("&gt;");
+      if (hasAmp || hasCopy || hasLt || hasGt) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("variable declarations")) {
+      // Check if var was actually converted to const
+      const hadVar = testCase.input.includes("var ");
+      const hasConst =
+        transformedCode.includes("const ") && !transformedCode.includes("var ");
+      if (hadVar && hasConst) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("React keys")) {
+      // Check if keys were actually added where missing
+      const hadMapWithoutKey =
+        testCase.input.includes(".map(") && !testCase.input.includes("key=");
+      const hasMapWithKey = transformedCode.includes("key=");
+      if (hadMapWithoutKey && hasMapWithKey) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("missing imports")) {
+      const hadUseState =
+        testCase.input.includes("useState") &&
+        !testCase.input.includes("import");
+      const hasImport =
+        transformedCode.includes("import { useState") ||
+        transformedCode.includes("import React");
+      if (hadUseState && hasImport) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("accessibility")) {
+      const hasAria =
+        transformedCode.includes("aria-") && !testCase.input.includes("aria-");
+      if (hasAria) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("SSR safety")) {
+      const hadLocalStorage =
+        testCase.input.includes("localStorage") &&
+        !testCase.input.includes("typeof window");
+      const hasSafetyCheck = transformedCode.includes(
+        'typeof window !== "undefined"',
+      );
+      if (hadLocalStorage && hasSafetyCheck) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("hydration guards")) {
+      const hadWindowAccess =
+        testCase.input.includes("window.") &&
+        !testCase.input.includes("useEffect");
+      const hasUseEffect = transformedCode.includes("useEffect");
+      if (hadWindowAccess && hasUseEffect) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("browser API")) {
+      const hadDocument =
+        testCase.input.includes("document.") &&
+        !testCase.input.includes("typeof document");
+      const hasSafetyCheck = transformedCode.includes("typeof document");
+      if (hadDocument && hasSafetyCheck) {
+        fixDetected = true;
+      }
+    } else if (expectedFix.includes("function syntax")) {
+      const hadOldFunction =
+        testCase.input.includes("function(") && testCase.input.includes("var ");
+      const hasModernSyntax =
+        transformedCode.includes("const ") && !transformedCode.includes("var ");
+      if (hadOldFunction && hasModernSyntax) {
+        fixDetected = true;
+      }
     }
 
     if (fixDetected) {

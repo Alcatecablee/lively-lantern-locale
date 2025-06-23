@@ -24,7 +24,8 @@ export async function transform(
   }
 
   // Otherwise, work with the code content directly
-  return performCodeBasedTransforms(code);
+  const result = await performCodeBasedTransforms(code);
+  return result;
 }
 
 async function performFileBasedTransforms(filePath: string): Promise<string> {

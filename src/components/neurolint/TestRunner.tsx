@@ -47,7 +47,7 @@ export function TestRunner() {
       const startTime = Date.now();
       try {
         // Pass enabledLayers to orchestrator
-        const { transformed, layers, layerOutputs } = await NeuroLintOrchestrator(
+        const { transformed, layers, layerOutputs, backup } = await NeuroLintOrchestrator(
           testCase.input,
           undefined,
           useAST,
@@ -63,6 +63,10 @@ export function TestRunner() {
           detectedFixes: validation.detectedFixes,
           missingFixes: validation.missingFixes,
           executionTime,
+          // Add missing required properties from TestResult interface
+          layerResults: layers,
+          validationPassed: validation.passed,
+          backupCreated: !!backup,
           // Store per-test pipeline and enabled layers
           pipeline: layerOutputs,
           testEnabledLayers,
@@ -77,6 +81,10 @@ export function TestRunner() {
           detectedFixes: [],
           missingFixes: testCase.expectedFixes,
           executionTime,
+          // Add missing required properties from TestResult interface
+          layerResults: [],
+          validationPassed: false,
+          backupCreated: false,
           pipeline: [testCase.input],
           testEnabledLayers,
         });

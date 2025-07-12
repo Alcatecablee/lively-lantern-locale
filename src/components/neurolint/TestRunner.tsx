@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -63,8 +64,13 @@ export function TestRunner() {
           detectedFixes: validation.detectedFixes,
           missingFixes: validation.missingFixes,
           executionTime,
-          // Add missing required properties from TestResult interface
-          layerResults: layers,
+          // Map NeuroLintLayerResult[] to the expected layerResults format
+          layerResults: layers.map(layer => ({
+            layerId: layer.layerId || 0,
+            success: layer.success,
+            changes: layer.changeCount || 0,
+            reverted: layer.reverted || false
+          })),
           validationPassed: validation.passed,
           backupCreated: !!backup,
           // Store per-test pipeline and enabled layers

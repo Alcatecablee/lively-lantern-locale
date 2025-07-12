@@ -4,8 +4,24 @@
  * Analyzes code and recommends appropriate transformation layers
  */
 
+interface DetectedIssue {
+  type: string;
+  severity: 'low' | 'medium' | 'high';
+  layer: number;
+}
+
+interface RecommendationResult {
+  detectedIssues: DetectedIssue[];
+  recommendedLayers: number[];
+  confidence: number;
+  estimatedImpact: {
+    level: 'low' | 'medium' | 'high';
+    description: string;
+  };
+}
+
 export class EnhancedSmartLayerSelector {
-  static analyzeAndRecommend(code: string, filePath?: string) {
+  static analyzeAndRecommend(code: string, filePath?: string): RecommendationResult {
     const issues = this.detectIssues(code, filePath);
     const recommendedLayers = this.recommendLayers(issues);
     const confidence = this.calculateConfidence(issues, recommendedLayers);
@@ -19,8 +35,8 @@ export class EnhancedSmartLayerSelector {
     };
   }
 
-  private static detectIssues(code: string, filePath?: string) {
-    const issues = [];
+  private static detectIssues(code: string, filePath?: string): DetectedIssue[] {
+    const issues: DetectedIssue[] = [];
 
     // Layer 1 issues (Configuration)
     if (code.includes('"target": "es5"') || code.includes('reactStrictMode: false')) {
@@ -59,13 +75,13 @@ export class EnhancedSmartLayerSelector {
     return issues;
   }
 
-  private static recommendLayers(issues: any[]) {
-    const layerSet = new Set();
+  private static recommendLayers(issues: DetectedIssue[]): number[] {
+    const layerSet = new Set<number>();
     issues.forEach(issue => layerSet.add(issue.layer));
     return Array.from(layerSet).sort((a, b) => a - b);
   }
 
-  private static calculateConfidence(issues: any[], recommendedLayers: number[]) {
+  private static calculateConfidence(issues: DetectedIssue[], recommendedLayers: number[]): number {
     if (issues.length === 0) return 0.9; // High confidence for no issues
     
     const highSeverityIssues = issues.filter(i => i.severity === 'high').length;
@@ -74,7 +90,7 @@ export class EnhancedSmartLayerSelector {
     return Math.max(0.3, 1 - (highSeverityIssues * 0.2) - (totalIssues * 0.05));
   }
 
-  private static estimateImpact(issues: any[]) {
+  private static estimateImpact(issues: DetectedIssue[]): { level: 'low' | 'medium' | 'high'; description: string } {
     const highImpactIssues = issues.filter(i => i.severity === 'high').length;
     
     if (highImpactIssues > 3) return { level: 'high', description: 'Significant improvements expected' };

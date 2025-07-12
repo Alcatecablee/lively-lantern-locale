@@ -2,6 +2,8 @@ import * as layer1 from "./layers/layer-1-config";
 import * as layer2 from "./layers/layer-2-entities";
 import * as layer3 from "./layers/layer-3-components";
 import * as layer4 from "./layers/layer-4-hydration";
+import * as layer5 from "./layers/layer-5-nextjs";
+import * as layer6 from "./layers/layer-6-testing";
 import { transformWithAST } from "./ast/orchestrator";
 import {
   NeuroLintLayerResult,
@@ -44,6 +46,20 @@ const LAYER_LIST = [
     description: "Fixes hydration bugs and adds SSR/localStorage protection.",
     astSupported: true,
   },
+  {
+    id: 5,
+    fn: layer5.transform,
+    name: "Next.js App Router",
+    description: "Fixes Next.js specific issues and App Router patterns.",
+    astSupported: false,
+  },
+  {
+    id: 6,
+    fn: layer6.transform,
+    name: "Testing & Validation",
+    description: "Enhances testing patterns and adds validation improvements.",
+    astSupported: false,
+  },
 ];
 
 // Enhanced orchestrator with dry-run, backup system, and robust error handling
@@ -51,7 +67,7 @@ export async function NeuroLintOrchestrator(
   code: string,
   filePath?: string,
   useAST: boolean = true,
-  layerIds: number[] = [1, 2, 3, 4],
+  layerIds: number[] = [1, 2, 3, 4, 5, 6],
   options: NeuroLintOptions = {},
 ): Promise<{
   transformed: string;

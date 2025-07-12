@@ -8,6 +8,28 @@ export async function transformAST(code: string): Promise<string> {
 
   try {
     return transformer.transform(code, (ast) => {
+      // Track if we need to add React import
+      let needsReactImport = false;
+      let hasReactImport = false;
+
+      // First pass: check existing imports and usage
+      traverse(ast, {
+        ImportDeclaration(path) {
+          if (t.isStringLiteral(path.node.source) && path.node.source.value === 'react') {
+            hasReactImport = true;
+          }
+        },
+        CallExpression(path) {
+          if (t.isIdentifier(path.node.callee)) {
+            const name = path.node.callee.name;
+            if (name.startsWith('use') && (name === 'useState' || name === 'useEffect' || name === 'useCallback' || name === 'useMemo')) {
+              needsReactImport = true;
+            }
+          }
+        }
+      });
+
+      // Second pass: apply transformations
       traverse(ast, {
         // Fix missing key props in map functions
         CallExpression(path) {
@@ -19,71 +41,50 @@ export async function transformAST(code: string): Promise<string> {
             const callback = path.node.arguments[0];
             if (t.isArrowFunctionExpression(callback) || t.isFunctionExpression(callback)) {
               const body = callback.body;
-              if (t.isJSXElement(body) || t.isJSXFragment(body)) {
+              
+              // Only process JSX elements
+              if (t.isJSXElement(body)) {
                 // Check if key prop already exists
-                const hasKey = t.isJSXElement(body) && 
-                  body.openingElement.attributes.some(attr => 
-                    t.isJSXAttribute(attr) && 
-                    t.isJSXIdentifier(attr.name) && 
-                    attr.name.name === 'key'
-                  );
+                const hasKey = body.openingElement.attributes.some(attr => 
+                  t.isJSXAttribute(attr) && 
+                  t.isJSXIdentifier(attr.name) && 
+                  attr.name.name === 'key'
+                );
                 
-                if (!hasKey && t.isJSXElement(body)) {
-                  // Add key prop using index
-                  const keyAttr = t.jsxAttribute(
-                    t.jsxIdentifier('key'),
-                    t.jsxExpressionContainer(
-                      t.identifier('index')
-                    )
-                  );
-                  body.openingElement.attributes.unshift(keyAttr);
-                  
+                if (!hasKey) {
                   // Ensure callback has index parameter
                   if (callback.params.length === 1) {
                     callback.params.push(t.identifier('index'));
                   }
+                  
+                  // Add key prop using index
+                  const keyAttr = t.jsxAttribute(
+                    t.jsxIdentifier('key'),
+                    t.jsxExpressionContainer(t.identifier('index'))
+                  );
+                  body.openingElement.attributes.unshift(keyAttr);
                 }
               }
             }
           }
         },
 
-        // Add missing imports
-        Program(path) {
-          const body = path.node.body;
-          const imports = body.filter(node => t.isImportDeclaration(node));
-          const hasReactImport = imports.some(imp => 
-            t.isStringLiteral(imp.source) && imp.source.value === 'react'
-          );
-
-          // Check if React hooks are used but React is not imported
-          let needsReactImport = false;
-          traverse(ast, {
-            Identifier(innerPath) {
-              if (innerPath.node.name.startsWith('use') && 
-                  (innerPath.node.name === 'useState' || 
-                   innerPath.node.name === 'useEffect' ||
-                   innerPath.node.name === 'useCallback' ||
-                   innerPath.node.name === 'useMemo')) {
-                needsReactImport = true;
-              }
+        // Add missing imports at program level
+        Program: {
+          exit(path) {
+            if (needsReactImport && !hasReactImport) {
+              const reactImport = t.importDeclaration(
+                [t.importDefaultSpecifier(t.identifier('React'))],
+                t.stringLiteral('react')
+              );
+              path.node.body.unshift(reactImport);
             }
-          }, path.scope);
-
-          if (needsReactImport && !hasReactImport) {
-            const reactImport = t.importDeclaration(
-              [t.importDefaultSpecifier(t.identifier('React'))],
-              t.stringLiteral('react')
-            );
-            body.unshift(reactImport);
           }
         },
 
         // Fix accessibility issues
         JSXOpeningElement(path) {
-          if (t.isJSXIdentifier(path.node.name) && 
-              path.node.name.name === 'button') {
-            
+          if (t.isJSXIdentifier(path.node.name) && path.node.name.name === 'button') {
             const hasAriaLabel = path.node.attributes.some(attr =>
               t.isJSXAttribute(attr) &&
               t.isJSXIdentifier(attr.name) &&

@@ -1,6 +1,7 @@
 
 import { transformAST as transformComponentsAST } from './layers/layer-3-components-ast';
 import { transformAST as transformHydrationAST } from './layers/layer-4-hydration-ast';
+import { transformAST as transformTestingAST } from './layers/layer-6-testing-ast';
 
 export interface ASTTransformResult {
   success: boolean;
@@ -14,11 +15,17 @@ export async function transformWithAST(code: string, layerName: string): Promise
     let transformed = code;
     
     switch (layerName) {
+      case 'layer-3-component-best-practices':
       case 'layer-3-components':
         transformed = await transformComponentsAST(code);
         break;
+      case 'layer-4-hydration-&-ssr-guard':
       case 'layer-4-hydration':
         transformed = await transformHydrationAST(code);
+        break;
+      case 'layer-6-testing-&-validation':
+      case 'layer-6-testing':
+        transformed = await transformTestingAST(code);
         break;
       default:
         return { 

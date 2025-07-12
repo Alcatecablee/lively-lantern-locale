@@ -138,10 +138,10 @@ export async function transformAST(code: string): Promise<string> {
                         )
                       ])
                     ),
-                    t.arrayExpress([])
+                    t.arrayExpression([])
                   ]
                 )
-              ]);
+              );
 
               if (t.isBlockStatement(path.node.body)) {
                 path.node.body.body.unshift(mountedState, useEffectCall);

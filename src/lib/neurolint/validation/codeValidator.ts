@@ -1,3 +1,4 @@
+
 import * as parser from "@babel/parser";
 import { ValidationReport } from "../types";
 
@@ -30,8 +31,11 @@ export class CodeValidator {
 
     if (!isJsonLike) {
       try {
+        // Clean the code before parsing
+        const cleanedCode = this.preprocessCode(code);
+        
         // Try to parse the code to check for syntax errors
-        ast = parser.parse(code, {
+        ast = parser.parse(cleanedCode, {
           sourceType: "module",
           plugins: ["typescript", "jsx", "decorators-legacy"],
           allowImportExportEverywhere: true,
@@ -76,6 +80,27 @@ export class CodeValidator {
       corruptionDetected,
       complexity,
     };
+  }
+
+  private static preprocessCode(code: string): string {
+    let cleaned = code;
+    
+    // Remove potential BOM
+    cleaned = cleaned.replace(/^\uFEFF/, '');
+    
+    // Fix common syntax issues that break parsing
+    cleaned = cleaned.replace(/&quot;/g, '"');
+    cleaned = cleaned.replace(/&amp;/g, '&');
+    cleaned = cleaned.replace(/&lt;/g, '<');
+    cleaned = cleaned.replace(/&gt;/g, '>');
+    
+    // Fix malformed imports
+    cleaned = cleaned.replace(/import\s*{\s*\n\s*import\s*{/g, 'import {');
+    
+    // Ensure proper line endings
+    cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    return cleaned;
   }
 
   static validateComprehensive(code: string): ValidationReport {
@@ -172,12 +197,6 @@ export class CodeValidator {
         error: "Multiple nested function call corruption detected",
         severity: "error",
       },
-      // Note: Removed less severe patterns that layers are designed to fix:
-      // - Invalid JSX attributes (Layer 3 can fix these)
-      // - Malformed event handlers (Layer 3 can fix these)
-      // - Unclosed JSX tags (Parser will catch these)
-      // - Malformed imports (Layer 3 can fix these)
-      // - Incomplete functions (Could be intentional or fixable)
     ];
 
     for (const { pattern, error, severity } of corruptionPatterns) {

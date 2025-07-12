@@ -1,4 +1,3 @@
-
 #!/usr/bin/env node
 
 const fs = require('fs');
@@ -7,20 +6,13 @@ const { program } = require('commander');
 const chalk = require('chalk');
 const { createClient } = require('@supabase/supabase-js');
 
-// Import layer processors
-const layer1 = require('../fix-layer-1-config');
-const layer2 = require('../fix-layer-2-patterns');
-const layer3 = require('../fix-layer-3-components');
-const layer4 = require('./processors/layer4-processor');
-const layer5 = require('../fix-layer-5-nextjs');
-const layer6 = require('./processors/layer6-processor');
+// Import the enhanced orchestrator
+const EnhancedNeuroLintOrchestrator = require('./enhanced-orchestrator');
 
-// Import orchestration components
-const TransformationPipeline = require('./orchestration/pipeline');
+// Import orchestration components for standalone use
+const EnhancedSmartLayerSelector = require('./orchestration/enhanced-selector');
 const LayerDependencyManager = require('./orchestration/dependencies');
-const SmartLayerSelector = require('./orchestration/selector');
 const ErrorRecoverySystem = require('./orchestration/recovery');
-const PerformanceOptimizer = require('./orchestration/performance');
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -29,86 +21,20 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 
 program
   .name('neurolint')
-  .description('NeuroLint - Multi-layer automated React/Next.js code fixing system')
-  .version('1.0.0');
+  .description('NeuroLint - Advanced multi-layer automated React/Next.js code fixing system')
+  .version('2.0.0');
 
-// Safety Feature: Backup Creation
-function createBackup(filePath, content) {
-  const backupDir = path.join(process.cwd(), 'backups');
-  if (!fs.existsSync(backupDir)) {
-    fs.mkdirSync(backupDir, { recursive: true });
-  }
-  
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const backupPath = path.join(backupDir, `${path.basename(filePath)}.${timestamp}.backup`);
-  fs.writeFileSync(backupPath, content);
-  
-  return backupPath;
-}
-
-// Safe Layer Execution Pattern with TransformationResult tracking
-async function executeLayerSafely(layerFn, content, layerInfo, options = {}) {
-  const startTime = Date.now();
-  
-  try {
-    console.log(chalk.cyan(`🔄 Executing ${layerInfo.name}...`));
-    
-    const result = await layerFn(content);
-    const executionTime = Date.now() - startTime;
-    
-    // Incremental Validation System
-    if (result === content) {
-      console.log(chalk.gray(`⭕ ${layerInfo.name}: No changes needed`));
-      return {
-        success: true,
-        content: result,
-        changes: 0,
-        executionTime,
-        improvements: []
-      };
-    }
-    
-    // Validate transformation
-    const changes = calculateChanges(content, result);
-    const improvements = detectImprovements(content, result, layerInfo.id);
-    
-    if (options.verbose) {
-      console.log(chalk.green(`✅ ${layerInfo.name} (${executionTime}ms, ${changes} changes)`));
-      improvements.forEach(imp => console.log(chalk.gray(`   • ${imp}`)));
-    }
-    
-    return {
-      success: true,
-      content: result,
-      changes,
-      executionTime,
-      improvements
-    };
-    
-  } catch (error) {
-    const executionTime = Date.now() - startTime;
-    console.error(chalk.red(`❌ ${layerInfo.name} failed: ${error.message}`));
-    
-    // ErrorRecoverySystem - return original content on failure
-    return {
-      success: false,
-      content,
-      changes: 0,
-      executionTime,
-      error: error.message,
-      improvements: []
-    };
-  }
-}
-
-// Analyze command with Safe Layer Execution Pattern
+// Enhanced analyze command with full orchestration
 program
   .command('analyze <file>')
-  .description('Analyze and fix code issues using multi-layer processing')
-  .option('-d, --dry-run', 'preview changes without applying them')
+  .description('Analyze and fix code using advanced multi-layer orchestration')
+  .option('-d, --dry-run', 'preview changes without applying them')  
   .option('-v, --verbose', 'show detailed output')
-  .option('-s, --skip-layers <layers>', 'comma-separated layers to skip (1,2,3,4,5,6)')
-  .option('-o, --output <file>', 'output file (default: <input>.fixed)')
+  .option('-l, --layers <layers>', 'comma-separated layers to run (1,2,3,4)', '1,2,3,4')
+  .option('--no-ast', 'disable AST transformations, use regex only')
+  .option('--no-cache', 'disable performance caching')
+  .option('--fail-fast', 'stop on first layer failure')
+  .option('-o, --output <file>', 'output file (default: overwrite input)')
   .action(async (file, options) => {
     try {
       if (!fs.existsSync(file)) {
@@ -117,93 +43,160 @@ program
       }
 
       const content = fs.readFileSync(file, 'utf8');
-      const pipeline = new TransformationPipeline(file);
+      const requestedLayers = options.layers.split(',').map(n => parseInt(n.trim()));
       
-      console.log(chalk.blue('🚀 NeuroLint Analysis Starting...'));
+      console.log(chalk.blue('🚀 NeuroLint Enhanced Analysis Starting...'));
       console.log(chalk.cyan(`📁 Processing: ${file}`));
       
       if (options.dryRun) {
         console.log(chalk.yellow('🔍 DRY RUN MODE - No files will be modified'));
       }
 
-      // Safety Feature: Create backup
-      let backupPath;
-      if (!options.dryRun) {
-        backupPath = createBackup(file, content);
-        console.log(chalk.gray(`💾 Backup created: ${backupPath}`));
-      }
+      // Create orchestrator with options
+      const orchestrator = new EnhancedNeuroLintOrchestrator({
+        verbose: options.verbose,
+        dryRun: options.dryRun,
+        useAST: options.ast !== false,
+        useCache: options.cache !== false,
+        failFast: options.failFast
+      });
 
-      // LayerDependencyManager - determine layers to run
-      const skipLayers = options.skipLayers ? options.skipLayers.split(',').map(n => parseInt(n)) : [];
-      const layersToRun = LayerDependencyManager.getExecutionOrder([1, 2, 3, 4, 5, 6], skipLayers);
-      
-      // SmartLayerSelector - recommend additional layers based on code analysis
-      const recommendations = SmartLayerSelector.analyzeCode(content);
-      if (recommendations.length > 0 && options.verbose) {
-        console.log(chalk.blue('💡 Layer Recommendations:'));
-        recommendations.forEach(rec => console.log(chalk.gray(`   • ${rec}`)));
-      }
+      // Execute with full orchestration
+      const result = await orchestrator.execute(content, file, requestedLayers);
 
-      const layers = [
-        { id: 1, name: 'Configuration Validation', fn: layer1.processConfig || (() => content) },
-        { id: 2, name: 'Pattern & Entity Fixes', fn: layer2.processPatterns || (() => content) },
-        { id: 3, name: 'Component Best Practices', fn: layer3.processComponents || (() => content) },
-        { id: 4, name: 'Hydration & SSR Guards', fn: layer4.processHydration || (() => content) },
-        { id: 5, name: 'Next.js Optimizations', fn: layer5.processNextjs || (() => content) },
-        { id: 6, name: 'Testing Enhancements', fn: layer6.processTesting || (() => content) }
-      ];
-
-      let current = content;
-      const results = [];
-      let totalChanges = 0;
-
-      // Execute layers in sequence with Safe Layer Execution Pattern
-      for (const layer of layers) {
-        if (!layersToRun.includes(layer.id)) {
-          console.log(chalk.gray(`⏭️  Skipping Layer ${layer.id}: ${layer.name}`));
-          continue;
+      // Display results
+      if (result.success) {
+        console.log(chalk.green('\n🎉 Analysis completed successfully!'));
+        
+        if (options.verbose) {
+          console.log(chalk.blue('\n📊 Analysis Summary:'));
+          console.log(`  Detected Issues: ${result.analysis.detectedIssues.length}`);
+          console.log(`  Executed Layers: ${result.executedLayers.join(', ')}`);
+          console.log(`  Total Execution Time: ${result.performance.totalExecutionTime}ms`);
+          console.log(`  Confidence: ${(result.analysis.confidence * 100).toFixed(1)}%`);
+          
+          console.log(chalk.blue('\n🔧 Layer Results:'));
+          result.layerResults.forEach(layer => {
+            const status = layer.success ? '✅' : (layer.reverted ? '🔙' : '❌');
+            const skipped = layer.skipped ? ' (skipped)' : '';
+            console.log(`  ${status} Layer ${layer.layerId}: ${layer.name} - ${layer.changeCount} changes${skipped}`);
+            
+            if (layer.improvements && layer.improvements.length > 0) {
+              layer.improvements.forEach(improvement => {
+                console.log(`    • ${improvement}`);
+              });
+            }
+            
+            if (layer.revertReason) {
+              console.log(`    ⚠️  Reverted: ${layer.revertReason}`);
+            }
+          });
         }
 
-        const result = await executeLayerSafely(layer.fn, current, layer, options);
-        results.push(result);
-        
-        if (result.success && !options.dryRun) {
-          current = result.content;
-          totalChanges += result.changes;
+        // Write output if not dry run
+        if (!options.dryRun && result.finalCode !== content) {
+          const outputFile = options.output || file;
+          
+          // Create backup
+          const backupPath = `${outputFile}.backup.${Date.now()}`;
+          fs.writeFileSync(backupPath, content);
+          console.log(chalk.gray(`💾 Backup created: ${backupPath}`));
+          
+          // Write transformed code
+          fs.writeFileSync(outputFile, result.finalCode);
+          console.log(chalk.green(`✅ Fixed code written to: ${outputFile}`));
         }
+
+        // Show recommendations
+        if (result.recommendations && result.recommendations.length > 0) {
+          console.log(chalk.blue('\n💡 Recommendations:'));
+          result.recommendations.forEach(rec => console.log(`  ${rec}`));
+        }
+
+      } else {
+        console.log(chalk.red('\n❌ Analysis failed'));
         
-        // Add to pipeline for tracking
-        pipeline.addTransformation(layer.name, result);
-      }
-
-      // Output results
-      const outputFile = options.output || `${file}.fixed`;
-      
-      if (!options.dryRun && current !== content) {
-        fs.writeFileSync(outputFile, current);
-        console.log(chalk.green(`✅ Fixed code written to: ${outputFile}`));
-      }
-
-      // Summary
-      console.log(chalk.green(`\n🎉 Analysis Complete!`));
-      console.log(chalk.cyan(`📊 Total Changes: ${totalChanges}`));
-      console.log(chalk.cyan(`⏱️  Total Time: ${pipeline.getTotalTime()}ms`));
-      
-      if (options.verbose) {
-        console.log(chalk.blue('\n📈 Execution Summary:'));
-        results.forEach((result, index) => {
-          const status = result.success ? '✅' : '❌';
-          console.log(`${status} Layer ${index + 1}: ${result.changes} changes (${result.executionTime}ms)`);
-        });
+        if (result.error) {
+          console.log(chalk.red(`Error: ${result.error.message}`));
+          
+          if (result.error.suggestions) {
+            console.log(chalk.yellow('\n💡 Suggestions:'));
+            result.error.suggestions.forEach(suggestion => {
+              console.log(`  • ${suggestion}`);
+            });
+          }
+        }
       }
 
     } catch (error) {
       console.error(chalk.red('💥 Analysis failed:', error.message));
+      
+      if (options.verbose) {
+        console.error(chalk.gray(error.stack));
+      }
+      
       process.exit(1);
     }
   });
 
-// Upload command for Supabase integration
+// Smart recommendation command
+program
+  .command('recommend <file>')
+  .description('Analyze code and recommend optimal layer configuration')
+  .option('-v, --verbose', 'show detailed analysis')
+  .action(async (file, options) => {
+    try {
+      if (!fs.existsSync(file)) {
+        console.error(chalk.red(`❌ File not found: ${file}`));
+        process.exit(1);
+      }
+
+      const content = fs.readFileSync(file, 'utf8');
+      
+      console.log(chalk.blue('🔍 Analyzing code for optimal layer selection...'));
+      
+      const analysis = EnhancedSmartLayerSelector.analyzeAndRecommend(content, file);
+      
+      console.log(chalk.green(`\n📋 Recommendation Report for ${path.basename(file)}`));
+      console.log('='.repeat(50));
+      
+      console.log(chalk.cyan(`\n🎯 Recommended Layers: ${analysis.recommendedLayers.join(', ')}`));
+      console.log(chalk.cyan(`📊 Confidence Level: ${(analysis.confidence * 100).toFixed(1)}%`));
+      console.log(chalk.cyan(`⚡ Estimated Impact: ${analysis.estimatedImpact.level} (${analysis.estimatedImpact.estimatedFixTime})`));
+      
+      if (analysis.detectedIssues.length > 0) {
+        console.log(chalk.yellow(`\n🚨 Detected Issues (${analysis.detectedIssues.length}):`));
+        
+        const groupedIssues = analysis.detectedIssues.reduce((acc, issue) => {
+          if (!acc[issue.severity]) acc[issue.severity] = [];
+          acc[issue.severity].push(issue);
+          return acc;
+        }, {});
+        
+        ['high', 'medium', 'low'].forEach(severity => {
+          if (groupedIssues[severity]) {
+            const icon = severity === 'high' ? '🔴' : severity === 'medium' ? '🟡' : '🟢';
+            console.log(chalk.white(`\n  ${icon} ${severity.toUpperCase()} Priority:`));
+            groupedIssues[severity].forEach(issue => {
+              console.log(`    • ${issue.description} (Layer ${issue.fixedByLayer})`);
+            });
+          }
+        });
+      }
+      
+      if (analysis.reasoning.length > 0) {
+        console.log(chalk.blue('\n🤔 Reasoning:'));
+        analysis.reasoning.forEach(reason => console.log(`  • ${reason}`));
+      }
+      
+      console.log(chalk.green(`\n✨ Run: neurolint analyze ${file} -l ${analysis.recommendedLayers.join(',')} to apply fixes`));
+
+    } catch (error) {
+      console.error(chalk.red('💥 Recommendation failed:', error.message));
+      process.exit(1);
+    }
+  });
+
 program
   .command('upload <file>')
   .description('Upload file to Supabase storage and save metadata')
@@ -338,4 +331,9 @@ if (require.main === module) {
   program.parse();
 }
 
-module.exports = { executeLayerSafely, calculateChanges, detectImprovements };
+module.exports = { 
+  EnhancedNeuroLintOrchestrator,
+  EnhancedSmartLayerSelector,
+  LayerDependencyManager,
+  ErrorRecoverySystem
+};

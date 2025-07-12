@@ -1,32 +1,61 @@
 
 {
-  "name": "neurolint-cli",
+  "name": "@neurolint/cli",
   "version": "1.0.0",
-  "description": "NeuroLint CLI - Automated code fixing for React/Next.js projects",
+  "description": "NeuroLint CLI - Multi-layer automated React/Next.js code fixing system",
   "main": "index.js",
   "bin": {
-    "neurolint": "./neurolint-cli.js"
+    "neurolint": "./index.js"
   },
   "scripts": {
+    "start": "node index.js",
     "build": "node build.js",
-    "test": "node test.js"
+    "start:server": "node server.js",
+    "fix-all": "node index.js fix-all",
+    "fix-dry-run": "node index.js fix-dry-run",
+    "fix-verbose": "node index.js fix-all --verbose",
+    "fix-layer-1": "node index.js fix-layer-1",
+    "fix-layer-2": "node index.js fix-layer-2", 
+    "fix-layer-3": "node index.js fix-layer-3",
+    "fix-layer-4": "node index.js fix-layer-4",
+    "fix-layer-5": "node index.js fix-layer-5",
+    "fix-layer-6": "node index.js fix-layer-6",
+    "test": "node test.js",
+    "clean": "npx rimraf release backups"
   },
   "keywords": [
-    "code-fixing",
     "react",
-    "nextjs",
+    "nextjs", 
     "typescript",
-    "linting",
-    "automation"
+    "code-fixing",
+    "automation",
+    "cli",
+    "neurolint"
   ],
-  "author": "Your Name",
+  "author": "NeuroLint Team",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
+    "axios": "^1.0.0",
     "commander": "^11.0.0",
-    "glob": "^10.3.0",
-    "chalk": "^4.1.2"
+    "express": "^4.18.0",
+    "cors": "^2.8.5",
+    "@babel/parser": "^7.0.0",
+    "chalk": "^4.1.2",
+    "glob": "^10.3.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
   },
   "engines": {
     "node": ">=16.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neurolint/cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/neurolint/cli/issues"
+  },
+  "homepage": "https://neurolint.dev"
 }

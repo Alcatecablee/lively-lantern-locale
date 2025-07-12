@@ -17,14 +17,17 @@ export async function transformWithAST(code: string, layerName: string): Promise
     switch (layerName) {
       case 'layer-3-component-best-practices':
       case 'layer-3-components':
+      case 'layer-3':
         transformed = await transformComponentsAST(code);
         break;
       case 'layer-4-hydration-&-ssr-guard':
       case 'layer-4-hydration':
+      case 'layer-4':
         transformed = await transformHydrationAST(code);
         break;
       case 'layer-6-testing-&-validation':
       case 'layer-6-testing':
+      case 'layer-6':
         transformed = await transformTestingAST(code);
         break;
       default:

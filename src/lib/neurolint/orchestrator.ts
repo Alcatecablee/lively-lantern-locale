@@ -30,6 +30,8 @@ export interface LayerOutput {
   revertReason?: string;
   layerId?: number;
   reverted?: boolean;
+  description?: string;
+  message?: string;
 }
 
 // Export for backward compatibility
@@ -190,7 +192,8 @@ export async function NeuroLintOrchestrator(
             changeCount: 0,
             revertReason: validationResult.reason,
             layerId: layerId,
-            reverted: true
+            reverted: true,
+            description: LAYER_LIST.find(l => l.id === layerId)?.description || ''
           });
         } else {
           current = layerResult.code;
@@ -203,7 +206,8 @@ export async function NeuroLintOrchestrator(
             executionTime: layerResult.executionTime,
             changeCount: calculateChanges(current, layerResult.code),
             improvements: layerResult.improvements || [],
-            layerId: layerId
+            layerId: layerId,
+            description: LAYER_LIST.find(l => l.id === layerId)?.description || ''
           });
           
           console.log(`✅ Layer ${layerId} completed (${layerResult.executionTime.toFixed(0)}ms)`);
@@ -222,7 +226,9 @@ export async function NeuroLintOrchestrator(
           errorCategory: layerResult.errorCategory,
           suggestion: layerResult.suggestion,
           recoveryOptions: layerResult.recoveryOptions,
-          layerId: layerId
+          layerId: layerId,
+          description: LAYER_LIST.find(l => l.id === layerId)?.description || '',
+          message: layerResult.error
         });
       }
 

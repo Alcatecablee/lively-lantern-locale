@@ -1,4 +1,3 @@
-
 import { LayerDependencyManager } from '../dependencies/LayerDependencyManager';
 
 /**
@@ -104,9 +103,6 @@ export class SmartLayerSelector {
     };
   }
   
-  /**
-   * Generate sophisticated recommendations based on comprehensive analysis
-   */
   private static generateSophisticatedRecommendations(analysis: CodeAnalysis): {
     layers: number[];
     reasons: string[];
@@ -199,26 +195,117 @@ export class SmartLayerSelector {
     };
   }
   
-  /**
-   * Generate execution plan with sophisticated scheduling
-   */
-  private static generateExecutionPlan(layers: number[], analysis: CodeAnalysis): ExecutionPlan {
-    const steps: ExecutionStep[] = [];
+  // Add all the missing method implementations
+  private static calculateSophisticatedConfidence(analysis: CodeAnalysis): number {
+    const totalIssues = analysis.issues.length;
+    const criticalIssues = analysis.issues.filter(i => i.severity === 'critical').length;
     
-    layers.forEach((layer, index) => {
-      const relevantIssues = analysis.issues.filter(i => i.fixedByLayer === layer);
-      const estimatedTime = this.estimateLayerExecutionTime(layer, relevantIssues);
-      
-      steps.push({
-        layerId: layer,
-        order: index + 1,
-        estimatedDuration: estimatedTime,
-        riskLevel: this.assessLayerRisk(layer, relevantIssues),
-        validationChecks: this.getValidationChecksForLayer(layer),
-        rollbackStrategy: this.getRollbackStrategyForLayer(layer),
-        successCriteria: this.getSuccessCriteriaForLayer(layer, relevantIssues)
-      });
-    });
+    if (totalIssues === 0) return 0.5;
+    
+    const baseConfidence = 0.7;
+    const criticalWeight = (criticalIssues / totalIssues) * 0.2;
+    const readinessWeight = analysis.transformationReadiness * 0.1;
+    
+    return Math.min(0.95, baseConfidence + criticalWeight + readinessWeight);
+  }
+  
+  private static estimateDetailedImpact(analysis: CodeAnalysis): string {
+    const totalIssues = analysis.issues.length;
+    const criticalCount = analysis.issues.filter(i => i.severity === 'critical').length;
+    
+    if (criticalCount > 3) {
+      return `High impact: ${totalIssues} issues (${criticalCount} critical) - significant improvements expected`;
+    } else if (criticalCount > 0) {
+      return `Medium impact: ${totalIssues} issues (${criticalCount} critical) - moderate improvements expected`;
+    } else {
+      return `Low impact: ${totalIssues} issues - minor improvements expected`;
+    }
+  }
+  
+  private static adjustSeverityForContext(
+    severity: string, 
+    category: string, 
+    context: CodeContext
+  ): 'critical' | 'high' | 'medium' | 'low' {
+    // Adjust severity based on context
+    if (category === 'hydration' && context.isNextjsApp) {
+      return severity === 'high' ? 'critical' : severity as any;
+    }
+    
+    if (category === 'components' && context.isReactComponent) {
+      return severity === 'medium' ? 'high' : severity as any;
+    }
+    
+    return severity as any;
+  }
+  
+  private static getContextualInfo(category: string, matches: RegExpMatchArray, context: CodeContext): any {
+    return {
+      category,
+      matchCount: matches.length,
+      contextType: context.isReactComponent ? 'react' : context.isNextjsApp ? 'nextjs' : 'general'
+    };
+  }
+  
+  private static estimateFixComplexity(
+    category: string, 
+    matchCount: number, 
+    context: CodeContext
+  ): 'simple' | 'moderate' | 'complex' {
+    if (matchCount > 10) return 'complex';
+    if (matchCount > 5) return 'moderate';
+    if (context.complexity > 20) return 'complex';
+    return 'simple';
+  }
+  
+  private static assessTransformationReadiness(code: string, issues: DetectedIssue[]): number {
+    const syntaxValid = !code.includes('SyntaxError');
+    const lowErrorCount = issues.length < 10;
+    const noCriticalStructuralIssues = !issues.some(i => i.type === 'structural' && i.severity === 'critical');
+    
+    let readiness = 0.5;
+    if (syntaxValid) readiness += 0.2;
+    if (lowErrorCount) readiness += 0.2;
+    if (noCriticalStructuralIssues) readiness += 0.1;
+    
+    return Math.min(1.0, readiness);
+  }
+  
+  private static generateMitigationStrategies(risks: string[]): string[] {
+    const strategies: string[] = [];
+    
+    if (risks.some(r => r.includes('complexity'))) {
+      strategies.push('Use incremental layer execution');
+    }
+    
+    if (risks.some(r => r.includes('critical'))) {
+      strategies.push('Enable comprehensive validation');
+    }
+    
+    strategies.push('Create backup before transformation');
+    
+    return strategies;
+  }
+  
+  private static recommendTransformationApproach(analysis: CodeAnalysis): 'conservative' | 'standard' | 'aggressive' {
+    const criticalIssues = analysis.issues.filter(i => i.severity === 'critical').length;
+    const complexity = analysis.codeMetrics.cyclomaticComplexity;
+    
+    if (criticalIssues > 5 || complexity > 20) return 'conservative';
+    if (criticalIssues > 2 || complexity > 10) return 'standard';
+    return 'aggressive';
+  }
+  
+  private static generateExecutionPlan(layers: number[], analysis: CodeAnalysis): ExecutionPlan {
+    const steps: ExecutionStep[] = layers.map((layerId, index) => ({
+      layerId,
+      order: index + 1,
+      estimatedDuration: this.estimateLayerExecutionTime(layerId, analysis.issues),
+      riskLevel: this.assessLayerRisk(layerId, analysis.issues),
+      validationChecks: this.getValidationChecksForLayer(layerId),
+      rollbackStrategy: this.getRollbackStrategyForLayer(layerId),
+      successCriteria: this.getSuccessCriteriaForLayer(layerId, analysis.issues)
+    }));
     
     return {
       steps,
@@ -226,6 +313,54 @@ export class SmartLayerSelector {
       criticalPath: this.identifyCriticalPath(steps),
       parallelizationOptions: this.identifyParallelizationOptions(steps)
     };
+  }
+  
+  // Helper method implementations
+  private static estimateLayerExecutionTime(layerId: number, issues: DetectedIssue[]): number {
+    const baseTime = 100; // Base execution time in ms
+    const relevantIssues = issues.filter(i => i.fixedByLayer === layerId);
+    return baseTime + (relevantIssues.length * 50);
+  }
+  
+  private static assessLayerRisk(layerId: number, issues: DetectedIssue[]): 'low' | 'medium' | 'high' {
+    const relevantIssues = issues.filter(i => i.fixedByLayer === layerId);
+    const criticalCount = relevantIssues.filter(i => i.severity === 'critical').length;
+    
+    if (criticalCount > 2) return 'high';
+    if (criticalCount > 0) return 'medium';
+    return 'low';
+  }
+  
+  private static getValidationChecksForLayer(layerId: number): string[] {
+    const checks = {
+      1: ['Syntax validation', 'Config structure check'],
+      2: ['Entity conversion accuracy', 'Pattern integrity'],
+      3: ['JSX structure validation', 'Component prop validation'],
+      4: ['SSR guard placement', 'Runtime safety check'],
+      5: ['Next.js directive placement', 'Import structure'],
+      6: ['Test structure validation', 'Async pattern check']
+    };
+    
+    return checks[layerId as keyof typeof checks] || ['Basic validation'];
+  }
+  
+  private static getRollbackStrategyForLayer(layerId: number): string {
+    return `Automatic rollback to pre-layer-${layerId} state on validation failure`;
+  }
+  
+  private static getSuccessCriteriaForLayer(layerId: number, issues: DetectedIssue[]): string[] {
+    const relevantIssues = issues.filter(i => i.fixedByLayer === layerId);
+    return relevantIssues.map(issue => `Fix ${issue.description}`);
+  }
+  
+  private static identifyCriticalPath(steps: ExecutionStep[]): number[] {
+    return steps
+      .filter(step => step.riskLevel === 'high')
+      .map(step => step.layerId);
+  }
+  
+  private static identifyParallelizationOptions(steps: ExecutionStep[]): string[] {
+    return ['Sequential execution recommended for safety'];
   }
   
   // Helper methods for sophisticated analysis
@@ -254,6 +389,18 @@ export class SmartLayerSelector {
     };
   }
   
+  private static calculateCodeComplexity(code: string): number {
+    const complexityIndicators = [
+      /if\s*\(/g, /for\s*\(/g, /while\s*\(/g, /switch\s*\(/g,
+      /function\s*\(/g, /=>\s*{/g, /try\s*{/g, /catch\s*\(/g
+    ];
+    
+    return complexityIndicators.reduce((complexity, pattern) => {
+      const matches = code.match(pattern);
+      return complexity + (matches ? matches.length : 0);
+    }, 1);
+  }
+  
   private static calculateCyclomaticComplexity(code: string): number {
     const complexityPatterns = [
       /if\s*\(/g, /else\s+if/g, /while\s*\(/g, /for\s*\(/g, 
@@ -263,7 +410,7 @@ export class SmartLayerSelector {
     return complexityPatterns.reduce((complexity, pattern) => {
       const matches = code.match(pattern);
       return complexity + (matches ? matches.length : 0);
-    }, 1); // Base complexity of 1
+    }, 1);
   }
   
   private static calculateNestingDepth(code: string): number {

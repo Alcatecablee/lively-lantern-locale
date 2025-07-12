@@ -9,8 +9,9 @@ export async function transformAST(code: string): Promise<string> {
   try {
     return transformer.transform(code, (ast) => {
       traverse(ast, {
-        // Add SSR guards for localStorage access
+        // Combined SSR guards for localStorage and window access
         MemberExpression(path) {
+          // Handle localStorage access
           if (
             t.isIdentifier(path.node.object) &&
             path.node.object.name === 'localStorage' &&
@@ -49,10 +50,8 @@ export async function transformAST(code: string): Promise<string> {
               path.replaceWith(logicalAnd);
             }
           }
-        },
 
-        // Add SSR guards for window access
-        MemberExpression(path) {
+          // Handle window.matchMedia access
           if (
             t.isIdentifier(path.node.object) &&
             path.node.object.name === 'window' &&
@@ -139,10 +138,10 @@ export async function transformAST(code: string): Promise<string> {
                         )
                       ])
                     ),
-                    t.arrayExpression([])
+                    t.arrayExpress([])
                   ]
                 )
-              );
+              ]);
 
               if (t.isBlockStatement(path.node.body)) {
                 path.node.body.body.unshift(mountedState, useEffectCall);

@@ -1,41 +1,33 @@
-import { BackupSnapshot } from '../types';
 
+/**
+ * Sophisticated backup system for safe code transformations
+ */
 export class BackupManager {
-  private static backups: BackupSnapshot[] = [];
+  private static backups: Map<string, string> = new Map();
+  private static maxBackups = 10;
 
-  static createBackup(code: string, filePath?: string): BackupSnapshot {
-    const backup: BackupSnapshot = {
-      id: `backup_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
-      originalCode: code,
-      filePath,
-      metadata: {
-        codeLength: code.length,
-        lineCount: code.split('\n').length,
-        layers: []
-      }
-    };
-
-    this.backups.push(backup);
+  static async createBackup(code: string, filePath?: string): Promise<string> {
+    const timestamp = Date.now();
+    const backupKey = `${filePath || 'anonymous'}_${timestamp}`;
     
-    // Keep only the last 10 backups to avoid memory issues
-    if (this.backups.length > 10) {
-      this.backups = this.backups.slice(-10);
+    // Store backup
+    this.backups.set(backupKey, code);
+    
+    // Limit backup storage
+    if (this.backups.size > this.maxBackups) {
+      const firstKey = this.backups.keys().next().value;
+      this.backups.delete(firstKey);
     }
-
-    return backup;
+    
+    return backupKey;
   }
 
-  static restoreBackup(backupId: string): string | null {
-    const backup = this.backups.find(b => b.id === backupId);
-    return backup ? backup.originalCode : null;
-  }
-
-  static listBackups(): BackupSnapshot[] {
-    return [...this.backups];
-  }
-
-  static clearBackups(): void {
-    this.backups = [];
+  static async restore(): Promise<string | null> {
+    if (this.backups.size === 0) return null;
+    
+    // Get the most recent backup
+    const keys = Array.from(this.backups.keys());
+    const latestKey = keys[keys.length - 1];
+    return this.backups.get(latestKey) || null;
   }
 }

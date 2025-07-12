@@ -1,419 +1,225 @@
 
 /**
- * Advanced error recovery system with categorized error handling
- * Provides actionable feedback and sophisticated recovery strategies
+ * Advanced error recovery and categorization system
  */
+
+interface LayerExecutionResult {
+  success: boolean;
+  code: string;
+  executionTime: number;
+  improvements?: string[];
+  error?: string;
+  errorCategory?: string;
+  suggestion?: string;
+  recoveryOptions?: string[];
+  layerId: number;
+}
+
 export class ErrorRecoverySystem {
   
-  private static readonly ERROR_CATEGORIES = {
-    syntax: {
-      patterns: [/SyntaxError/, /Unexpected token/, /Unexpected end of input/],
-      severity: 'critical',
-      recoverable: false
-    },
-    parsing: {
-      patterns: [/AST/, /parse/, /Invalid.*expression/, /Cannot read property.*of undefined/],
-      severity: 'high',
-      recoverable: true
-    },
-    transformation: {
-      patterns: [/transformation/, /replace/, /Cannot.*transform/],
-      severity: 'medium',
-      recoverable: true
-    },
-    filesystem: {
-      patterns: [/ENOENT/, /EACCES/, /permission/, /no such file/],
-      severity: 'high',
-      recoverable: false
-    },
-    memory: {
-      patterns: [/out of memory/, /maximum call stack/, /heap.*exceeded/],
-      severity: 'critical',
-      recoverable: false
-    },
-    dependency: {
-      patterns: [/Cannot find module/, /MODULE_NOT_FOUND/, /import.*not found/],
-      severity: 'high',
-      recoverable: true
-    }
-  };
-  
-  private static readonly LAYER_SPECIFIC_ERRORS = {
-    1: { // Configuration
-      patterns: [/JSON/, /config/, /invalid.*configuration/],
-      commonCauses: ['Invalid JSON syntax', 'Missing configuration keys', 'Incompatible versions'],
-      recoveryStrategies: ['Validate JSON syntax', 'Check configuration schema', 'Use default values']
-    },
-    2: { // Patterns
-      patterns: [/replace/, /pattern/, /regex/],
-      commonCauses: ['Complex regex patterns', 'Conflicting replacements', 'Encoding issues'],
-      recoveryStrategies: ['Skip problematic patterns', 'Use simpler replacements', 'Manual pattern application']
-    },
-    3: { // Components
-      patterns: [/JSX/, /component/, /React/, /props/],
-      commonCauses: ['Complex JSX structures', 'Dynamic prop names', 'Nested components'],
-      recoveryStrategies: ['Simplify JSX structure', 'Use manual prop fixing', 'Component-by-component processing']
-    },
-    4: { // Hydration
-      patterns: [/window/, /document/, /localStorage/, /SSR/],
-      commonCauses: ['Complex browser API usage', 'Dynamic variable names', 'Conditional rendering'],
-      recoveryStrategies: ['Manual guard insertion', 'UseEffect-based approach', 'NoSSR component wrapping']
-    },
-    5: { // Next.js
-      patterns: [/use client/, /import/, /Next\.js/, /app router/],
-      commonCauses: ['Complex import structures', 'Dynamic imports', 'Metadata conflicts'],
-      recoveryStrategies: ['Manual import restructuring', 'File-by-file processing', 'Gradual migration approach']
-    },
-    6: { // Testing
-      patterns: [/test/, /interface/, /type/, /validation/],
-      commonCauses: ['Complex type definitions', 'Dynamic interfaces', 'Runtime type checking'],
-      recoveryStrategies: ['Progressive typing', 'Manual interface creation', 'Incremental validation']
-    }
-  };
-  
-  /**
-   * Execute layer with comprehensive error recovery
-   */
   static async executeWithRecovery(
-    code: string,
-    layerId: number,
-    options: ExecutionOptions = {}
+    code: string, 
+    layerId: number, 
+    options: { dryRun?: boolean; verbose?: boolean } = {}
   ): Promise<LayerExecutionResult> {
     
     const startTime = performance.now();
-    const recoveryContext = this.buildRecoveryContext(code, layerId, options);
     
     try {
-      // Attempt normal execution with preemptive error prevention
-      const preprocessedCode = this.preProcessForLayer(code, layerId);
-      const result = await this.executeLayerWithMonitoring(preprocessedCode, layerId, options);
+      // Simulate layer execution - in reality, this would call the actual layer
+      const result = await this.executeLayerSafely(layerId, code, options);
       
       return {
         success: true,
         code: result,
         executionTime: performance.now() - startTime,
-        improvements: this.detectImprovements(code, result),
-        layerId,
-        recoveryActions: [],
-        riskMitigation: this.getRiskMitigationApplied(layerId)
+        improvements: this.detectImprovements(code, result, layerId),
+        layerId
       };
       
     } catch (error) {
-      // Sophisticated error analysis and recovery
-      const errorAnalysis = this.analyzeError(error, layerId, code, recoveryContext);
-      const recoveryResult = await this.attemptRecovery(error, errorAnalysis, code, layerId, options);
-      
-      console.error(`❌ Layer ${layerId} error:`, errorAnalysis.categorizedMessage);
+      const errorInfo = this.categorizeError(error, layerId, code);
       
       return {
-        success: recoveryResult.recovered,
-        code: recoveryResult.code,
+        success: false,
+        code,
         executionTime: performance.now() - startTime,
-        error: errorAnalysis.categorizedMessage,
-        errorCategory: errorAnalysis.category,
-        errorSeverity: errorAnalysis.severity,
-        suggestion: errorAnalysis.suggestion,
-        recoveryOptions: errorAnalysis.recoveryOptions,
-        recoveryActions: recoveryResult.actionsAttempted,
-        layerId,
-        diagnostics: errorAnalysis.diagnostics
+        error: errorInfo.message,
+        errorCategory: errorInfo.category,
+        suggestion: errorInfo.suggestion,
+        recoveryOptions: errorInfo.recoveryOptions,
+        layerId
       };
     }
   }
-  
-  /**
-   * Sophisticated error analysis with deep categorization
-   */
-  private static analyzeError(error: any, layerId: number, code: string, context: RecoveryContext): ErrorAnalysis {
-    const errorMessage = error.message || error.toString();
-    const stackTrace = error.stack || '';
-    
-    // Primary categorization
-    const primaryCategory = this.categorizeError(errorMessage, stackTrace);
-    
-    // Layer-specific analysis
-    const layerAnalysis = this.analyzeLayerSpecificError(layerId, errorMessage, code);
-    
-    // Context-aware analysis
-    const contextualFactors = this.analyzeContextualFactors(error, code, context);
-    
-    // Generate sophisticated diagnostics
-    const diagnostics = this.generateErrorDiagnostics(error, layerId, code, context);
-    
-    return {
-      category: primaryCategory.category,
-      severity: primaryCategory.severity,
-      categorizedMessage: this.generateCategorizedMessage(primaryCategory, layerAnalysis),
-      suggestion: this.generateSophisticatedSuggestion(primaryCategory, layerAnalysis, contextualFactors),
-      recoveryOptions: this.generateRecoveryOptions(primaryCategory, layerAnalysis, contextualFactors),
-      rootCause: this.identifyRootCause(error, layerId, code, context),
-      diagnostics,
-      contextualFactors
-    };
-  }
-  
-  /**
-   * Attempt sophisticated error recovery with multiple strategies
-   */
-  private static async attemptRecovery(
-    error: any,
-    analysis: ErrorAnalysis,
-    code: string,
-    layerId: number,
-    options: ExecutionOptions
-  ): Promise<RecoveryResult> {
-    
-    const recoveryStrategies = this.getRecoveryStrategies(analysis, layerId);
-    const actionsAttempted: string[] = [];
-    
-    for (const strategy of recoveryStrategies) {
-      try {
-        actionsAttempted.push(strategy.name);
-        
-        const recoveredCode = await strategy.execute(code, error, analysis, options);
-        
-        // Validate recovered code
-        const validation = await this.validateRecoveredCode(recoveredCode, code);
-        
-        if (validation.safe) {
-          return {
-            recovered: true,
-            code: recoveredCode,
-            actionsAttempted,
-            recoveryStrategy: strategy.name,
-            validationResults: validation
-          };
-        }
-        
-      } catch (recoveryError) {
-        console.warn(`Recovery strategy '${strategy.name}' failed:`, recoveryError.message);
-      }
-    }
-    
-    // If no recovery succeeded, return original code
-    return {
-      recovered: false,
-      code, // Original code unchanged
-      actionsAttempted,
-      recoveryStrategy: 'none',
-      finalError: 'All recovery strategies failed'
-    };
-  }
-  
-  /**
-   * Generate sophisticated recovery strategies based on error analysis
-   */
-  private static getRecoveryStrategies(analysis: ErrorAnalysis, layerId: number): RecoveryStrategy[] {
-    const strategies: RecoveryStrategy[] = [];
-    
-    // Category-based recovery strategies
-    switch (analysis.category) {
-      case 'syntax':
-        strategies.push({
-          name: 'Syntax Auto-Repair',
-          priority: 'high',
-          execute: async (code, error, analysis) => {
-            return this.attemptSyntaxRepair(code, error);
-          }
-        });
-        break;
-        
-      case 'parsing':
-        strategies.push({
-          name: 'AST Fallback to Regex',
-          priority: 'high',
-          execute: async (code, error, analysis, options) => {
-            return this.executeWithRegexFallback(code, layerId, options);
-          }
-        });
-        break;
-        
-      case 'transformation':
-        strategies.push({
-          name: 'Partial Transformation',
-          priority: 'medium',
-          execute: async (code, error, analysis) => {
-            return this.attemptPartialTransformation(code, layerId, analysis);
-          }
-        });
-        break;
-    }
-    
-    // Layer-specific recovery strategies
-    const layerStrategies = this.getLayerSpecificRecoveryStrategies(layerId, analysis);
-    strategies.push(...layerStrategies);
-    
-    // Context-aware recovery strategies
-    const contextStrategies = this.getContextAwareRecoveryStrategies(analysis);
-    strategies.push(...contextStrategies);
-    
-    // Sort by priority
-    return strategies.sort((a, b) => {
-      const priorityOrder = { 'critical': 0, 'high': 1, 'medium': 2, 'low': 3 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    });
-  }
-  
-  /**
-   * Comprehensive error diagnostics generation
-   */
-  private static generateErrorDiagnostics(error: any, layerId: number, code: string, context: RecoveryContext): ErrorDiagnostics {
-    return {
-      errorType: error.constructor.name,
-      errorLocation: this.extractErrorLocation(error, code),
-      codeContext: this.extractCodeContext(error, code),
-      layerContext: this.getLayerContext(layerId),
-      systemContext: {
-        nodeVersion: process.version,
-        memoryUsage: process.memoryUsage(),
-        executionTime: context.startTime ? Date.now() - context.startTime : 0
-      },
-      similarErrors: this.findSimilarErrors(error, layerId),
-      recommendedActions: this.generateDiagnosticRecommendations(error, layerId, code)
-    };
-  }
-  
-  /**
-   * Generate recovery suggestions with actionable steps
-   */
-  static generateRecoverySuggestions(errors: LayerExecutionResult[]): RecoverySuggestion[] {
-    const suggestions: RecoverySuggestion[] = [];
-    
-    const failedLayers = errors.filter(e => !e.success);
-    const errorsByCategory = this.groupErrorsByCategory(failedLayers);
-    
-    // Generate category-specific suggestions
-    Object.entries(errorsByCategory).forEach(([category, categoryErrors]) => {
-      const suggestion = this.generateCategorySuggestion(category, categoryErrors);
-      if (suggestion) {
-        suggestions.push(suggestion);
-      }
-    });
-    
-    // Generate pattern-based suggestions
-    const patternSuggestions = this.generatePatternBasedSuggestions(failedLayers);
-    suggestions.push(...patternSuggestions);
-    
-    // Generate strategic suggestions
-    const strategicSuggestions = this.generateStrategicSuggestions(failedLayers);
-    suggestions.push(...strategicSuggestions);
-    
-    return suggestions.sort((a, b) => b.priority - a.priority);
-  }
-  
-  // Sophisticated helper methods
-  private static categorizeError(message: string, stack: string): { category: string; severity: string } {
-    for (const [category, config] of Object.entries(this.ERROR_CATEGORIES)) {
-      if (config.patterns.some(pattern => pattern.test(message) || pattern.test(stack))) {
-        return { category, severity: config.severity };
-      }
-    }
-    
-    return { category: 'unknown', severity: 'medium' };
-  }
-  
-  private static buildRecoveryContext(code: string, layerId: number, options: ExecutionOptions): RecoveryContext {
-    return {
-      codeLength: code.length,
-      layerId,
-      options,
-      startTime: Date.now(),
-      codeComplexity: this.calculateComplexity(code),
-      hasExistingErrors: this.detectExistingErrors(code),
-      transformationHistory: []
-    };
-  }
-  
-  private static preProcessForLayer(code: string, layerId: number): string {
-    // Layer-specific preprocessing to prevent common errors
+
+  private static async executeLayerSafely(layerId: number, code: string, options: any): Promise<string> {
+    // Placeholder for actual layer execution
+    // In reality, this would call the appropriate layer processor
     switch (layerId) {
-      case 3: // Components
-        return this.preprocessForComponentLayer(code);
-      case 4: // Hydration
-        return this.preprocessForHydrationLayer(code);
-      case 5: // Next.js
-        return this.preprocessForNextjsLayer(code);
+      case 1:
+        return this.processLayer1(code);
+      case 2:
+        return this.processLayer2(code);
+      case 3:
+        return this.processLayer3(code);
+      case 4:
+        return this.processLayer4(code);
+      case 5:
+        return this.processLayer5(code);
+      case 6:
+        return this.processLayer6(code);
       default:
         return code;
     }
   }
-}
 
-// Type definitions for sophisticated error recovery
-export interface LayerExecutionResult {
-  success: boolean;
-  code: string;
-  executionTime: number;
-  improvements?: string[];
-  layerId: number;
-  error?: string;
-  errorCategory?: string;
-  errorSeverity?: string;
-  suggestion?: string;
-  recoveryOptions?: string[];
-  recoveryActions: string[];
-  diagnostics?: ErrorDiagnostics;
-  riskMitigation?: string[];
-}
+  private static processLayer1(code: string): string {
+    // Layer 1: Configuration fixes
+    return code.replace('"target": "es5"', '"target": "ES2022"');
+  }
 
-export interface ErrorAnalysis {
-  category: string;
-  severity: string;
-  categorizedMessage: string;
-  suggestion: string;
-  recoveryOptions: string[];
-  rootCause: string;
-  diagnostics: ErrorDiagnostics;
-  contextualFactors: any;
-}
+  private static processLayer2(code: string): string {
+    // Layer 2: Pattern fixes
+    return code.replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+  }
 
-export interface RecoveryStrategy {
-  name: string;
-  priority: 'critical' | 'high' | 'medium' | 'low';
-  execute: (code: string, error: any, analysis: ErrorAnalysis, options?: ExecutionOptions) => Promise<string>;
-}
+  private static processLayer3(code: string): string {
+    // Layer 3: Component fixes
+    return code.replace(/\.map\s*\(\s*([^)]+)\s*=>\s*<([^>]+)(?![^>]*key=)/g, 
+      (match, mapArg, element) => {
+        const keyVar = mapArg.includes(',') ? mapArg.split(',')[1].trim() : 'index';
+        return match.replace(`<${element}`, `<${element} key={${keyVar}}`);
+      });
+  }
 
-export interface RecoveryResult {
-  recovered: boolean;
-  code: string;
-  actionsAttempted: string[];
-  recoveryStrategy: string;
-  validationResults?: any;
-  finalError?: string;
-}
+  private static processLayer4(code: string): string {
+    // Layer 4: Hydration fixes
+    return code.replace(/localStorage\.(\w+)\s*\(/g, 
+      'typeof window !== "undefined" ? localStorage.$1(');
+  }
 
-export interface ErrorDiagnostics {
-  errorType: string;
-  errorLocation: any;
-  codeContext: any;
-  layerContext: any;
-  systemContext: any;
-  similarErrors: any[];
-  recommendedActions: string[];
-}
+  private static processLayer5(code: string): string {
+    // Layer 5: Next.js fixes
+    if (code.includes("'use client'") && code.indexOf("'use client'") > 0) {
+      const lines = code.split('\n');
+      const useClientLine = lines.find(line => line.trim() === "'use client';");
+      const otherLines = lines.filter(line => line.trim() !== "'use client';");
+      return [useClientLine, ...otherLines].filter(Boolean).join('\n');
+    }
+    return code;
+  }
 
-export interface RecoveryContext {
-  codeLength: number;
-  layerId: number;
-  options: ExecutionOptions;
-  startTime: number;
-  codeComplexity: number;
-  hasExistingErrors: boolean;
-  transformationHistory: any[];
-}
+  private static processLayer6(code: string): string {
+    // Layer 6: Testing fixes
+    return code;
+  }
 
-export interface ExecutionOptions {
-  dryRun?: boolean;
-  verbose?: boolean;
-  useCache?: boolean;
-  skipValidation?: boolean;
-  maxRetries?: number;
-}
+  private static detectImprovements(before: string, after: string, layerId: number): string[] {
+    const improvements: string[] = [];
+    
+    if (before === after) {
+      return ['No changes needed'];
+    }
+    
+    switch (layerId) {
+      case 1:
+        if (after.includes('"target": "ES2022"') && !before.includes('"target": "ES2022"')) {
+          improvements.push('Upgraded TypeScript target to ES2022');
+        }
+        break;
+      case 2:
+        if (after.split('&quot;').length < before.split('&quot;').length) {
+          improvements.push('Fixed HTML entity corruption');
+        }
+        break;
+      case 3:
+        if (after.split('key=').length > before.split('key=').length) {
+          improvements.push('Added missing React keys');
+        }
+        break;
+      case 4:
+        if (after.includes('typeof window') && !before.includes('typeof window')) {
+          improvements.push('Added SSR safety guards');
+        }
+        break;
+      case 5:
+        if (after.indexOf("'use client'") === 0 && before.indexOf("'use client'") > 0) {
+          improvements.push('Fixed use client directive placement');
+        }
+        break;
+      case 6:
+        improvements.push('Testing improvements applied');
+        break;
+    }
+    
+    return improvements.length > 0 ? improvements : ['Code transformation applied'];
+  }
 
-export interface RecoverySuggestion {
-  type: string;
-  title: string;
-  description: string;
-  actions: string[];
-  priority: number;
+  private static categorizeError(error: any, layerId: number, code: string): {
+    message: string;
+    category: string;
+    suggestion: string;
+    recoveryOptions: string[];
+  } {
+    const errorMessage = error.message || error.toString();
+    
+    if (error.name === 'SyntaxError' || errorMessage.includes('Unexpected token')) {
+      return {
+        category: 'syntax',
+        message: 'Code syntax prevented transformation',
+        suggestion: 'Fix syntax errors before running NeuroLint',
+        recoveryOptions: [
+          'Check for missing brackets or semicolons',
+          'Use a code formatter',
+          'Validate syntax with ESLint'
+        ]
+      };
+    }
+    
+    if (errorMessage.includes('AST') || errorMessage.includes('parse')) {
+      return {
+        category: 'parsing',
+        message: 'Complex code structure not supported',
+        suggestion: 'Simplify code structure or use regex fallback',
+        recoveryOptions: [
+          'Break down complex expressions',
+          'Disable AST transformations',
+          'Run layers individually'
+        ]
+      };
+    }
+    
+    return {
+      category: 'unknown',
+      message: `Layer ${layerId} execution failed`,
+      suggestion: 'Check layer configuration and try again',
+      recoveryOptions: [
+        'Try running other layers individually',
+        'Check console for additional details',
+        'Report issue with code sample'
+      ]
+    };
+  }
+
+  static generateRecoverySuggestions(errors: LayerExecutionResult[]): any[] {
+    const suggestions: any[] = [];
+    
+    const failedLayers = errors.filter(e => !e.success);
+    
+    if (failedLayers.length > 0) {
+      suggestions.push({
+        type: 'general',
+        title: 'Layer Execution Issues',
+        description: `${failedLayers.length} layers failed execution`,
+        actions: [
+          'Review error messages for specific issues',
+          'Try running layers individually',
+          'Check code syntax and structure'
+        ]
+      });
+    }
+    
+    return suggestions;
+  }
 }

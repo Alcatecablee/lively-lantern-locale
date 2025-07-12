@@ -1,3 +1,4 @@
+
 import { transformWithAST } from './ast/orchestrator';
 import { BackupManager } from './backup/backupManager';
 import { CodeValidator } from './validation/codeValidator';
@@ -27,7 +28,12 @@ export interface LayerOutput {
   suggestion?: string;
   recoveryOptions?: string[];
   revertReason?: string;
+  layerId?: number;
+  reverted?: boolean;
 }
+
+// Export for backward compatibility
+export interface NeuroLintLayerResult extends LayerOutput {}
 
 export interface TransformationResult {
   success: boolean;
@@ -37,7 +43,19 @@ export interface TransformationResult {
   error?: string;
   executionStats?: any;
   diagnostics?: any;
+  layerOutputs?: string[];
+  backup?: string;
 }
+
+// Export the layer list constant
+export const LAYER_LIST = [
+  { id: 1, name: 'Configuration', description: 'Foundation setup and TypeScript/Next.js config optimization' },
+  { id: 2, name: 'Entity Cleanup', description: 'HTML entities and pattern modernization' },
+  { id: 3, name: 'Components', description: 'React component fixes and best practices' },
+  { id: 4, name: 'Hydration', description: 'SSR safety and hydration issue resolution' },
+  { id: 5, name: 'Next.js', description: 'App Router and Next.js specific optimizations' },
+  { id: 6, name: 'Testing', description: 'Testing patterns and validation improvements' }
+];
 
 const LAYER_CONFIG: { [key: number]: any } = {
   1: { name: 'layer-1-config', supportsAST: false, regexTransform: require('../layers/fix-layer-1-config').runLayer1Fixes },
@@ -49,16 +67,10 @@ const LAYER_CONFIG: { [key: number]: any } = {
 };
 
 function calculateChanges(before: string, after: string): number {
-  // Sophisticated change detection algorithm (example: line diff)
   const beforeLines = before.split('\n');
   const afterLines = after.split('\n');
   let changes = 0;
-
-  // Simple line count difference
   changes = Math.abs(beforeLines.length - afterLines.length);
-
-  // More sophisticated diffing can be implemented here
-
   return changes;
 }
 
@@ -122,6 +134,7 @@ export async function NeuroLintOrchestrator(
           id: 0,
           name: 'Cached Result',
           success: true,
+          code: optimizedResult.result,
           executionTime: optimizedResult.executionTime,
           improvements: ['Retrieved from intelligent cache']
         }],
@@ -138,6 +151,7 @@ export async function NeuroLintOrchestrator(
     // SOPHISTICATED LAYER EXECUTION WITH ERROR RECOVERY
     let current = code;
     const layerOutputs: LayerOutput[] = [];
+    const layerStates: string[] = [code];
     const executionStartTime = performance.now();
 
     for (const layerId of layersToExecute) {
@@ -158,7 +172,7 @@ export async function NeuroLintOrchestrator(
 
       if (layerResult.success) {
         // COMPREHENSIVE VALIDATION
-        const validationResult = await CodeValidator.validateTransformation({
+        const validationResult = await CodeValidator.validate({
           before: current,
           after: layerResult.code,
           layerId,
@@ -171,13 +185,16 @@ export async function NeuroLintOrchestrator(
             id: layerId,
             name: layerInfo.name,
             success: false,
-            code: current, // Keep previous code
+            code: current,
             executionTime: layerResult.executionTime,
             changeCount: 0,
-            revertReason: validationResult.reason
+            revertReason: validationResult.reason,
+            layerId: layerId,
+            reverted: true
           });
         } else {
           current = layerResult.code;
+          layerStates.push(current);
           layerOutputs.push({
             id: layerId,
             name: layerInfo.name,
@@ -185,7 +202,8 @@ export async function NeuroLintOrchestrator(
             code: current,
             executionTime: layerResult.executionTime,
             changeCount: calculateChanges(current, layerResult.code),
-            improvements: layerResult.improvements || []
+            improvements: layerResult.improvements || [],
+            layerId: layerId
           });
           
           console.log(`✅ Layer ${layerId} completed (${layerResult.executionTime.toFixed(0)}ms)`);
@@ -193,31 +211,23 @@ export async function NeuroLintOrchestrator(
       } else {
         console.error(`❌ Layer ${layerId} failed:`, layerResult.error);
         
-        // SOPHISTICATED ERROR RECOVERY REPORTING
-        if (layerResult.recoveryActions.length > 0) {
-          console.log(`🔄 Recovery attempts: ${layerResult.recoveryActions.join(', ')}`);
-        }
-        
-        if (layerResult.suggestion) {
-          console.log(`💡 Suggestion: ${layerResult.suggestion}`);
-        }
-
         layerOutputs.push({
           id: layerId,
           name: layerInfo.name,
           success: false,
-          code: current, // Keep previous safe state
+          code: current,
           executionTime: layerResult.executionTime,
           changeCount: 0,
           error: layerResult.error,
           errorCategory: layerResult.errorCategory,
           suggestion: layerResult.suggestion,
-          recoveryOptions: layerResult.recoveryOptions
+          recoveryOptions: layerResult.recoveryOptions,
+          layerId: layerId
         });
       }
 
       // DIAGNOSTIC MONITORING
-      DiagnosticMonitor.recordLayerExecution({
+      DiagnosticMonitor.recordExecution({
         layerId,
         success: layerResult.success,
         executionTime: layerResult.executionTime,
@@ -255,14 +265,16 @@ export async function NeuroLintOrchestrator(
       layers: layerOutputs,
       executionTime: totalExecutionTime,
       executionStats,
-      diagnostics: DiagnosticMonitor.generateReport()
+      diagnostics: DiagnosticMonitor.getReport(),
+      layerOutputs: layerStates,
+      backup: code
     };
 
   } catch (error) {
     console.error('❌ Orchestration failed:', error);
     
     // SOPHISTICATED ERROR RECOVERY FOR ORCHESTRATION LEVEL
-    const recoveredCode = await BackupManager.restoreLatest();
+    const recoveredCode = await BackupManager.restore();
     
     return {
       success: false,

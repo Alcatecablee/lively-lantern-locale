@@ -549,6 +549,56 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          end_date: string
+          id: string
+          paypal_subscription_id: string | null
+          plan: string
+          start_date: string
+          status: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          end_date: string
+          id?: string
+          paypal_subscription_id?: string | null
+          plan: string
+          start_date: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          end_date?: string
+          id?: string
+          paypal_subscription_id?: string | null
+          plan?: string
+          start_date?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_activities: {
         Row: {
           action: string
@@ -921,6 +971,10 @@ export type Database = {
       get_complete_schema: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      increment_monthly_usage: {
+        Args: { clerk_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

@@ -1,20 +1,19 @@
 #!/usr/bin/env node
 
+const { program } = require('commander');
 const fs = require('fs');
 const path = require('path');
-const { program } = require('commander');
 const { glob } = require('glob');
 
-// Import the enhanced orchestrator and all components
+// Enhanced NeuroLint Orchestrator
 const EnhancedNeuroLintOrchestrator = require('../enhanced-orchestrator');
 const EnhancedSmartLayerSelector = require('../orchestration/enhanced-selector');
+const LayerIntegrator = require('../layer-integrator');
 
-// Enterprise dark theme banner - no colors, no emojis, professional only
+// Enterprise banner - minimal professional style
 const banner = `
-┌────────────────────────────────────────────────────────────────┐
-│                        NeuroLint v1.0.0                        │
-│           Enterprise Code Quality Automation System           │
-└────────────────────────────────────────────────────────────────┘
+NeuroLint Enterprise CLI v1.0.0
+Enterprise Code Quality Automation System
 `;
 
 console.log(banner);
@@ -24,35 +23,29 @@ program
   .description('NeuroLint - Enterprise multi-layer automated fixing system for React/Next.js codebases')
   .version('1.0.0');
 
-// Main fix command
+// Main analyze command
 program
-  .command('fix')
-  .description('Automatically fix code issues with intelligent layer selection')
-  .argument('[target]', 'file, directory, or glob pattern to fix (default: src/)', 'src/')
-  .option('-l, --layers <layers>', 'comma-separated list of layers to run (1,2,3,4,5,6)', 'auto')
-  .option('-d, --dry-run', 'preview changes without applying them')
-  .option('-v, --verbose', 'detailed output with analysis and timings')
-  .option('-b, --backup', 'create .backup files before modifications')
-  .option('--exclude <patterns>', 'exclude patterns (comma-separated globs)', 'node_modules/**,dist/**,build/**,.git/**')
-  .option('--skip-layers <layers>', 'skip specific layers (comma-separated)')
-  .option('--force', 'force execution even with validation warnings')
-  .option('--cache', 'enable transformation caching for performance', true)
-  .option('--no-ast', 'disable AST transformations (use regex only)')
+  .command('fix <target>')
+  .description('Fix code using multi-layer orchestration patterns')
+  .option('-d, --dry-run', 'Preview changes without applying them')
+  .option('-v, --verbose', 'Show detailed output')
+  .option('-l, --layers <layers>', 'Comma-separated layers to run (1,2,3,4,5,6)', '1,2,3,4')
+  .option('--exclude <patterns>', 'Exclude file patterns (comma-separated)')
+  .option('--backup', 'Create backup files before modifying')
+  .option('-o, --output <file>', 'Output directory for fixed files')
   .action(async (target, options) => {
-    const startTime = Date.now();
-    
     try {
       console.log('Starting NeuroLint analysis...\n');
-      
+
       // Get files to process
       const files = await getFilesToProcess(target, options.exclude);
       
       if (files.length === 0) {
         console.log('WARNING: No files found to process.');
         console.log('INFO: Try a different target path or check your exclude patterns.');
-        return;
+        process.exit(0);
       }
-      
+
       console.log(`FILES: Found ${files.length} files to process`);
       
       // Parse layers
@@ -61,78 +54,85 @@ program
       if (options.dryRun) {
         console.log('MODE: DRY RUN - No files will be modified\n');
       }
-      
+
       // Initialize orchestrator
       const orchestrator = new EnhancedNeuroLintOrchestrator({
-        verbose: options.verbose,
-        dryRun: options.dryRun,
-        useAST: !options.noAst,
-        useCache: options.cache,
-        createBackups: options.backup,
-        projectRoot: process.cwd()
+        verbose: options.verbose || false,
+        dryRun: options.dryRun || false,
+        useAST: true,
+        useCache: true,
+        createBackups: options.backup || false
       });
-      
-      let totalChanges = 0;
+
       let processedFiles = 0;
       let skippedFiles = 0;
-      const results = [];
-      
+      let totalChanges = 0;
+      const startTime = Date.now();
+
       // Process each file
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const fileNum = i + 1;
         
-        if (options.verbose) {
-          console.log(`\nPROCESSING: [${fileNum}/${files.length}] ${file}`);
-        } else {
-          process.stdout.write(`\rPROCESSING: ${fileNum}/${files.length} files`);
-        }
-        
         try {
+          console.log(`\nPROCESSING: [${fileNum}/${files.length}] ${file}`);
+          
           const code = fs.readFileSync(file, 'utf8');
+          
+          // Execute orchestrator
           const result = await orchestrator.execute(code, file, layers);
           
-          if (result.summary && result.summary.totalChanges > 0) {
-            if (!options.dryRun) {
+          if (result.success) {
+            // Write output if not dry run
+            if (!options.dryRun && result.finalCode !== code) {
+              const outputFile = options.output ? 
+                path.join(options.output, path.basename(file)) : file;
+              
               // Create backup if requested
               if (options.backup) {
-                fs.writeFileSync(`${file}.backup`, code);
+                const backupPath = `${outputFile}.backup`;
+                fs.writeFileSync(backupPath, code);
               }
               
-              // Write transformed code
-              fs.writeFileSync(file, result.finalCode);
+              fs.writeFileSync(outputFile, result.finalCode);
             }
             
-            totalChanges += result.summary.totalChanges;
-            processedFiles++;
+            // Count changes
+            const changes = result.summary?.totalChanges || 0;
+            totalChanges += changes;
             
-            if (options.verbose) {
+            if (changes > 0) {
               console.log(`SUCCESS: Applied ${result.summary.totalChanges} changes`);
-              if (result.layerResults) {
+              
+              // Show layer improvements
+              if (result.layerResults && options.verbose) {
                 result.layerResults.forEach(layer => {
                   if (layer.improvements && layer.improvements.length > 0) {
                     console.log(`  Layer ${layer.layerId}: ${layer.improvements.join(', ')}`);
                   }
                 });
               }
-            }
-          } else {
-            skippedFiles++;
-            if (options.verbose) {
+              
+              processedFiles++;
+            } else {
               console.log('INFO: No changes needed');
+              skippedFiles++;
             }
+            
+          } else {
+            console.log(`ERROR: ${result.error?.message || 'Unknown error'}`);
+            skippedFiles++;
           }
-          
-          results.push({ file, result });
           
         } catch (error) {
           console.log(`\nERROR: Processing ${file}: ${error.message}`);
           if (options.verbose) {
             console.log(`STACK: ${error.stack}`);
           }
+          skippedFiles++;
         }
       }
-      
+
       // Final summary
       const totalTime = Date.now() - startTime;
       console.log('\n');
@@ -147,7 +147,7 @@ program
       if (options.dryRun && totalChanges > 0) {
         console.log('\nINFO: Run without --dry-run to apply these changes');
       }
-      
+
     } catch (error) {
       console.error(`\nFATAL ERROR: ${error.message}`);
       if (options.verbose) {
@@ -157,130 +157,111 @@ program
     }
   });
 
-// Individual layer commands
-for (let i = 1; i <= 6; i++) {
-  program
-    .command(`layer-${i}`)
-    .description(`Run only Layer ${i}`)
-    .argument('[target]', 'file or directory to fix', 'src/')
-    .option('-d, --dry-run', 'preview changes without applying them')
-    .option('-v, --verbose', 'verbose output')
-    .option('-b, --backup', 'create backup files')
-    .action(async (target, options) => {
-      // Reuse fix command logic but with specific layer
-      const fixCommand = program.commands.find(cmd => cmd.name() === 'fix');
-      await fixCommand._actionHandler(target, { 
-        ...options, 
-        layers: i.toString() 
-      });
-    });
-}
-
 // Analyze command
 program
-  .command('analyze')
-  .description('Analyze code and recommend appropriate layers without making changes')
-  .argument('[target]', 'file or directory to analyze', 'src/')
-  .option('--exclude <patterns>', 'exclude patterns', 'node_modules/**,dist/**,build/**')
+  .command('analyze <target>')
+  .description('Analyze code and recommend optimal layer configuration')
+  .option('--exclude <patterns>', 'Exclude file patterns (comma-separated)')
+  .option('-v, --verbose', 'Show detailed analysis')
   .action(async (target, options) => {
-    console.log('Analyzing code structure and issues...\n');
-    
-    const files = await getFilesToProcess(target, options.exclude);
-    
-    if (files.length === 0) {
-      console.log('WARNING: No files found to analyze.');
-      return;
-    }
-    
-    const allIssues = [];
-    const layerRecommendations = new Map();
-    
-    for (const file of files.slice(0, 10)) { // Analyze first 10 files for performance
-      try {
-        const code = fs.readFileSync(file, 'utf8');
-        const analysis = EnhancedSmartLayerSelector.analyzeAndRecommend(code, file);
-        
-        if (analysis.detectedIssues && analysis.detectedIssues.length > 0) {
+    try {
+      console.log('Analyzing code structure and issues...\n');
+
+      const files = await getFilesToProcess(target, options.exclude);
+      
+      if (files.length === 0) {
+        console.log('WARNING: No files found to analyze.');
+        return;
+      }
+
+      const allIssues = [];
+      const recommendedLayers = new Set();
+
+      // Analyze each file
+      for (const file of files) {
+        try {
+          const code = fs.readFileSync(file, 'utf8');
+          const analysis = EnhancedSmartLayerSelector.analyzeAndRecommend(code, file);
+          
           console.log(`FILE: ${file}:`);
           analysis.detectedIssues.forEach(issue => {
+            allIssues.push(issue);
             const severity = getSeverityText(issue.severity);
             console.log(`  ${severity}: ${issue.description} (Layer ${issue.fixedByLayer})`);
           });
           
-          allIssues.push(...analysis.detectedIssues);
-          if (analysis.recommendedLayers) {
-            analysis.recommendedLayers.forEach(layer => {
-              layerRecommendations.set(layer, (layerRecommendations.get(layer) || 0) + 1);
-            });
-          }
+          analysis.recommendedLayers.forEach(layer => recommendedLayers.add(layer));
+          
+        } catch (error) {
+          console.log(`ERROR: Analyzing ${file}: ${error.message}`);
         }
-      } catch (error) {
-        console.log(`ERROR: Analyzing ${file}: ${error.message}`);
       }
+
+      if (allIssues.length === 0) {
+        console.log('\nSUCCESS: No issues detected. Code quality looks good.');
+        return;
+      }
+
+      // Summary
+      console.log('\nANALYSIS SUMMARY:');
+      console.log(`  Total issues: ${allIssues.length}`);
+      console.log(`  Critical: ${allIssues.filter(i => i.severity === 'high').length}`);
+      console.log(`  Medium: ${allIssues.filter(i => i.severity === 'medium').length}`);
+      console.log(`  Low: ${allIssues.filter(i => i.severity === 'low').length}`);
+
+      console.log('\nRECOMMENDED COMMAND:');
+      const recommendedLayersList = Array.from(recommendedLayers).sort();
+      console.log(`  neurolint fix ${target} --layers ${recommendedLayersList.join(',')}`);
+
+    } catch (error) {
+      console.error(`ERROR: ${error.message}`);
+      process.exit(1);
     }
-    
-    if (allIssues.length === 0) {
-      console.log('\nSUCCESS: No issues detected. Code quality looks good.');
-      return;
-    }
-    
-    console.log('\nANALYSIS SUMMARY:');
-    console.log(`  Total issues: ${allIssues.length}`);
-    console.log(`  Critical: ${allIssues.filter(i => i.severity === 'high').length}`);
-    console.log(`  Medium: ${allIssues.filter(i => i.severity === 'medium').length}`);
-    console.log(`  Low: ${allIssues.filter(i => i.severity === 'low').length}`);
-    
-    console.log('\nRECOMMENDED COMMAND:');
-    const recommendedLayers = Array.from(layerRecommendations.keys()).sort();
-    console.log(`  neurolint fix ${target} --layers ${recommendedLayers.join(',')}`);
   });
 
 // Config command
 program
   .command('config')
-  .description('Configure NeuroLint settings and preferences')
-  .option('--init', 'create default configuration file')
-  .option('--show', 'show current configuration')
+  .description('Manage NeuroLint configuration')
+  .option('--init', 'Create default configuration file')
   .action(async (options) => {
-    const configPath = path.join(process.cwd(), '.neurolint.json');
-    
-    if (options.init) {
-      const defaultConfig = {
-        layers: [1, 2, 3, 4],
-        excludePatterns: ["node_modules/**", "dist/**", "build/**", ".git/**"],
-        createBackups: true,
-        useAST: true,
-        useCache: true,
-        verbose: false
-      };
+    try {
+      const configPath = path.join(process.cwd(), 'neurolint.config.js');
       
-      fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
-      console.log(`SUCCESS: Created configuration file: ${configPath}`);
-    }
-    
-    if (options.show) {
-      if (fs.existsSync(configPath)) {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-        console.log('CURRENT CONFIGURATION:');
-        console.log(JSON.stringify(config, null, 2));
+      if (options.init) {
+        const defaultConfig = {
+          layers: [1, 2, 3, 4],
+          exclude: ['node_modules/**', '*.min.js', 'dist/**'],
+          backup: true,
+          verbose: false
+        };
+        
+        fs.writeFileSync(configPath, `module.exports = ${JSON.stringify(defaultConfig, null, 2)};`);
+        console.log(`SUCCESS: Created configuration file: ${configPath}`);
       } else {
-        console.log('WARNING: No configuration file found. Use --init to create one.');
+        if (fs.existsSync(configPath)) {
+          const config = require(configPath);
+          console.log('CURRENT CONFIGURATION:');
+          console.log(JSON.stringify(config, null, 2));
+        } else {
+          console.log('WARNING: No configuration file found. Use --init to create one.');
+        }
       }
+    } catch (error) {
+      console.error(`ERROR: ${error.message}`);
     }
   });
 
 // Test command
 program
   .command('test')
-  .description('Run NeuroLint test suite to verify functionality')
-  .option('-v, --verbose', 'verbose test output')
-  .action(async (options) => {
-    console.log('Running NeuroLint test suite...\n');
-    
+  .description('Run NeuroLint test suite')
+  .action(async () => {
     try {
-      const TestSuite = require('../test');
-      const tester = new TestSuite();
-      const results = await tester.runTestSuite();
+      console.log('Running NeuroLint test suite...\n');
+      
+      const { runTests } = require('../test');
+      const results = await runTests();
       
       console.log('TEST RESULTS:');
       console.log(`  Total: ${results.summary.total}`);
@@ -288,93 +269,86 @@ program
       console.log(`  Failed: ${results.summary.failed}`);
       console.log(`  Pass Rate: ${results.summary.passRate.toFixed(1)}%`);
       
-      if (results.failedTests.length > 0) {
+      if (results.failures.length > 0) {
         console.log('\nFAILED TESTS:');
-        results.failedTests.forEach(test => {
+        results.failures.forEach(test => {
           console.log(`  ${test.name}: ${test.error || 'Unknown error'}`);
         });
       }
       
-      results.recommendations.forEach(rec => {
-        console.log(`\n${rec}`);
-      });
-      
+      if (results.recommendations && results.recommendations.length > 0) {
+        console.log('\nRECOMMENDATIONS:');
+        results.recommendations.forEach(rec => {
+          console.log(`\n${rec}`);
+        });
+      }
+
     } catch (error) {
       console.error(`TEST SUITE ERROR: ${error.message}`);
       process.exit(1);
     }
   });
 
-// Helper functions
-async function getFilesToProcess(target, excludePatterns = '') {
-  const excludeArray = excludePatterns.split(',').map(p => p.trim()).filter(Boolean);
-  
-  // If target is a file, return it directly
-  if (fs.existsSync(target) && fs.statSync(target).isFile()) {
-    return [target];
-  }
-  
-  // Otherwise, glob for supported file types
-  const patterns = [
-    path.join(target, '**/*.{ts,tsx,js,jsx,json}'),
-    path.join(target, '*.{ts,tsx,js,jsx,json}')
-  ];
-  
-  const files = [];
-  for (const pattern of patterns) {
-    try {
-      const matches = await glob(pattern, { 
-        ignore: excludeArray,
-        absolute: false 
+// Individual layer commands
+for (let i = 1; i <= 6; i++) {
+  program
+    .command(`layer-${i} <target>`)
+    .description(`Run only Layer ${i}`)
+    .option('-d, --dry-run', 'Preview changes only')
+    .option('-v, --verbose', 'Show detailed output')
+    .option('--exclude <patterns>', 'Exclude file patterns')
+    .action(async (target, options) => {
+      await program.commands.find(cmd => cmd.name() === 'fix').action(target, {
+        ...options,
+        layers: String(i)
       });
-      files.push(...matches);
-    } catch (error) {
-      console.log(`WARNING: Glob pattern failed: ${pattern}`);
-    }
+    });
+}
+
+// Utility functions
+async function getFilesToProcess(target, excludePatterns = '') {
+  try {
+    const patterns = excludePatterns.split(',').map(p => p.trim()).filter(Boolean);
+    const files = await glob(target, { 
+      ignore: ['node_modules/**', '*.min.js', 'dist/**', 'build/**', ...patterns],
+      nodir: true 
+    });
+    return files;
+  } catch (error) {
+    console.log(`WARNING: Glob pattern failed: ${pattern}`);
+    return [];
   }
-  
-  // Remove duplicates and sort
-  return [...new Set(files)].sort();
 }
 
 async function parseLayers(layerString, files, options) {
   if (layerString === 'auto') {
     console.log('MODE: Auto-detecting optimal layers...');
     
-    // Sample a few files for analysis
-    const sampleFiles = files.slice(0, Math.min(5, files.length));
-    const allRecommendations = new Set();
+    // Auto-detect by analyzing first few files
+    const sampleFiles = files.slice(0, Math.min(3, files.length));
+    const detectedIssues = [];
     
     for (const file of sampleFiles) {
       try {
         const code = fs.readFileSync(file, 'utf8');
         const analysis = EnhancedSmartLayerSelector.analyzeAndRecommend(code, file);
-        if (analysis.recommendedLayers) {
-          analysis.recommendedLayers.forEach(layer => allRecommendations.add(layer));
-        }
+        detectedIssues.push(...analysis.detectedIssues);
       } catch (error) {
-        // Skip files that can't be analyzed
+        // Continue with other files
       }
     }
     
-    const autoLayers = Array.from(allRecommendations).sort();
-    
-    if (autoLayers.length === 0) {
+    if (detectedIssues.length === 0) {
       console.log('INFO: No specific issues detected, using default layers [1,2,3,4]');
       return [1, 2, 3, 4];
     }
     
+    const autoLayers = [...new Set(detectedIssues.map(issue => issue.fixedByLayer))].sort();
     console.log(`LAYERS: Selected layers: ${autoLayers.join(', ')}`);
     return autoLayers;
   }
   
   const layers = layerString.split(',').map(l => parseInt(l.trim())).filter(l => l >= 1 && l <= 6);
-  
-  if (options.skipLayers) {
-    const skipLayers = options.skipLayers.split(',').map(l => parseInt(l.trim()));
-    return layers.filter(l => !skipLayers.includes(l));
-  }
-  
   console.log(`LAYERS: Running layers: ${layers.join(', ')}`);
   return layers;
 }
@@ -382,13 +356,13 @@ async function parseLayers(layerString, files, options) {
 function getSeverityText(severity) {
   switch (severity) {
     case 'high': return 'CRITICAL';
-    case 'medium': return 'MEDIUM';
-    case 'low': return 'LOW';
-    default: return 'INFO';
+    case 'medium': return 'WARNING';
+    case 'low': return 'INFO';
+    default: return 'UNKNOWN';
   }
 }
 
-// Error handling
+// Global error handlers
 process.on('uncaughtException', (error) => {
   console.error('\nUNCHANDLED EXCEPTION:', error.message);
   if (process.env.NODE_ENV === 'development') {
@@ -402,7 +376,9 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
-// Parse command line arguments
-program.parse();
+// Parse CLI arguments
+if (require.main === module) {
+  program.parse();
+}
 
 module.exports = program;

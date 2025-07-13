@@ -5,23 +5,25 @@
   "description": "NeuroLint CLI - Multi-layer automated React/Next.js code fixing system",
   "main": "index.js",
   "bin": {
-    "neurolint": "./index.js"
+    "neurolint": "./bin/neurolint.js"
   },
   "scripts": {
-    "start": "node index.js",
+    "start": "node bin/neurolint.js",
     "build": "node build.js",
     "start:server": "node server.js",
-    "fix-all": "node index.js fix-all",
-    "fix-dry-run": "node index.js fix-dry-run",
-    "fix-verbose": "node index.js fix-all --verbose",
-    "fix-layer-1": "node index.js fix-layer-1",
-    "fix-layer-2": "node index.js fix-layer-2", 
-    "fix-layer-3": "node index.js fix-layer-3",
-    "fix-layer-4": "node index.js fix-layer-4",
-    "fix-layer-5": "node index.js fix-layer-5",
-    "fix-layer-6": "node index.js fix-layer-6",
-    "test": "node test.js",
-    "clean": "npx rimraf release backups"
+    "install": "chmod +x bin/neurolint.js",
+    "fix-all": "node bin/neurolint.js fix",
+    "fix-dry-run": "node bin/neurolint.js fix --dry-run",
+    "fix-verbose": "node bin/neurolint.js fix --verbose",
+    "fix-layer-1": "node bin/neurolint.js layer-1",
+    "fix-layer-2": "node bin/neurolint.js layer-2", 
+    "fix-layer-3": "node bin/neurolint.js layer-3",
+    "fix-layer-4": "node bin/neurolint.js layer-4",
+    "fix-layer-5": "node bin/neurolint.js layer-5",
+    "fix-layer-6": "node bin/neurolint.js layer-6",
+    "analyze": "node bin/neurolint.js analyze",
+    "test": "node bin/neurolint.js test",
+    "clean": "npx rimraf release backups .neurolint-temp"
   },
   "keywords": [
     "react",

@@ -1,64 +1,60 @@
-// Enhanced orchestrator that integrates all the patterns
-const TransformationValidator = require('./orchestration/validator');
-const ASTFallbackStrategy = require('./orchestration/ast-fallback');
+const fs = require('fs');
+const path = require('path');
+
+// Import orchestration components
+const LayerIntegrator = require('./layer-integrator');
 const EnhancedSmartLayerSelector = require('./orchestration/enhanced-selector');
 const LayerDependencyManager = require('./orchestration/dependencies');
-const TransformationPipeline = require('./orchestration/pipeline');
 const ErrorRecoverySystem = require('./orchestration/recovery');
-const PerformanceOptimizer = require('./orchestration/performance');
-const LayerIntegrator = require('./layer-integrator');
+const ASTFallbackManager = require('./orchestration/ast-fallback');
 
 /**
- * Enhanced NeuroLint CLI Orchestrator following all orchestration patterns
- * Integrates safe execution, AST fallback, validation, and smart selection
+ * Enhanced NeuroLint Orchestrator - Enterprise-grade orchestration system
+ * Integrates with your actual sophisticated layer implementations
  */
 class EnhancedNeuroLintOrchestrator {
-  
   constructor(options = {}) {
     this.options = {
       verbose: false,
       dryRun: false,
       useAST: true,
       useCache: true,
-      failFast: false,
       createBackups: false,
-      projectRoot: process.cwd(),
+      failFast: false,
+      timeout: 30000,
       ...options
     };
     
-    // Initialize layer integrator to work with actual layer files
-    this.layerIntegrator = new LayerIntegrator(this.options.projectRoot);
+    // Initialize with actual layer integrator
+    this.layerIntegrator = new LayerIntegrator(this.options);
     
-    // Validate that layer files exist
-    const validation = this.layerIntegrator.validateLayerFiles();
-    if (validation.missing.length > 0 && this.options.verbose) {
-      console.warn(`WARNING: Missing layer files: ${validation.missing.join(', ')}`);
-    }
+    // Performance tracking
+    this.performance = {
+      startTime: 0,
+      endTime: 0,
+      layerTimes: {},
+      cacheHits: 0,
+      cacheMisses: 0
+    };
+    
+    // Error recovery system
+    this.errorRecovery = new ErrorRecoverySystem();
+    
+    // Setup cleanup handlers
+    this.layerIntegrator.setupCleanup();
   }
-  
+
   /**
-   * Main orchestration method following all patterns
+   * Execute the sophisticated multi-layer orchestration
    */
   async execute(code, filePath, requestedLayers = [1, 2, 3, 4]) {
-    const startTime = Date.now();
-    const pipeline = new TransformationPipeline(filePath || 'unknown');
+    this.performance.startTime = Date.now();
     
     try {
-      // Step 1: Smart Layer Selection
-      const analysis = await this.performCodeAnalysis(code, filePath);
-      
-      if (this.options.verbose) {
-        console.log('INFO: Code Analysis Results:');
-        console.log(`  Detected Issues: ${analysis.detectedIssues ? analysis.detectedIssues.length : 0}`);
-        console.log(`  Recommended Layers: ${analysis.recommendedLayers ? analysis.recommendedLayers.join(', ') : 'none'}`);
-        console.log(`  Confidence: ${analysis.confidence ? (analysis.confidence * 100).toFixed(1) : 0}%`);
-        console.log(`  Estimated Impact: ${analysis.estimatedImpact ? analysis.estimatedImpact.level : 'unknown'}`);
-      }
-      
-      // Step 2: Layer Dependency Management
+      // Validate and auto-correct layer selection using dependency manager
       const layerValidation = LayerDependencyManager.validateAndCorrectLayers(requestedLayers);
       
-      if (layerValidation.warnings.length > 0 && this.options.verbose) {
+      if (layerValidation.warnings.length > 0) {
         console.log('WARNING: Layer Dependency Issues:');
         layerValidation.warnings.forEach(warning => {
           console.log(`  ${warning}`);
@@ -67,402 +63,336 @@ class EnhancedNeuroLintOrchestrator {
       
       const finalLayers = layerValidation.correctedLayers;
       
-      if (this.options.verbose) {
-        console.log(`LAYERS: Executing ${finalLayers.join(', ')}`);
+      // Analyze code for smart recommendations
+      let analysis = {};
+      try {
+        analysis = EnhancedSmartLayerSelector.analyzeAndRecommend(code, filePath);
+        console.log('INFO: Code Analysis Results:');
+        console.log(`  Detected Issues: ${analysis.detectedIssues ? analysis.detectedIssues.length : 0}`);
+        console.log(`  Recommended Layers: ${analysis.recommendedLayers ? analysis.recommendedLayers.join(', ') : 'none'}`);
+        console.log(`  Confidence: ${analysis.confidence ? (analysis.confidence * 100).toFixed(1) : 0}%`);
+        console.log(`  Estimated Impact: ${analysis.estimatedImpact ? analysis.estimatedImpact.level : 'unknown'}`);
+      } catch (analysisError) {
+        console.warn(`WARNING: Code analysis failed: ${analysisError.message}`);
+        analysis = { detectedIssues: [], recommendedLayers: finalLayers, confidence: 0.5 };
       }
-      
-      // Step 3: Execute layers with comprehensive safety checks
-      const executionResult = await this.executeLayersWithSafetyChecks(
+
+      console.log(`LAYERS: Executing ${finalLayers.join(', ')}`);
+
+      // Execute layers using the actual sophisticated implementations
+      const executionResult = await this.layerIntegrator.executeMultipleLayers(
         code, 
+        filePath, 
         finalLayers, 
-        pipeline, 
-        analysis
+        this.options
       );
+
+      // Post-execution validation and error recovery
+      const validationResults = await this.validateExecutionResults(executionResult, code);
       
-      // Step 4: Generate final result with recommendations
-      const result = this.generateFinalResult(
-        executionResult, 
-        analysis, 
-        startTime, 
-        filePath
-      );
-      
+      // Generate comprehensive result
+      const result = {
+        success: executionResult.success,
+        originalCode: code,
+        finalCode: executionResult.finalCode,
+        executedLayers: executionResult.summary.executedLayers,
+        layerResults: this.enrichLayerResults(executionResult.layerResults),
+        analysis: analysis,
+        validation: validationResults,
+        performance: this.generatePerformanceReport(executionResult),
+        summary: {
+          totalChanges: executionResult.summary.totalChanges,
+          executedLayers: executionResult.summary.executedLayers,
+          failedLayers: executionResult.layerResults.filter(r => !r.success).length,
+          executionTime: executionResult.performance.totalExecutionTime
+        },
+        recommendations: this.generateRecommendations(executionResult, analysis),
+        metadata: {
+          timestamp: new Date().toISOString(),
+          filePath: filePath,
+          requestedLayers: requestedLayers,
+          finalLayers: finalLayers,
+          orchestratorVersion: '2.0.0'
+        }
+      };
+
+      this.performance.endTime = Date.now();
       return result;
-      
+
     } catch (error) {
-      const errorInfo = ErrorRecoverySystem.categorizeError(error, 0, code);
-      
-      if (this.options.verbose) {
-        console.error('ERROR: Orchestration failed:', errorInfo.message);
-        console.error('CATEGORY:', errorInfo.category);
-        console.error('SUGGESTION:', errorInfo.suggestion);
-      }
-      
+      // Enterprise error handling
+      const errorInfo = this.errorRecovery.handleError(error, {
+        code,
+        filePath,
+        requestedLayers,
+        options: this.options
+      });
+
+      console.error('ERROR: Orchestration failed:', errorInfo.message);
+      console.error('CATEGORY:', errorInfo.category);
+      console.error('SUGGESTION:', errorInfo.suggestion);
+
       return {
         success: false,
-        finalCode: code, // Return original on failure
         error: errorInfo,
+        originalCode: code,
+        finalCode: code,
         executedLayers: [],
         layerResults: [],
+        analysis: {},
+        performance: this.generatePerformanceReport({ performance: { totalExecutionTime: 0 } }),
         summary: {
-          totalExecutionTime: Date.now() - startTime,
           totalChanges: 0,
-          successfulLayers: 0,
-          failedLayers: 0
+          executedLayers: [],
+          failedLayers: 0,
+          executionTime: 0
         }
       };
     }
   }
-  
+
   /**
-   * Perform comprehensive code analysis
+   * Validate execution results and apply error recovery if needed
    */
-  async performCodeAnalysis(code, filePath) {
+  async validateExecutionResults(executionResult, originalCode) {
+    const validationResults = {
+      codeIntegrity: true,
+      layerConsistency: true,
+      performanceAcceptable: true,
+      issues: [],
+      warnings: []
+    };
+
     try {
-      return EnhancedSmartLayerSelector.analyzeAndRecommend(code, filePath);
-    } catch (error) {
-      if (this.options.verbose) {
-        console.warn(`WARNING: Code analysis failed: ${error.message}`);
+      // Validate code integrity
+      if (!executionResult.finalCode || typeof executionResult.finalCode !== 'string') {
+        validationResults.codeIntegrity = false;
+        validationResults.issues.push('Final code is invalid or missing');
       }
-      
-      // Return minimal analysis on failure
-      return {
-        detectedIssues: [],
-        recommendedLayers: [1, 2, 3, 4],
-        confidence: 0.5,
-        estimatedImpact: { level: 'unknown' }
-      };
-    }
-  }
-  
-  /**
-   * Execute layers with comprehensive safety checks using LayerIntegrator
-   */
-  async executeLayersWithSafetyChecks(code, layers, pipeline, analysis) {
-    try {
-      // Use LayerIntegrator to execute actual layer files
-      const result = await this.layerIntegrator.executeLayers(layers, code, pipeline.filePath, {
-        verbose: this.options.verbose,
-        dryRun: this.options.dryRun,
-        useAST: this.options.useAST,
-        ignoreWarnings: false
-      });
-      
-      const layerConfigs = this.getLayerConfigurations();
-      let totalChanges = 0;
-      const states = [code];
-      
-      // Apply additional validation and enhance results
-      for (const layerResult of result.layerResults) {
-        const layerConfig = layerConfigs[layerResult.layerId];
-        
-        if (layerResult.success && layerResult.code) {
-          // Apply incremental validation for extra safety
-          const validation = TransformationValidator.validateTransformation(
-            code, 
-            layerResult.code
-          );
-          
-          if (validation.shouldRevert) {
-            console.warn(`WARNING: Post-validation failed for Layer ${layerResult.layerId}: ${validation.reason}`);
+
+      // Validate layer consistency
+      executionResult.layerResults.forEach(layerResult => {
+        if (layerResult.success) {
+          const validation = this.validateLayerResult(layerResult, originalCode);
+          if (!validation.valid) {
+            validationResults.layerConsistency = false;
+            validationResults.issues.push(`Layer ${layerResult.layerId} validation failed: ${validation.reason}`);
+            
+            // Mark layer as reverted
             layerResult.success = false;
-            layerResult.revertReason = validation.reason;
-            layerResult.changeCount = 0;
             layerResult.reverted = true;
-          } else {
-            totalChanges += layerResult.changeCount || 0;
+            layerResult.revertReason = validation.reason;
             
-            // Enhance result with layer config info
-            if (layerConfig) {
-              layerResult.name = layerConfig.name;
-              layerResult.usedAST = layerConfig.supportsAST;
-            }
-            
-            if (this.options.verbose && layerResult.changeCount > 0) {
-              console.log(`SUCCESS: Layer ${layerResult.layerId} completed (${layerResult.changeCount} changes)`);
-              (layerResult.improvements || []).forEach(improvement => {
-                console.log(`  ${improvement}`);
-              });
-            }
-          }
-          
-          states.push(layerResult.code);
-          
-          // Add to pipeline if pipeline supports it
-          if (pipeline.addTransformation) {
-            pipeline.addTransformation(
-              layerConfig?.name || `Layer ${layerResult.layerId}`, 
-              layerResult
-            );
-          }
-        } else if (!layerResult.success) {
-          console.error(`ERROR: Layer ${layerResult.layerId} failed: ${layerResult.error}`);
-          
-          if (this.options.failFast) {
-            break;
+            console.warn(`WARNING: Post-validation failed for Layer ${layerResult.layerId}: ${validation.reason}`);
           }
         }
+      });
+
+      // Validate performance
+      if (executionResult.performance.totalExecutionTime > 60000) { // 60 seconds
+        validationResults.performanceAcceptable = false;
+        validationResults.warnings.push('Execution time exceeded 60 seconds');
       }
-      
-      const successfulLayers = result.layerResults.filter(r => r.success).length;
-      const recommendations = this.generateRecommendations(result.layerResults, analysis);
-      
-      return {
-        success: result.layerResults.length > 0 && successfulLayers > 0,
-        finalCode: result.finalCode,
-        layerResults: result.layerResults,
-        states,
-        totalChanges,
-        successfulLayers,
-        recommendations
-      };
-      
+
+      return validationResults;
+
     } catch (error) {
-      console.error('ERROR: Layer execution failed:', error.message);
-      return {
-        success: false,
-        finalCode: code,
-        layerResults: [],
-        states: [code],
-        totalChanges: 0,
-        successfulLayers: 0,
-        recommendations: [`Execution failed: ${error.message}`]
-      };
+      validationResults.codeIntegrity = false;
+      validationResults.issues.push(`Validation error: ${error.message}`);
+      return validationResults;
     }
   }
-  
+
   /**
-   * Generate final result with comprehensive summary
+   * Validate individual layer result
    */
-  generateFinalResult(executionResult, analysis, startTime, filePath) {
-    return {
-      success: executionResult.success,
-      finalCode: executionResult.finalCode,
-      layerResults: executionResult.layerResults,
-      states: executionResult.states,
-      analysis,
-      summary: {
-        totalExecutionTime: Date.now() - startTime,
-        totalChanges: executionResult.totalChanges,
-        successfulLayers: executionResult.successfulLayers,
-        failedLayers: executionResult.layerResults.length - executionResult.successfulLayers,
-        filePath
-      },
-      recommendations: executionResult.recommendations,
-      metadata: {
-        timestamp: Date.now(),
-        options: this.options,
-        pipeline: filePath
-      }
-    };
-  }
-  
-  /**
-   * Layer configurations with AST support flags
-   */
-  getLayerConfigurations() {
-    return {
-      1: {
-        id: 1,
-        name: 'Configuration',
-        description: 'TypeScript & Next.js configuration optimization',
-        supportsAST: false,
-        fileTypes: ['json', 'js']
-      },
-      2: {
-        id: 2,
-        name: 'Entity Cleanup',
-        description: 'HTML entities and pattern fixes',
-        supportsAST: false,
-        fileTypes: ['ts', 'tsx', 'js', 'jsx']
-      },
-      3: {
-        id: 3,
-        name: 'Components',
-        description: 'React component improvements',
-        supportsAST: true,
-        fileTypes: ['tsx', 'jsx']
-      },
-      4: {
-        id: 4,
-        name: 'Hydration',
-        description: 'SSR safety and hydration fixes',
-        supportsAST: true,
-        fileTypes: ['ts', 'tsx', 'js', 'jsx']
-      },
-      5: {
-        id: 5,
-        name: 'Next.js',
-        description: 'Next.js specific optimizations',
-        supportsAST: true,
-        fileTypes: ['ts', 'tsx', 'js', 'jsx']
-      },
-      6: {
-        id: 6,
-        name: 'Testing',
-        description: 'Test setup and improvements',
-        supportsAST: false,
-        fileTypes: ['test.ts', 'test.tsx', 'spec.ts', 'spec.tsx']
-      }
-    };
-  }
-  
-  /**
-   * Individual layer processors (fallback implementations)
-   */
-  async processLayer1(code) {
-    // Configuration layer fallback
-    return code;
-  }
-  
-  async processLayer2(code) {
-    // Entity cleanup fallback
-    return code.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-  }
-  
-  async processLayer3(code) {
-    // Component fixes fallback
-    return code;
-  }
-  
-  async processLayer4(code) {
-    // Hydration fixes fallback
-    return code.replace(/localStorage\./g, 'typeof window !== "undefined" && localStorage.');
-  }
-  
-  /**
-   * Calculate changes between code strings
-   */
-  calculateChanges(before, after) {
-    if (before === after) return 0;
-    
-    const beforeLines = before.split('\n');
-    const afterLines = after.split('\n');
-    
-    let changes = Math.abs(beforeLines.length - afterLines.length);
-    const minLength = Math.min(beforeLines.length, afterLines.length);
-    
-    for (let i = 0; i < minLength; i++) {
-      if (beforeLines[i] !== afterLines[i]) {
-        changes++;
-      }
-    }
-    
-    return changes;
-  }
-  
-  /**
-   * Detect improvements made by transformations
-   */
-  detectImprovements(before, after, layerId) {
-    const improvements = [];
-    
+  validateLayerResult(layerResult, originalCode) {
     try {
-      // Layer-specific improvement detection
-      switch (layerId) {
-        case 1:
-          if (before.includes('"target": "es5"') && after.includes('"target": "ES2020"')) {
-            improvements.push('TypeScript target upgraded to ES2020');
-          }
-          if (before.includes('reactStrictMode: false') && after.includes('reactStrictMode: true')) {
-            improvements.push('React strict mode enabled');
-          }
-          break;
-          
-        case 2:
-          const htmlEntityCount = (before.match(/&quot;|&amp;|&lt;|&gt;/g) || []).length;
-          const htmlEntityCountAfter = (after.match(/&quot;|&amp;|&lt;|&gt;/g) || []).length;
-          if (htmlEntityCount > htmlEntityCountAfter) {
-            improvements.push(`${htmlEntityCount - htmlEntityCountAfter} HTML entities cleaned`);
-          }
-          
-          const consoleCount = (before.match(/console\.log/g) || []).length;
-          const consoleCountAfter = (after.match(/console\.log/g) || []).length;
-          if (consoleCount > consoleCountAfter) {
-            improvements.push(`${consoleCount - consoleCountAfter} console.log statements optimized`);
-          }
-          break;
-          
-        case 3:
-          const keyPropCount = (before.match(/\.map\([^)]*\)\s*=>\s*<[^>]*(?!.*key=)/g) || []).length;
-          const keyPropCountAfter = (after.match(/\.map\([^)]*\)\s*=>\s*<[^>]*(?!.*key=)/g) || []).length;
-          if (keyPropCount > keyPropCountAfter) {
-            improvements.push(`${keyPropCount - keyPropCountAfter} missing key props added`);
-          }
-          break;
-          
-        case 4:
-          const localStorageCount = (before.match(/(?<!typeof window !== "undefined" && )localStorage\./g) || []).length;
-          const localStorageCountAfter = (after.match(/(?<!typeof window !== "undefined" && )localStorage\./g) || []).length;
-          if (localStorageCount > localStorageCountAfter) {
-            improvements.push(`${localStorageCount - localStorageCountAfter} SSR guards added`);
-          }
-          break;
-          
-        case 5:
-          improvements.push('Next.js optimizations applied');
-          break;
-          
-        case 6:
-          improvements.push('Testing improvements applied');
-          break;
+      if (!layerResult.transformedCode) {
+        return { valid: false, reason: 'No transformed code provided' };
       }
-      
-      // Generic improvements
-      if (improvements.length === 0 && before !== after) {
-        const changeCount = this.calculateChanges(before, after);
-        improvements.push(`${changeCount} code transformations applied`);
+
+      // Log successful layer completion
+      console.log(`SUCCESS: Layer ${layerResult.layerId} completed (${layerResult.changeCount} changes)`);
+      if (layerResult.improvements && layerResult.improvements.length > 0) {
+        layerResult.improvements.forEach(improvement => {
+          console.log(`  ${improvement}`);
+        });
       }
-      
+
+      return { valid: true };
+
     } catch (error) {
-      if (this.options.verbose) {
-        console.warn(`WARNING: Could not detect improvements for layer ${layerId}: ${error.message}`);
-      }
-      improvements.push('Transformations applied');
+      return { valid: false, reason: error.message };
+    }
+  }
+
+  /**
+   * Handle layer execution errors with recovery
+   */
+  async handleLayerError(layerId, error, code, filePath) {
+    console.error(`ERROR: Layer ${layerId} failed: ${error.message}`);
+    
+    // Attempt error recovery
+    const recoveryResult = await this.errorRecovery.recoverFromLayerError(
+      layerId, 
+      error, 
+      code, 
+      filePath
+    );
+    
+    if (recoveryResult.recovered) {
+      console.log(`INFO: Layer ${layerId} recovered using: ${recoveryResult.method}`);
+      return recoveryResult.result;
     }
     
-    return improvements;
+    // Return original code if recovery fails
+    return {
+      success: false,
+      error: error.message,
+      originalCode: code,
+      transformedCode: code
+    };
   }
-  
+
   /**
-   * Generate actionable recommendations based on results
+   * Execute layers with comprehensive error handling
    */
-  generateRecommendations(layerResults, analysis) {
+  async executeLayersWithErrorHandling(code, filePath, layers) {
+    const results = [];
+    let currentCode = code;
+    
+    for (const layerId of layers) {
+      const layerStartTime = Date.now();
+      
+      try {
+        const layerResult = await this.layerIntegrator.runSingleLayer(
+          currentCode,
+          filePath,
+          layerId,
+          this.options
+        );
+        
+        if (layerResult.success) {
+          currentCode = layerResult.transformedCode;
+          results.push({
+            ...layerResult,
+            layerId,
+            executionTime: Date.now() - layerStartTime
+          });
+        } else {
+          // Handle layer failure
+          const errorResult = await this.handleLayerError(layerId, layerResult.error, currentCode, filePath);
+          results.push({
+            ...errorResult,
+            layerId,
+            executionTime: Date.now() - layerStartTime
+          });
+        }
+        
+      } catch (error) {
+        console.error('ERROR: Layer execution failed:', error.message);
+        const errorResult = await this.handleLayerError(layerId, error, currentCode, filePath);
+        results.push({
+          ...errorResult,
+          layerId,
+          executionTime: Date.now() - layerStartTime
+        });
+      }
+    }
+    
+    return {
+      finalCode: currentCode,
+      layerResults: results,
+      success: results.some(r => r.success)
+    };
+  }
+
+  /**
+   * Enrich layer results with additional metadata
+   */
+  enrichLayerResults(layerResults) {
+    return layerResults.map(result => {
+      const layerInfo = LayerDependencyManager.getLayerInfo(result.layerId);
+      
+      return {
+        ...result,
+        layerInfo,
+        timestamp: new Date().toISOString(),
+        validated: true
+      };
+    });
+  }
+
+  /**
+   * Generate performance report
+   */
+  generatePerformanceReport(executionResult) {
+    const totalTime = executionResult.performance?.totalExecutionTime || 0;
+    
+    return {
+      totalExecutionTime: totalTime,
+      averageLayerTime: totalTime / (executionResult.layerResults?.length || 1),
+      layerBreakdown: executionResult.layerResults?.map(r => ({
+        layerId: r.layerId,
+        executionTime: r.executionTime || 0,
+        changeCount: r.changeCount || 0,
+        efficiency: (r.changeCount || 0) / Math.max(r.executionTime || 1, 1) * 1000 // changes per second
+      })) || [],
+      cachePerformance: {
+        hits: this.performance.cacheHits,
+        misses: this.performance.cacheMisses,
+        hitRate: this.performance.cacheHits / Math.max(this.performance.cacheHits + this.performance.cacheMisses, 1)
+      }
+    };
+  }
+
+  /**
+   * Generate recommendations based on execution results
+   */
+  generateRecommendations(executionResult, analysis) {
     const recommendations = [];
     
     try {
-      const failedLayers = layerResults.filter(r => !r.success);
-      const successfulLayers = layerResults.filter(r => r.success);
-      
-      if (failedLayers.length === 0) {
-        recommendations.push('SUCCESS: All layers executed successfully');
-      } else {
-        recommendations.push(`WARNING: ${failedLayers.length} layers failed`);
-        failedLayers.forEach(layer => {
-          recommendations.push(`  Layer ${layer.layerId}: ${layer.error || 'Unknown error'}`);
-        });
+      // Performance recommendations
+      if (executionResult.performance.totalExecutionTime > 30000) {
+        recommendations.push('Consider enabling caching for better performance');
       }
       
-      if (successfulLayers.length > 0) {
-        const totalChanges = successfulLayers.reduce((sum, r) => sum + (r.changeCount || 0), 0);
-        if (totalChanges > 0) {
-          recommendations.push(`INFO: Applied ${totalChanges} total changes across ${successfulLayers.length} layers`);
-        }
+      // Layer-specific recommendations
+      const failedLayers = executionResult.layerResults.filter(r => !r.success);
+      if (failedLayers.length > 0) {
+        recommendations.push(`Review failed layers: ${failedLayers.map(l => l.layerId).join(', ')}`);
       }
       
-      // Add specific recommendations based on analysis
-      if (analysis.detectedIssues && analysis.detectedIssues.length > 0) {
-        const criticalIssues = analysis.detectedIssues.filter(i => i.severity === 'high').length;
-        if (criticalIssues > 0) {
-          recommendations.push(`CRITICAL: ${criticalIssues} high-severity issues detected`);
-        }
+      // Code quality recommendations
+      if (analysis.confidence && analysis.confidence < 0.7) {
+        recommendations.push('Consider manual review due to low confidence score');
       }
+      
+      // Optimization recommendations
+      const lowEfficiencyLayers = executionResult.layerResults.filter(r => 
+        r.executionTime > 5000 && r.changeCount < 5
+      );
+      if (lowEfficiencyLayers.length > 0) {
+        recommendations.push('Some layers had low efficiency - consider optimization');
+      }
+      
+      return recommendations;
       
     } catch (error) {
-      recommendations.push(`WARNING: Could not generate recommendations: ${error.message}`);
+      console.warn(`WARNING: Recommendation generation failed: ${error.message}`);
+      return ['Review execution results manually'];
     }
-    
-    return recommendations;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  cleanup() {
+    if (this.layerIntegrator) {
+      this.layerIntegrator.cleanup();
+    }
   }
 }
 

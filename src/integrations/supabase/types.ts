@@ -963,9 +963,47 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      waitlist_summary: {
+        Row: {
+          count: number | null
+          first_signup: string | null
+          latest_signup: string | null
+          status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_complete_schema: {

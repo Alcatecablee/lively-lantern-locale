@@ -100,6 +100,75 @@ class TransformationPipeline {
   }
 }
 
+async function transformWithFallback(code: string, layerId: number): Promise<ASTTransformResult> {
+  const layer = LAYER_LIST.find(l => l.id === layerId);
+  if (!layer) throw new Error(`Layer ${layerId} not found`);
+
+  // Layers 1-2 use regex, 3-6 prefer AST with fallback
+  if (layerId <= 2) {
+    const regexTransform = (code) => {
+      if (layerId === 1) return code.replace(/"target": "es5"/g, '"target": "es2022"'); // Example
+      if (layerId === 2) return code.replace(/&/g, '&amp;'); // Example
+      return code;
+    };
+    const transformed = regexTransform(code);
+    return { success: true, code: transformed };
+  }
+
+  try {
+    const astResult = await transformWithAST(code, layerId);
+    return { success: true, code: astResult, usedFallback: false };
+  } catch (astError) {
+    console.error(`AST failed for ${layer.name}: ${astError.message}, falling back to regex`);
+    const regexTransform = (code) => {
+      if (layerId === 3) return code.replace(/\.map\s*\([^)]*\)\s*=>\s*<[^>]*>/g, match => match.replace(/<[^>]*>/, '<$& key={index}')); // Add key prop
+      if (layerId === 4) return code.replace(/localStorage\./g, 'typeof window !== "undefined" && localStorage.'); // SSR guard
+      if (layerId === 6) return code.replace(/console\.log/g, ''); // Remove console.log for testing
+      if (layerId === 5) return code.replace(/getServerSideProps/g, 'getStaticProps'); // Example for Next.js
+      return code;
+    };
+    const transformed = regexTransform(code);
+    return { success: true, code: transformed, usedFallback: true, error: astError.message };
+  }
+}
+
+async function transformWithAST(code: string, layerId: number): Promise<string> {
+  const { parse } = await import('@babel/parser');
+  const traverse = await import('@babel/traverse').then(mod => mod.default);
+  const t = await import('@babel/types').then(mod => mod.default);
+  const { default: generate } = await import('@babel/generator');
+
+  try {
+    const ast = parse(code, {
+      sourceType: 'module',
+      plugins: ['jsx', 'typescript', 'importDeclaration']
+    });
+
+    traverse(ast, {
+      enter(path) {
+        if (layerId === 3 && path.isJSXElement() && path.parentPath.isCallExpression() && path.parentPath.node.callee.property?.name === 'map') {
+          if (!path.node.openingElement.attributes.some(attr => attr.name.name === 'key')) {
+            path.node.openingElement.attributes.push(t.jSXAttribute(t.jSXIdentifier('key'), t.stringLiteral('index')));
+          }
+        }
+        if (layerId === 4 && path.isMemberExpression() && path.node.object.name === 'localStorage') {
+          path.replaceWith(t.logicalExpression('&&', t.unaryExpression('typeof', t.identifier('window')), path.node));
+        }
+        if (layerId === 6 && path.isCallExpression() && path.node.callee.object?.name === 'console' && path.node.callee.property?.name === 'log') {
+          path.remove();
+        }
+        if (layerId === 5 && path.isObjectMethod() && path.node.key.name === 'getServerSideProps') {
+          path.node.key.name = 'getStaticProps';
+        }
+      }
+    });
+
+    return generate(ast).code;
+  } catch (e) {
+    throw new Error(`Failed to parse code to AST: ${e.message}`);
+  }
+}
+
 export async function NeuroLintOrchestrator(code: string, filePath?: string, dryRun: boolean = false, selectedLayers: number[] = [], verbose: boolean = false): Promise<TransformationResult> {
   const startTime = performance.now();
   const targetDir = filePath ? dirname(filePath) : process.cwd();
@@ -137,22 +206,12 @@ export async function NeuroLintOrchestrator(code: string, filePath?: string, dry
       log(`Layer ${layer.id}: ${layer.description}`, 'info');
       log('='.repeat(50), 'info');
 
-      const scriptPath = join(scriptsDir, layer.script);
-      if (!existsSync(scriptPath)) {
-        layerOutputs.push({
-          id: layer.id, name: layer.name, success: false, code: transformedCode, executionTime: 0,
-          error: `Script not found: ${scriptPath}`, description: layer.description
-        });
-        continue;
-      }
-
       const previousCode = transformedCode;
-      const result = runCommand(`node "${scriptPath}"`, `Layer ${layer.id} fixes`);
+      const { success, code, error, usedFallback } = await transformWithFallback(previousCode, layer.id);
       const executionTime = performance.now() - layerStartTime;
 
-      if (result !== null) {
-        const newCode = result.toString();
-        const validation = TransformationValidator.validateTransformation(previousCode, newCode);
+      if (success) {
+        const validation = TransformationValidator.validateTransformation(previousCode, code);
         if (validation.shouldRevert) {
           layerOutputs.push({
             id: layer.id, name: layer.name, success: false, code: previousCode, executionTime,
@@ -160,21 +219,25 @@ export async function NeuroLintOrchestrator(code: string, filePath?: string, dry
           });
           transformedCode = previousCode;
         } else {
-          transformedCode = newCode;
+          transformedCode = code;
           layerOutputs.push({
             id: layer.id, name: layer.name, success: true, code: transformedCode, executionTime,
-            changeCount: 1, description: layer.description
+            changeCount: (previousCode !== code) ? 1 : 0,
+            improvements: usedFallback ? ['Applied regex fallback'] : ['Applied AST transformation'],
+            description: layer.description
           });
           successfulLayers++;
           pipeline.recordState({
             step: layerOutputs.length, layerId: layer.id, code: transformedCode, timestamp: Date.now(),
-            description: `After Layer ${layer.id}`, success: true, executionTime, changeCount: 1
+            description: `After Layer ${layer.id}`, success: true, executionTime, changeCount: (previousCode !== code) ? 1 : 0
           });
         }
       } else {
         layerOutputs.push({
           id: layer.id, name: layer.name, success: false, code: previousCode, executionTime,
-          error: 'Execution failed', description: layer.description, recoveryOptions: ['Retry', 'Skip', 'Revert']
+          error: error || 'Transformation failed', errorCategory: 'parsing', suggestion: 'Check for duplicate declarations',
+          recoveryOptions: ['Retry with corrected code', 'Skip layer', 'Revert'],
+          description: layer.description
         });
         transformedCode = previousCode;
         pipeline.recordState({
@@ -227,7 +290,7 @@ function log(message, level = 'info') {
 function runCommand(command, description) {
   try {
     log(`Running: ${description}`, 'info');
-    return execSync(command, { cwd: config.targetDir, encoding: 'utf8', stdio: 'pipe' });
+    return execSync(command, { cwd: process.cwd(), encoding: 'utf8', stdio: 'pipe' });
   } catch (error) {
     log(`Failed: ${description} - ${error.message}`, 'error');
     return null;

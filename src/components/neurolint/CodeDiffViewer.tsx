@@ -1,7 +1,7 @@
 
 import React, { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, FilePlus, Copy as CopyIcon, ArrowDown, Download } from "lucide-react";
+import { FileText, FilePlus, Copy as CopyIcon, Download } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { copyToClipboard } from "@/lib/neurolint/clipboard";
 
@@ -83,7 +83,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
   };
 
   return (
-    <div className="h-[85vh] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden shadow-cursor-glass group transition-all font-mono backdrop-blur-xl flex flex-col">
+    <div className="h-[90vh] bg-[#16171c]/90 border border-[#292939] rounded-lg overflow-hidden shadow-cursor-glass group transition-all font-mono backdrop-blur-xl flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#232339] bg-[#1a1c22]/95 rounded-t-lg backdrop-blur font-sans flex-shrink-0">
         <div className="flex gap-2 items-center">
@@ -92,10 +92,10 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Transformed Code Panel (Top Half) */}
-        <div className="flex-1 border-b border-[#232339] flex flex-col min-h-0">
+      {/* Side by Side Content */}
+      <div className="flex-1 flex min-h-0">
+        {/* Transformed Code Panel (Left Half) */}
+        <div className="flex-1 border-r border-[#232339] flex flex-col min-h-0">
           <div className="flex items-center justify-between px-4 py-2 bg-[#1f2a1f] border-b border-[#2f3a2f] flex-shrink-0">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-400 rounded-full"></div>
@@ -129,14 +129,7 @@ export function CodeDiffViewer({ original, transformed, loading }: CodeDiffViewe
           </div>
         </div>
 
-        {/* Transformation Arrow */}
-        <div className="flex justify-center py-2 bg-[#1a1c22]/95 flex-shrink-0">
-          <div className="bg-purple-500/90 rounded-full p-2 shadow-lg backdrop-blur">
-            <ArrowDown className="w-4 h-4 text-white" />
-          </div>
-        </div>
-
-        {/* Original Code Panel (Bottom Half) */}
+        {/* Original Code Panel (Right Half) */}
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex items-center justify-between px-4 py-2 bg-[#2a1f1f] border-b border-[#3a2f2f] flex-shrink-0">
             <div className="flex items-center gap-2">

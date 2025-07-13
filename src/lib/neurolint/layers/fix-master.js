@@ -1,6 +1,3 @@
-
-#!/usr/bin/env node
-
 /**
  * Master NeuroLint Orchestrator
  * Coordinates all 6 layers of code transformation with sophisticated error handling

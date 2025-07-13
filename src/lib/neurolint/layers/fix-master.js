@@ -1,6 +1,3 @@
-
-#!/usr/bin/env node
-
 /**
  * Master NeuroLint Orchestrator
  * Coordinates all 6 layers of code transformation with sophisticated error handling
@@ -167,4 +164,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = MasterOrchestrator;
+export default MasterOrchestrator;

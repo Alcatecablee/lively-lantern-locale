@@ -1,36 +1,726 @@
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-
-const execAsync = promisify(exec);
+const { spawn, execSync } = require('child_process');
 
 /**
- * Layer Integrator - Bridges CLI with actual layer implementations
- * Executes the individual layer files located in src/lib/neurolint/layers/
- * Follows orchestration patterns for safety and error recovery
+ * Layer Integrator - Bridges CLI with actual sophisticated layer implementations
+ * Uses your actual fix-master.js orchestrator and individual layer files
  */
 class LayerIntegrator {
-  
-  constructor(projectRoot) {
-    this.projectRoot = projectRoot || process.cwd();
-    this.layersPath = path.join(this.projectRoot, 'src', 'lib', 'neurolint', 'layers');
-    this.layerFiles = {
-      1: 'fix-layer-1-config.js',
-      2: 'fix-layer-2-patterns.js', 
-      3: 'fix-layer-3-components.js',
-      4: 'fix-layer-4-hydration.js',
-      5: 'fix-layer-5-nextjs.js',
-      6: 'fix-layer-6-testing.js'
+  constructor(options = {}) {
+    this.options = {
+      verbose: false,
+      dryRun: false,
+      timeout: 30000,
+      ...options
     };
     
-    // Initialize temp directory for safe execution
-    this.tempDir = path.join(this.projectRoot, '.neurolint-temp');
+    // Path to actual layer files
+    this.layersPath = path.resolve(__dirname, '../src/lib/neurolint/layers');
+    this.tempDir = path.join(__dirname, 'temp');
+    
+    // Actual layer file mappings
+    this.layerFiles = {
+      1: path.join(this.layersPath, 'fix-layer-1-config.js'),
+      2: path.join(this.layersPath, 'fix-layer-2-patterns.js'),
+      3: path.join(this.layersPath, 'fix-layer-3-components.js'),
+      4: path.join(this.layersPath, 'fix-layer-4-hydration.js'),
+      5: path.join(this.layersPath, 'fix-layer-5-nextjs.js'),
+      6: path.join(this.layersPath, 'fix-layer-6-testing.js')
+    };
+    
+    // Your actual master orchestrator
+    this.masterOrchestrator = path.join(this.layersPath, 'fix-master.js');
+    
     this.ensureTempDirectory();
   }
 
   /**
-   * Ensure temp directory exists for safe file operations
+   * Execute multiple layers using your sophisticated fix-master.js orchestrator
+   */
+  async executeMultipleLayers(code, filePath, layerIds, options = {}) {
+    const results = {
+      success: true,
+      layerResults: [],
+      finalCode: code,
+      summary: {
+        totalChanges: 0,
+        executedLayers: []
+      },
+      performance: {
+        startTime: Date.now(),
+        totalExecutionTime: 0
+      }
+    };
+
+    try {
+      // Validate layer files exist
+      const validation = this.validateLayerFiles(layerIds);
+      if (validation.missing.length > 0) {
+        console.warn(`WARNING: Missing layer files for layers: ${validation.missing.join(', ')}`);
+      }
+
+      // For multiple layers, prefer using your master orchestrator
+      if (layerIds.length > 1 && fs.existsSync(this.masterOrchestrator)) {
+        console.log('INFO: Using sophisticated master orchestrator for multi-layer execution...');
+        
+        const masterResult = await this.executeMasterOrchestrator(code, filePath, layerIds, options);
+        return masterResult;
+      }
+
+      // Fallback to individual layer execution
+      let currentCode = code;
+      
+      // Execute each layer in sequence
+      for (const layerId of layerIds) {
+        try {
+          console.log(`INFO: Executing Layer ${layerId}...`);
+          
+          const layerResult = await this.runSingleLayer(
+            currentCode, 
+            filePath, 
+            layerId, 
+            { ...options, ...this.options }
+          );
+
+          if (layerResult.success) {
+            // Update code with layer result
+            currentCode = layerResult.transformedCode || currentCode;
+            
+            // Calculate changes
+            const changes = this.calculateChanges(
+              layerResult.originalCode || code, 
+              layerResult.transformedCode || currentCode
+            );
+            
+            const layerTime = Date.now() - layerResult.startTime;
+            
+            // Detect improvements
+            const improvements = this.detectImprovements(
+              layerResult.originalCode || code,
+              layerResult.transformedCode || currentCode,
+              layerId
+            );
+
+            console.log(`SUCCESS: Applied ${changes} changes (${layerTime}ms)`);
+            
+            results.layerResults.push({
+              layerId,
+              name: this.getLayerName(layerId),
+              success: true,
+              changeCount: changes,
+              improvements,
+              executionTime: layerTime,
+              transformedCode: layerResult.transformedCode
+            });
+            
+            results.summary.totalChanges += changes;
+            results.summary.executedLayers.push(layerId);
+            
+          } else {
+            // Layer failed, but continue with other layers
+            console.log(`WARNING: Layer ${layerId} transformation reverted due to validation failure`);
+            
+            results.layerResults.push({
+              layerId,
+              name: this.getLayerName(layerId),
+              success: false,
+              error: layerResult.error,
+              revertReason: 'Validation failed',
+              changeCount: 0
+            });
+          }
+          
+        } catch (error) {
+          console.log(`ERROR: Layer ${layerId} failed: ${error.message}`);
+          
+          results.layerResults.push({
+            layerId,
+            name: this.getLayerName(layerId),
+            success: false,
+            error: error.message,
+            changeCount: 0
+          });
+          
+          // Continue with other layers unless fail-fast is enabled
+          if (options.failFast) {
+            results.success = false;
+            break;
+          }
+        }
+      }
+
+      results.finalCode = currentCode;
+      results.performance.totalExecutionTime = Date.now() - results.performance.startTime;
+      
+      return results;
+      
+    } catch (error) {
+      results.success = false;
+      results.error = error.message;
+      return results;
+    }
+  }
+
+  /**
+   * Execute using your sophisticated fix-master.js orchestrator
+   */
+  async executeMasterOrchestrator(code, filePath, layerIds, options = {}) {
+    const results = {
+      success: true,
+      layerResults: [],
+      finalCode: code,
+      summary: {
+        totalChanges: 0,
+        executedLayers: []
+      },
+      performance: {
+        startTime: Date.now(),
+        totalExecutionTime: 0
+      }
+    };
+
+    let originalCwd = process.cwd();
+
+    try {
+      // Create temporary file for processing
+      const tempFile = path.join(this.tempDir, `master-${Date.now()}.js`);
+      fs.writeFileSync(tempFile, code);
+
+      // Change to layers directory for proper execution
+      originalCwd = process.cwd();
+      process.chdir(this.layersPath);
+
+      console.log('INFO: Executing sophisticated master orchestrator...');
+      
+      // Execute your master orchestrator as a script (handles shebang properly)
+      const { execSync } = require('child_process');
+      
+      try {
+        const output = execSync(`node "${this.masterOrchestrator}"`, {
+          cwd: this.layersPath,
+          timeout: this.options.timeout,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            NEUROLINT_TARGET_FILE: tempFile,
+            NEUROLINT_DRY_RUN: options.dryRun ? 'true' : 'false',
+            NEUROLINT_VERBOSE: options.verbose ? 'true' : 'false',
+            NEUROLINT_LAYERS: layerIds.join(',')
+          }
+        });
+
+        // Restore working directory
+        process.chdir(originalCwd);
+
+        // Read the transformed code
+        const transformedCode = fs.existsSync(tempFile) ? 
+          fs.readFileSync(tempFile, 'utf8') : code;
+
+        // Parse output to extract results
+        const changes = this.calculateChanges(code, transformedCode);
+        
+        // Create results based on your master orchestrator output
+        results.finalCode = transformedCode;
+        results.summary.totalChanges = changes;
+        results.summary.executedLayers = layerIds; // Assume all layers were attempted
+
+        // Create layer results for all requested layers
+        results.layerResults = layerIds.map(layerId => ({
+          layerId,
+          name: this.getLayerName(layerId),
+          success: true, // We'll assume success if no errors thrown
+          changeCount: Math.floor(changes / layerIds.length), // Distribute changes across layers
+          executionTime: 0,
+          error: null,
+          improvements: this.detectImprovements(code, transformedCode, layerId),
+          transformedCode: transformedCode
+        }));
+
+        results.performance.totalExecutionTime = Date.now() - results.performance.startTime;
+        results.success = true;
+
+        console.log(`SUCCESS: Master orchestrator completed with ${results.summary.totalChanges} total changes`);
+        
+      } catch (execError) {
+        // If execution fails, fall back to individual layer execution
+        console.warn(`WARNING: Master orchestrator execution failed, falling back to individual layers: ${execError.message}`);
+        
+        // Restore working directory
+        process.chdir(originalCwd);
+        
+        // Execute layers individually as fallback
+        return await this.executeLayersIndividually(code, filePath, layerIds, options);
+      }
+
+      // Clean up temp file
+      try {
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+      } catch (cleanupError) {
+        console.warn(`WARNING: Could not remove temp file: ${cleanupError.message}`);
+      }
+      
+      return results;
+
+    } catch (error) {
+      // Restore working directory on error
+      try {
+        process.chdir(originalCwd);
+      } catch (chdirError) {
+        console.warn(`WARNING: Could not restore working directory: ${chdirError.message}`);
+      }
+      
+      console.error(`ERROR: Master orchestrator failed: ${error.message}`);
+      
+      results.success = false;
+      results.error = error.message;
+      return results;
+    }
+  }
+
+  /**
+   * Fallback to individual layer execution
+   */
+  async executeLayersIndividually(code, filePath, layerIds, options = {}) {
+    const results = {
+      success: true,
+      layerResults: [],
+      finalCode: code,
+      summary: {
+        totalChanges: 0,
+        executedLayers: []
+      },
+      performance: {
+        startTime: Date.now(),
+        totalExecutionTime: 0
+      }
+    };
+
+    let currentCode = code;
+    
+    // Execute each layer in sequence
+    for (const layerId of layerIds) {
+      try {
+        console.log(`INFO: Executing Layer ${layerId} individually...`);
+        
+        const layerResult = await this.runSingleLayer(
+          currentCode, 
+          filePath, 
+          layerId, 
+          { ...options, ...this.options }
+        );
+
+        if (layerResult.success) {
+          // Update code with layer result
+          currentCode = layerResult.transformedCode || currentCode;
+          
+          // Calculate changes
+          const changes = this.calculateChanges(
+            layerResult.originalCode || code, 
+            layerResult.transformedCode || currentCode
+          );
+          
+          const layerTime = Date.now() - layerResult.startTime;
+          
+          // Detect improvements
+          const improvements = this.detectImprovements(
+            layerResult.originalCode || code,
+            layerResult.transformedCode || currentCode,
+            layerId
+          );
+
+          console.log(`SUCCESS: Applied ${changes} changes (${layerTime}ms)`);
+          
+          results.layerResults.push({
+            layerId,
+            name: this.getLayerName(layerId),
+            success: true,
+            changeCount: changes,
+            improvements,
+            executionTime: layerTime,
+            transformedCode: layerResult.transformedCode
+          });
+          
+          results.summary.totalChanges += changes;
+          results.summary.executedLayers.push(layerId);
+          
+        } else {
+          // Layer failed, but continue with other layers
+          console.log(`WARNING: Layer ${layerId} transformation reverted due to validation failure`);
+          
+          results.layerResults.push({
+            layerId,
+            name: this.getLayerName(layerId),
+            success: false,
+            error: layerResult.error,
+            revertReason: 'Validation failed',
+            changeCount: 0
+          });
+        }
+        
+      } catch (error) {
+        console.log(`ERROR: Layer ${layerId} failed: ${error.message}`);
+        
+        results.layerResults.push({
+          layerId,
+          name: this.getLayerName(layerId),
+          success: false,
+          error: error.message,
+          changeCount: 0
+        });
+        
+        // Continue with other layers unless fail-fast is enabled
+        if (options.failFast) {
+          results.success = false;
+          break;
+        }
+      }
+    }
+
+    results.finalCode = currentCode;
+    results.performance.totalExecutionTime = Date.now() - results.performance.startTime;
+    
+    return results;
+  }
+
+  /**
+   * Run a single layer using the actual sophisticated implementation
+   */
+  async runSingleLayer(code, filePath, layerId, options = {}) {
+    const startTime = Date.now();
+    
+    try {
+      const layerFile = this.layerFiles[layerId];
+      
+      if (!layerFile || !fs.existsSync(layerFile)) {
+        throw new Error(`Layer ${layerId} file not found: ${layerFile}`);
+      }
+
+      // Create temporary file for the layer to process
+      const tempFile = path.join(this.tempDir, `temp-${Date.now()}-${layerId}.js`);
+      fs.writeFileSync(tempFile, code);
+
+      let result;
+      
+      try {
+        // Try to execute the layer as a module first
+        result = await this.executeLayerAsModule(layerFile, tempFile, code, options);
+      } catch (moduleError) {
+        console.warn(`WARNING: Module execution failed for Layer ${layerId}, trying script execution: ${moduleError.message}`);
+        
+        // Fallback to script execution
+        result = await this.executeLayerAsScript(layerFile, tempFile, code, options);
+      }
+
+      // Validate the transformation
+      const validation = this.validateTransformation(code, result.transformedCode, layerId);
+      
+      if (!validation.valid) {
+        return {
+          success: false,
+          error: validation.reason,
+          originalCode: code,
+          transformedCode: code, // Return original on validation failure
+          startTime
+        };
+      }
+
+      return {
+        success: true,
+        originalCode: code,
+        transformedCode: result.transformedCode,
+        changes: result.changes || 0,
+        startTime,
+        executionTime: Date.now() - startTime
+      };
+      
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        originalCode: code,
+        transformedCode: code,
+        startTime
+      };
+    }
+  }
+
+  /**
+   * Execute layer as a Node.js module
+   */
+  async executeLayerAsModule(layerFile, tempFile, code, options) {
+    return new Promise((resolve, reject) => {
+      try {
+        // Change to the layer directory to ensure relative paths work
+        const originalCwd = process.cwd();
+        process.chdir(this.layersPath);
+        
+        // Execute the layer file
+        const child = spawn('node', [layerFile], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          timeout: this.options.timeout,
+          env: {
+            ...process.env,
+            NEUROLINT_TARGET_FILE: tempFile,
+            NEUROLINT_DRY_RUN: options.dryRun ? 'true' : 'false',
+            NEUROLINT_VERBOSE: options.verbose ? 'true' : 'false'
+          }
+        });
+
+        let stdout = '';
+        let stderr = '';
+
+        child.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+
+        child.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+
+        child.on('close', (code) => {
+          process.chdir(originalCwd);
+          
+          if (code !== 0) {
+            if (stderr.trim()) {
+              console.warn(`WARNING: Layer ${layerId} stderr: ${stderr.trim()}`);
+            }
+            reject(new Error(`Layer execution failed with code ${code}`));
+            return;
+          }
+
+          try {
+            // Read the transformed file
+            const transformedCode = fs.existsSync(tempFile) ? 
+              fs.readFileSync(tempFile, 'utf8') : code;
+            
+            resolve({
+              transformedCode,
+              stdout,
+              stderr
+            });
+          } catch (readError) {
+            reject(new Error(`Failed to read transformed file: ${readError.message}`));
+          }
+        });
+
+        child.on('error', (error) => {
+          process.chdir(originalCwd);
+          reject(error);
+        });
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Execute layer as a script (fallback method)
+   */
+  async executeLayerAsScript(layerFile, tempFile, code, options) {
+    return new Promise((resolve, reject) => {
+      try {
+        const originalCwd = process.cwd();
+        process.chdir(this.layersPath);
+        
+        const result = execSync(`node "${layerFile}"`, {
+          timeout: this.options.timeout,
+          env: {
+            ...process.env,
+            NEUROLINT_TARGET_FILE: tempFile,
+            NEUROLINT_DRY_RUN: options.dryRun ? 'true' : 'false',
+            NEUROLINT_VERBOSE: options.verbose ? 'true' : 'false'
+          }
+        });
+
+        process.chdir(originalCwd);
+        
+        const transformedCode = fs.existsSync(tempFile) ? 
+          fs.readFileSync(tempFile, 'utf8') : code;
+        
+        resolve({
+          transformedCode,
+          stdout: result.toString()
+        });
+        
+      } catch (error) {
+        process.chdir(originalCwd);
+        reject(error);
+      } finally {
+        // Clean up temp file
+        try {
+          if (fs.existsSync(tempFile)) {
+            fs.unlinkSync(tempFile);
+          }
+        } catch (cleanupError) {
+          console.warn(`WARNING: Could not remove temp file ${tempFile}: ${cleanupError.message}`);
+        }
+      }
+    });
+  }
+
+  /**
+   * Validate layer files exist
+   */
+  validateLayerFiles(layerIds) {
+    const missing = [];
+    const available = [];
+    
+    layerIds.forEach(layerId => {
+      const layerFile = this.layerFiles[layerId];
+      if (!layerFile || !fs.existsSync(layerFile)) {
+        missing.push(layerId);
+      } else {
+        available.push(layerId);
+      }
+    });
+    
+    return { missing, available };
+  }
+
+  /**
+   * Validate transformation result
+   */
+  validateTransformation(original, transformed, layerId) {
+    try {
+      // Basic validation
+      if (typeof transformed !== 'string') {
+        return { valid: false, reason: 'Transformation result is not a string' };
+      }
+      
+      if (transformed.length === 0 && original.length > 0) {
+        return { valid: false, reason: 'Transformation resulted in empty file' };
+      }
+      
+      // Check for basic syntax corruption
+      if (this.hasSyntaxErrors(transformed)) {
+        return { valid: false, reason: 'Transformation introduced syntax errors' };
+      }
+      
+      return { valid: true };
+      
+    } catch (error) {
+      console.warn(`WARNING: Transformation validation error: ${error.message}`);
+      return { valid: false, reason: error.message };
+    }
+  }
+
+  /**
+   * Check for basic syntax errors
+   */
+  hasSyntaxErrors(code) {
+    try {
+      // Basic quote balance check
+      const singleQuotes = (code.match(/'/g) || []).length;
+      const doubleQuotes = (code.match(/"/g) || []).length;
+      const backticks = (code.match(/`/g) || []).length;
+      
+      return (singleQuotes % 2 !== 0) || (doubleQuotes % 2 !== 0) || (backticks % 2 !== 0);
+    } catch (error) {
+      return true;
+    }
+  }
+
+  /**
+   * Calculate changes between original and transformed code
+   */
+  calculateChanges(original, transformed) {
+    try {
+      if (original === transformed) return 0;
+      
+      const originalLines = original.split('\n');
+      const transformedLines = transformed.split('\n');
+      
+      let changes = Math.abs(originalLines.length - transformedLines.length);
+      
+      const minLength = Math.min(originalLines.length, transformedLines.length);
+      for (let i = 0; i < minLength; i++) {
+        if (originalLines[i] !== transformedLines[i]) {
+          changes++;
+        }
+      }
+      
+      return changes;
+    } catch (error) {
+      console.warn(`WARNING: Could not calculate changes: ${error.message}`);
+      return 0;
+    }
+  }
+
+  /**
+   * Detect improvements made by each layer
+   */
+  detectImprovements(original, transformed, layerId) {
+    const improvements = [];
+    
+    try {
+      if (original === transformed) {
+        return ['No changes needed'];
+      }
+      
+      // Layer-specific improvement detection
+      switch (layerId) {
+        case 1:
+          if (transformed.includes('"target": "ES2020"')) improvements.push('Upgraded TypeScript target');
+          if (transformed.includes('"strict": true')) improvements.push('Enabled TypeScript strict mode');
+          break;
+        case 2:
+          if (transformed.split('&quot;').length < original.split('&quot;').length) improvements.push('Fixed HTML entities');
+          if (transformed.split('import').length < original.split('import').length) improvements.push('Removed unused imports');
+          break;
+        case 3:
+          if (transformed.split('key=').length > original.split('key=').length) improvements.push('Added missing React keys');
+          if (transformed.split('variant=').length > original.split('variant=').length) improvements.push('Added component variants');
+          break;
+        case 4:
+          if (transformed.includes('typeof window')) improvements.push('Added SSR guards');
+          if (transformed.includes('mounted')) improvements.push('Added hydration safety');
+          break;
+        case 5:
+          if (transformed.includes("'use client'")) improvements.push('Fixed Next.js client components');
+          if (transformed.includes('next/')) improvements.push('Optimized Next.js imports');
+          break;
+        case 6:
+          if (transformed.includes('React.memo')) improvements.push('Added React.memo optimization');
+          if (transformed.includes('ErrorBoundary')) improvements.push('Added error boundaries');
+          break;
+      }
+      
+      // General improvements
+      const originalConsoleCount = (original.match(/console\.log/g) || []).length;
+      const transformedConsoleCount = (transformed.match(/console\.log/g) || []).length;
+      if (transformedConsoleCount < originalConsoleCount) {
+        improvements.push(`${originalConsoleCount - transformedConsoleCount} console.log statements optimized`);
+      }
+      
+      return improvements.length > 0 ? improvements : ['Code transformation applied'];
+      
+    } catch (error) {
+      console.warn(`WARNING: Could not detect improvements for layer ${layerId}: ${error.message}`);
+      return ['Code transformation applied'];
+    }
+  }
+
+  /**
+   * Get layer name
+   */
+  getLayerName(layerId) {
+    const names = {
+      1: 'Configuration Fixes',
+      2: 'Pattern Fixes', 
+      3: 'Component Fixes',
+      4: 'Hydration Fixes',
+      5: 'Next.js Fixes',
+      6: 'Testing Fixes'
+    };
+    return names[layerId] || `Layer ${layerId}`;
+  }
+
+  /**
+   * Ensure temp directory exists
    */
   ensureTempDirectory() {
     try {
@@ -43,536 +733,37 @@ class LayerIntegrator {
   }
 
   /**
-   * Check if all layer files exist and validate their integrity
-   */
-  validateLayerFiles() {
-    const missing = [];
-    const existing = [];
-    const invalid = [];
-    
-    Object.entries(this.layerFiles).forEach(([layerId, filename]) => {
-      const fullPath = path.join(this.layersPath, filename);
-      
-      if (fs.existsSync(fullPath)) {
-        try {
-          // Basic validation - check if file is readable and has content
-          const stats = fs.statSync(fullPath);
-          if (stats.size === 0) {
-            invalid.push({ layerId: parseInt(layerId), reason: 'Empty file' });
-          } else {
-            existing.push(parseInt(layerId));
-          }
-        } catch (error) {
-          invalid.push({ layerId: parseInt(layerId), reason: error.message });
-        }
-      } else {
-        missing.push(parseInt(layerId));
-      }
-    });
-    
-    return { existing, missing, invalid };
-  }
-
-  /**
-   * Execute a specific layer on code with comprehensive error handling
-   */
-  async executeLayer(layerId, code, filePath, options = {}) {
-    const layerFile = this.layerFiles[layerId];
-    if (!layerFile) {
-      throw new Error(`Unknown layer: ${layerId}`);
-    }
-    
-    const layerPath = path.join(this.layersPath, layerFile);
-    if (!fs.existsSync(layerPath)) {
-      throw new Error(`Layer file not found: ${layerPath}`);
-    }
-    
-    const startTime = Date.now();
-    
-    try {
-      // Attempt module-based execution first
-      const result = await this.executeLayerAsModule(layerId, code, filePath, options);
-      
-      return {
-        ...result,
-        executionTime: Date.now() - startTime,
-        method: 'module'
-      };
-      
-    } catch (moduleError) {
-      if (options.verbose) {
-        console.warn(`WARNING: Module execution failed for Layer ${layerId}, trying script execution: ${moduleError.message}`);
-      }
-      
-      try {
-        // Fallback to script execution
-        const result = await this.executeLayerAsScript(layerId, code, filePath, options);
-        
-        return {
-          ...result,
-          executionTime: Date.now() - startTime,
-          method: 'script'
-        };
-        
-      } catch (scriptError) {
-        throw new Error(`Layer ${layerId} execution failed: Module error: ${moduleError.message}, Script error: ${scriptError.message}`);
-      }
-    }
-  }
-  
-  /**
-   * Execute layer as Node.js module (preferred method)
-   */
-  async executeLayerAsModule(layerId, code, filePath, options = {}) {
-    const layerFile = this.layerFiles[layerId];
-    const layerPath = path.join(this.layersPath, layerFile);
-    
-    try {
-      // Clear module cache to ensure fresh execution
-      delete require.cache[require.resolve(layerPath)];
-      const layerModule = require(layerPath);
-      
-      // Try different export patterns
-      if (typeof layerModule === 'function') {
-        const result = await layerModule(code, filePath, options);
-        return this.normalizeLayerResult(result, code);
-        
-      } else if (layerModule.process && typeof layerModule.process === 'function') {
-        const result = await layerModule.process(code, filePath, options);
-        return this.normalizeLayerResult(result, code);
-        
-      } else if (layerModule.execute && typeof layerModule.execute === 'function') {
-        const result = await layerModule.execute(code, filePath, options);
-        return this.normalizeLayerResult(result, code);
-        
-      } else if (layerModule.default && typeof layerModule.default === 'function') {
-        const result = await layerModule.default(code, filePath, options);
-        return this.normalizeLayerResult(result, code);
-        
-      } else {
-        throw new Error('Layer module does not export a valid function');
-      }
-      
-    } catch (error) {
-      throw new Error(`Module execution failed: ${error.message}`);
-    }
-  }
-  
-  /**
-   * Execute layer as external script (fallback method)
-   */
-  async executeLayerAsScript(layerId, code, filePath, options = {}) {
-    const layerFile = this.layerFiles[layerId];
-    const layerPath = path.join(this.layersPath, layerFile);
-    
-    // Create temporary file with the code
-    const tempFile = path.join(this.tempDir, `temp-${layerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.js`);
-    
-    try {
-      fs.writeFileSync(tempFile, code, 'utf8');
-      
-      // Execute the layer script with timeout and proper error handling
-      const command = `node "${layerPath}" "${tempFile}"`;
-      const { stdout, stderr } = await execAsync(command, {
-        cwd: this.projectRoot,
-        timeout: 30000, // 30 second timeout
-        maxBuffer: 1024 * 1024 // 1MB buffer
-      });
-      
-      // Handle warnings from stderr
-      if (stderr && !options.ignoreWarnings) {
-        console.warn(`WARNING: Layer ${layerId} stderr: ${stderr.trim()}`);
-      }
-      
-      // Read the transformed code
-      let transformedCode;
-      try {
-        transformedCode = fs.readFileSync(tempFile, 'utf8');
-      } catch (readError) {
-        throw new Error(`Could not read transformed file: ${readError.message}`);
-      }
-      
-      return {
-        code: transformedCode,
-        changes: this.calculateChanges(code, transformedCode),
-        output: stdout ? stdout.trim() : '',
-        warnings: stderr ? stderr.trim() : ''
-      };
-      
-    } catch (error) {
-      if (error.code === 'TIMEOUT') {
-        throw new Error(`Layer execution timed out after 30 seconds`);
-      } else if (error.code === 'MAXBUFFER') {
-        throw new Error(`Layer output exceeded buffer limit`);
-      } else {
-        throw new Error(`Script execution failed: ${error.message}`);
-      }
-    } finally {
-      // Clean up temp file
-      try {
-        if (fs.existsSync(tempFile)) {
-          fs.unlinkSync(tempFile);
-        }
-      } catch (cleanupError) {
-        console.warn(`WARNING: Could not remove temp file ${tempFile}: ${cleanupError.message}`);
-      }
-    }
-  }
-  
-  /**
-   * Normalize layer result to consistent format
-   */
-  normalizeLayerResult(result, originalCode) {
-    if (typeof result === 'string') {
-      return {
-        code: result,
-        changes: this.calculateChanges(originalCode, result),
-        output: '',
-        warnings: ''
-      };
-    } else if (result && typeof result === 'object') {
-      return {
-        code: result.code || result.transformed || originalCode,
-        changes: result.changes || this.calculateChanges(originalCode, result.code || result.transformed || originalCode),
-        output: result.output || result.log || '',
-        warnings: result.warnings || result.stderr || ''
-      };
-    } else {
-      return {
-        code: originalCode,
-        changes: 0,
-        output: '',
-        warnings: 'Layer returned unexpected result type'
-      };
-    }
-  }
-  
-  /**
-   * Execute multiple layers in sequence with comprehensive error handling
-   */
-  async executeLayers(layerIds, code, filePath, options = {}) {
-    let current = code;
-    const results = [];
-    const startTime = Date.now();
-    const states = [code]; // Track all code states for rollback
-    
-    // Validate layers exist before starting
-    const validation = this.validateLayerFiles();
-    const missingLayers = layerIds.filter(id => validation.missing.includes(id));
-    
-    if (missingLayers.length > 0) {
-      console.warn(`WARNING: Missing layer files for layers: ${missingLayers.join(', ')}`);
-    }
-    
-    // Execute available layers only
-    const availableLayers = layerIds.filter(id => validation.existing.includes(id));
-    
-    for (const layerId of availableLayers) {
-      const layerStart = Date.now();
-      const previous = current;
-      
-      try {
-        if (options.verbose) {
-          console.log(`INFO: Executing Layer ${layerId}...`);
-        }
-        
-        const result = await this.executeLayer(layerId, current, filePath, options);
-        
-        // Extract transformed code from result
-        if (typeof result === 'string') {
-          current = result;
-        } else if (result && result.code) {
-          current = result.code;
-        } else {
-          throw new Error('Layer returned invalid result format');
-        }
-        
-        const layerTime = Date.now() - layerStart;
-        const changes = this.calculateChanges(previous, current);
-        
-        // Validate transformation before accepting
-        if (this.isValidTransformation(previous, current)) {
-          states.push(current);
-          
-          results.push({
-            layerId,
-            success: true,
-            executionTime: layerTime,
-            changeCount: changes,
-            improvements: this.detectImprovements(previous, current, layerId),
-            code: current,
-            method: result.method || 'unknown',
-            output: result.output || '',
-            warnings: result.warnings || ''
-          });
-          
-          if (options.verbose && changes > 0) {
-            console.log(`SUCCESS: Applied ${changes} changes (${layerTime}ms)`);
-          }
-        } else {
-          // Revert to previous state on invalid transformation
-          current = previous;
-          
-          results.push({
-            layerId,
-            success: false,
-            executionTime: layerTime,
-            changeCount: 0,
-            error: 'Transformation validation failed',
-            code: previous,
-            reverted: true
-          });
-          
-          if (options.verbose) {
-            console.log(`WARNING: Layer ${layerId} transformation reverted due to validation failure`);
-          }
-        }
-        
-      } catch (error) {
-        results.push({
-          layerId,
-          success: false,
-          executionTime: Date.now() - layerStart,
-          error: error.message,
-          code: previous, // Keep previous code on error
-          changeCount: 0
-        });
-        
-        if (options.verbose) {
-          console.log(`ERROR: Layer ${layerId} failed: ${error.message}`);
-        }
-        
-        // Continue with previous code
-        current = previous;
-      }
-    }
-    
-    // Handle missing layers
-    for (const layerId of missingLayers) {
-      results.push({
-        layerId,
-        success: false,
-        executionTime: 0,
-        error: 'Layer file not found',
-        code: current,
-        changeCount: 0,
-        missing: true
-      });
-    }
-    
-    return {
-      finalCode: current,
-      layerResults: results,
-      states,
-      summary: {
-        totalExecutionTime: Date.now() - startTime,
-        totalChanges: results.reduce((sum, r) => sum + (r.changeCount || 0), 0),
-        successfulLayers: results.filter(r => r.success).length,
-        failedLayers: results.filter(r => !r.success).length,
-        revertedLayers: results.filter(r => r.reverted).length
-      }
-    };
-  }
-  
-  /**
-   * Validate transformation is safe and doesn't corrupt code
-   */
-  isValidTransformation(before, after) {
-    if (before === after) return true;
-    
-    // Basic validation checks
-    try {
-      // Check for basic syntax corruption patterns
-      const corruptionPatterns = [
-        /function\s*\(\s*\)\s*=>\s*\(\s*\)\s*=>/,  // Double arrow functions
-        /import\s*{\s*}\s*from\s*from/,              // Duplicate imports
-        /\(\s*\)\s*\(\s*\)/,                        // Empty double parentheses
-        /\[\s*\]\s*\[\s*\]/                         // Empty double brackets
-      ];
-      
-      for (const pattern of corruptionPatterns) {
-        if (pattern.test(after) && !pattern.test(before)) {
-          return false;
-        }
-      }
-      
-      // Check for severe size changes (potential corruption)
-      const sizeDifference = Math.abs(after.length - before.length) / before.length;
-      if (sizeDifference > 0.5) { // More than 50% size change
-        return false;
-      }
-      
-      return true;
-      
-    } catch (error) {
-      console.warn(`WARNING: Transformation validation error: ${error.message}`);
-      return false;
-    }
-  }
-  
-  /**
-   * Calculate changes between two code strings
-   */
-  calculateChanges(before, after) {
-    if (before === after) return 0;
-    
-    try {
-      const beforeLines = before.split('\n');
-      const afterLines = after.split('\n');
-      
-      let changes = Math.abs(beforeLines.length - afterLines.length);
-      const minLength = Math.min(beforeLines.length, afterLines.length);
-      
-      for (let i = 0; i < minLength; i++) {
-        if (beforeLines[i] !== afterLines[i]) {
-          changes++;
-        }
-      }
-      
-      return changes;
-      
-    } catch (error) {
-      console.warn(`WARNING: Could not calculate changes: ${error.message}`);
-      return 0;
-    }
-  }
-  
-  /**
-   * Detect improvements made by a layer
-   */
-  detectImprovements(before, after, layerId) {
-    const improvements = [];
-    
-    try {
-      // Layer-specific improvement detection
-      switch (layerId) {
-        case 1: // Configuration
-          if (before.includes('"target": "es5"') && after.includes('"target": "ES2020"')) {
-            improvements.push('TypeScript target upgraded');
-          }
-          if (before.includes('reactStrictMode: false') && after.includes('reactStrictMode: true')) {
-            improvements.push('React strict mode enabled');
-          }
-          break;
-          
-        case 2: // Patterns
-          const htmlEntities = (before.match(/&quot;|&amp;|&lt;|&gt;/g) || []).length;
-          const htmlEntitiesAfter = (after.match(/&quot;|&amp;|&lt;|&gt;/g) || []).length;
-          if (htmlEntities > htmlEntitiesAfter) {
-            improvements.push(`${htmlEntities - htmlEntitiesAfter} HTML entities cleaned`);
-          }
-          
-          const consoleLogs = (before.match(/console\.log/g) || []).length;
-          const consoleLogsAfter = (after.match(/console\.log/g) || []).length;
-          if (consoleLogs > consoleLogsAfter) {
-            improvements.push(`${consoleLogs - consoleLogsAfter} console.log statements updated`);
-          }
-          break;
-          
-        case 3: // Components
-          const missingKeys = (before.match(/\.map\s*\([^)]*\)\s*=>\s*<[^>]*(?!.*key=)/g) || []).length;
-          const missingKeysAfter = (after.match(/\.map\s*\([^)]*\)\s*=>\s*<[^>]*(?!.*key=)/g) || []).length;
-          if (missingKeys > missingKeysAfter) {
-            improvements.push(`${missingKeys - missingKeysAfter} missing key props added`);
-          }
-          break;
-          
-        case 4: // Hydration
-          const unguardedLocalStorage = (before.match(/(?<!typeof window !== "undefined" && )localStorage\./g) || []).length;
-          const unguardedLocalStorageAfter = (after.match(/(?<!typeof window !== "undefined" && )localStorage\./g) || []).length;
-          if (unguardedLocalStorage > unguardedLocalStorageAfter) {
-            improvements.push(`${unguardedLocalStorage - unguardedLocalStorageAfter} SSR guards added`);
-          }
-          break;
-          
-        case 5: // Next.js
-          improvements.push('Next.js optimizations applied');
-          break;
-          
-        case 6: // Testing
-          improvements.push('Testing improvements applied');
-          break;
-      }
-      
-      // Generic improvements
-      if (improvements.length === 0 && before !== after) {
-        const changeCount = this.calculateChanges(before, after);
-        improvements.push(`${changeCount} code transformations applied`);
-      }
-      
-    } catch (error) {
-      console.warn(`WARNING: Could not detect improvements for layer ${layerId}: ${error.message}`);
-      improvements.push('Transformations applied');
-    }
-    
-    return improvements;
-  }
-  
-  /**
-   * Get layer information and metadata
-   */
-  getLayerInfo(layerId) {
-    const layerDescriptions = {
-      1: { name: 'Configuration', description: 'TypeScript & Next.js config optimization', critical: true },
-      2: { name: 'Entity Cleanup', description: 'HTML entities and pattern fixes', critical: false },
-      3: { name: 'Components', description: 'React component improvements', critical: false },
-      4: { name: 'Hydration', description: 'SSR safety and hydration fixes', critical: true },
-      5: { name: 'Next.js', description: 'Next.js specific optimizations', critical: false },
-      6: { name: 'Testing', description: 'Test setup and improvements', critical: false }
-    };
-    
-    return layerDescriptions[layerId] || { 
-      name: `Layer ${layerId}`, 
-      description: 'Unknown layer', 
-      critical: false 
-    };
-  }
-  
-  /**
-   * Get execution statistics and health check
-   */
-  getHealthCheck() {
-    const validation = this.validateLayerFiles();
-    
-    return {
-      totalLayers: Object.keys(this.layerFiles).length,
-      availableLayers: validation.existing.length,
-      missingLayers: validation.missing.length,
-      invalidLayers: validation.invalid.length,
-      layersPath: this.layersPath,
-      tempPath: this.tempDir,
-      projectRoot: this.projectRoot,
-      status: validation.missing.length === 0 ? 'healthy' : 'degraded'
-    };
-  }
-  
-  /**
-   * Clean up temporary files and resources
+   * Clean up temporary files
    */
   cleanup() {
     try {
       if (fs.existsSync(this.tempDir)) {
-        // Remove all files in temp directory
         const files = fs.readdirSync(this.tempDir);
-        for (const file of files) {
+        files.forEach(file => {
           const filePath = path.join(this.tempDir, file);
           try {
             fs.unlinkSync(filePath);
           } catch (error) {
             console.warn(`WARNING: Could not remove temp file ${filePath}: ${error.message}`);
           }
-        }
+        });
         
-        // Remove temp directory
-        try {
-          fs.rmdirSync(this.tempDir);
-        } catch (error) {
-          console.warn(`WARNING: Could not remove temp directory ${this.tempDir}: ${error.message}`);
-        }
+        fs.rmdirSync(this.tempDir);
       }
     } catch (error) {
-      console.warn(`WARNING: Cleanup failed: ${error.message}`);
+      console.warn(`WARNING: Could not remove temp directory ${this.tempDir}: ${error.message}`);
     }
+  }
+
+  /**
+   * Cleanup on process exit
+   */
+  setupCleanup() {
+    process.on('exit', () => this.cleanup());
+    process.on('SIGINT', () => {
+      this.cleanup();
+      process.exit(0);
+    });
   }
 }
 

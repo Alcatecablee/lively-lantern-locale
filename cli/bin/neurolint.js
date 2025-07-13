@@ -157,6 +157,140 @@ program
     }
   });
 
+// Master orchestrator command - directly uses your fix-master.js
+program
+  .command('master <target>')
+  .description('Execute using your sophisticated fix-master.js orchestrator')
+  .option('-d, --dry-run', 'Preview changes without applying them')
+  .option('-v, --verbose', 'Show detailed output')
+  .option('--fail-fast', 'Stop on first layer failure')
+  .option('--exclude <patterns>', 'Exclude file patterns (comma-separated)')
+  .option('--backup', 'Create backup files before modifying')
+  .action(async (target, options) => {
+    try {
+      console.log('Starting NeuroLint Master Orchestrator...\n');
+
+      // Get files to process
+      const files = await getFilesToProcess(target, options.exclude);
+      
+      if (files.length === 0) {
+        console.log('WARNING: No files found to process.');
+        return;
+      }
+
+      console.log(`FILES: Found ${files.length} files to process`);
+      
+      if (options.dryRun) {
+        console.log('MODE: DRY RUN - No files will be modified\n');
+      }
+
+      // Initialize layer integrator with master orchestrator preference
+      const layerIntegrator = new LayerIntegrator({
+        verbose: options.verbose || false,
+        dryRun: options.dryRun || false
+      });
+
+      let processedFiles = 0;
+      let skippedFiles = 0;
+      let totalChanges = 0;
+      const startTime = Date.now();
+
+      // Process each file using master orchestrator
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileNum = i + 1;
+        
+        try {
+          console.log(`\nPROCESSING: [${fileNum}/${files.length}] ${file}`);
+          
+          const code = fs.readFileSync(file, 'utf8');
+          
+          // Execute all layers using master orchestrator
+          const result = await layerIntegrator.executeMultipleLayers(
+            code, 
+            file, 
+            [1, 2, 3, 4, 5, 6], // All layers
+            {
+              verbose: options.verbose,
+              failFast: options.failFast,
+              dryRun: options.dryRun
+            }
+          );
+          
+          if (result.success) {
+            // Write output if not dry run
+            if (!options.dryRun && result.finalCode !== code) {
+              // Create backup if requested
+              if (options.backup) {
+                const backupPath = `${file}.backup`;
+                fs.writeFileSync(backupPath, code);
+              }
+              
+              fs.writeFileSync(file, result.finalCode);
+            }
+            
+            // Count changes
+            const changes = result.summary?.totalChanges || 0;
+            totalChanges += changes;
+            
+            if (changes > 0) {
+              console.log(`SUCCESS: Applied ${changes} changes`);
+              
+              // Show layer results
+              if (result.layerResults && options.verbose) {
+                result.layerResults.forEach(layer => {
+                  const status = layer.success ? 'SUCCESS' : 'FAILED';
+                  console.log(`  ${status}: Layer ${layer.layerId} (${layer.name}) - ${layer.changeCount} changes`);
+                });
+              }
+              
+              processedFiles++;
+            } else {
+              console.log('INFO: No changes needed');
+              skippedFiles++;
+            }
+            
+          } else {
+            console.log(`ERROR: ${result.error || 'Unknown error'}`);
+            skippedFiles++;
+          }
+          
+        } catch (error) {
+          console.log(`\nERROR: Processing ${file}: ${error.message}`);
+          if (options.verbose) {
+            console.log(`STACK: ${error.stack}`);
+          }
+          skippedFiles++;
+        }
+      }
+
+      // Final summary
+      const totalTime = Date.now() - startTime;
+      console.log('\n');
+      console.log('NeuroLint Master Orchestrator complete.\n');
+      
+      console.log('SUMMARY:');
+      console.log(`  Files processed: ${processedFiles}`);
+      console.log(`  Files skipped: ${skippedFiles}`);
+      console.log(`  Total changes: ${totalChanges}`);
+      console.log(`  Execution time: ${(totalTime / 1000).toFixed(2)}s`);
+      
+      if (options.dryRun && totalChanges > 0) {
+        console.log('\nINFO: Run without --dry-run to apply these changes');
+      }
+
+      // Cleanup
+      layerIntegrator.cleanup();
+
+    } catch (error) {
+      console.error(`\nFATAL ERROR: ${error.message}`);
+      if (options.verbose) {
+        console.error(`STACK: ${error.stack}`);
+      }
+      process.exit(1);
+    }
+  });
+
 // Analyze command
 program
   .command('analyze <target>')
@@ -209,9 +343,10 @@ program
       console.log(`  Medium: ${allIssues.filter(i => i.severity === 'medium').length}`);
       console.log(`  Low: ${allIssues.filter(i => i.severity === 'low').length}`);
 
-      console.log('\nRECOMMENDED COMMAND:');
+      console.log('\nRECOMMENDED COMMANDS:');
       const recommendedLayersList = Array.from(recommendedLayers).sort();
       console.log(`  neurolint fix ${target} --layers ${recommendedLayersList.join(',')}`);
+      console.log(`  neurolint master ${target} # Use sophisticated master orchestrator`);
 
     } catch (error) {
       console.error(`ERROR: ${error.message}`);

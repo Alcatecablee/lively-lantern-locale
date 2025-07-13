@@ -4,7 +4,7 @@ const { spawn, execSync } = require('child_process');
 
 /**
  * Layer Integrator - Bridges CLI with actual sophisticated layer implementations
- * Uses the real layer files from src/lib/neurolint/layers/
+ * Uses your actual fix-master.js orchestrator and individual layer files
  */
 class LayerIntegrator {
   constructor(options = {}) {
@@ -29,14 +29,14 @@ class LayerIntegrator {
       6: path.join(this.layersPath, 'fix-layer-6-testing.js')
     };
     
-    // Master orchestrator
+    // Your actual master orchestrator
     this.masterOrchestrator = path.join(this.layersPath, 'fix-master.js');
     
     this.ensureTempDirectory();
   }
 
   /**
-   * Execute multiple layers using the sophisticated orchestration
+   * Execute multiple layers using your sophisticated fix-master.js orchestrator
    */
   async executeMultipleLayers(code, filePath, layerIds, options = {}) {
     const results = {
@@ -60,6 +60,15 @@ class LayerIntegrator {
         console.warn(`WARNING: Missing layer files for layers: ${validation.missing.join(', ')}`);
       }
 
+      // For multiple layers, prefer using your master orchestrator
+      if (layerIds.length > 1 && fs.existsSync(this.masterOrchestrator)) {
+        console.log('INFO: Using sophisticated master orchestrator for multi-layer execution...');
+        
+        const masterResult = await this.executeMasterOrchestrator(code, filePath, layerIds, options);
+        return masterResult;
+      }
+
+      // Fallback to individual layer execution
       let currentCode = code;
       
       // Execute each layer in sequence
@@ -147,6 +156,98 @@ class LayerIntegrator {
       return results;
       
     } catch (error) {
+      results.success = false;
+      results.error = error.message;
+      return results;
+    }
+  }
+
+  /**
+   * Execute using your sophisticated fix-master.js orchestrator
+   */
+  async executeMasterOrchestrator(code, filePath, layerIds, options = {}) {
+    const results = {
+      success: true,
+      layerResults: [],
+      finalCode: code,
+      summary: {
+        totalChanges: 0,
+        executedLayers: []
+      },
+      performance: {
+        startTime: Date.now(),
+        totalExecutionTime: 0
+      }
+    };
+
+    try {
+      // Create temporary file for processing
+      const tempFile = path.join(this.tempDir, `master-${Date.now()}.js`);
+      fs.writeFileSync(tempFile, code);
+
+      // Change to layers directory for proper execution
+      const originalCwd = process.cwd();
+      process.chdir(this.layersPath);
+
+      // Import and execute your master orchestrator
+      const MasterOrchestrator = require(this.masterOrchestrator);
+      const orchestrator = new MasterOrchestrator({
+        verbose: options.verbose || this.options.verbose,
+        failFast: options.failFast || false,
+        validateEach: true,
+        generateReport: false, // We'll handle reporting in CLI
+        targetFile: tempFile,
+        requestedLayers: layerIds
+      });
+
+      console.log('INFO: Executing sophisticated master orchestrator...');
+      const masterReport = await orchestrator.executeAllLayers();
+
+      // Restore working directory
+      process.chdir(originalCwd);
+
+      // Read the transformed code
+      const transformedCode = fs.existsSync(tempFile) ? 
+        fs.readFileSync(tempFile, 'utf8') : code;
+
+      // Convert master orchestrator results to our format
+      results.finalCode = transformedCode;
+      results.summary.totalChanges = masterReport.totalChanges || 0;
+      results.summary.executedLayers = masterReport.layers
+        .filter(l => l.success)
+        .map(l => l.id);
+
+      results.layerResults = masterReport.layers.map(layer => ({
+        layerId: layer.id,
+        name: layer.name,
+        success: layer.success,
+        changeCount: layer.changes || 0,
+        executionTime: layer.executionTime || 0,
+        error: layer.errors.length > 0 ? layer.errors[0] : null,
+        improvements: this.detectImprovements(code, transformedCode, layer.id),
+        transformedCode: layer.success ? transformedCode : code
+      }));
+
+      results.performance.totalExecutionTime = Date.now() - results.performance.startTime;
+      results.success = masterReport.errors.length === 0;
+
+      // Clean up temp file
+      try {
+        if (fs.existsSync(tempFile)) {
+          fs.unlinkSync(tempFile);
+        }
+      } catch (cleanupError) {
+        console.warn(`WARNING: Could not remove temp file: ${cleanupError.message}`);
+      }
+
+      console.log(`SUCCESS: Master orchestrator completed with ${results.summary.totalChanges} total changes`);
+      
+      return results;
+
+    } catch (error) {
+      process.chdir(originalCwd);
+      console.error(`ERROR: Master orchestrator failed: ${error.message}`);
+      
       results.success = false;
       results.error = error.message;
       return results;

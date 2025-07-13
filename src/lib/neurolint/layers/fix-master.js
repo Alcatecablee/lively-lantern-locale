@@ -164,4 +164,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = MasterOrchestrator;
+export default MasterOrchestrator;
